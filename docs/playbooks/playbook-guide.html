@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playbook System Guide | NLKE Project</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-card: #1f2937;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --accent-purple: #9C27B0;
+            --accent-blue: #4A90A4;
+            --accent-green: #81C784;
+            --accent-orange: #FFB74D;
+            --border-color: #374151;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            padding: 3rem 0;
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+        }
+
+        nav {
+            background: var(--bg-secondary);
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        nav ul {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            list-style: none;
+            flex-wrap: wrap;
+        }
+
+        nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        nav a:hover {
+            color: var(--text-primary);
+            background: var(--bg-card);
+        }
+
+        section {
+            padding: 3rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        section h2 {
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            color: var(--accent-blue);
+        }
+
+        section h3 {
+            font-size: 1.3rem;
+            margin: 1.5rem 0 1rem;
+            color: var(--accent-green);
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border: 1px solid var(--border-color);
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .playbook-card {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 1.5rem;
+            border-left: 4px solid var(--accent-blue);
+            transition: transform 0.2s;
+        }
+
+        .playbook-card:hover {
+            transform: translateX(5px);
+        }
+
+        .playbook-card.meta { border-left-color: var(--accent-purple); }
+        .playbook-card.foundation { border-left-color: var(--accent-blue); }
+        .playbook-card.advanced { border-left-color: var(--accent-green); }
+        .playbook-card.integration { border-left-color: var(--accent-orange); }
+
+        .playbook-card h4 {
+            margin-bottom: 0.5rem;
+        }
+
+        .playbook-card p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-right: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .tag-meta { background: var(--accent-purple); color: white; }
+        .tag-foundation { background: var(--accent-blue); color: white; }
+        .tag-advanced { background: var(--accent-green); color: black; }
+        .tag-integration { background: var(--accent-orange); color: black; }
+
+        code {
+            background: var(--bg-secondary);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+        }
+
+        pre {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .mermaid {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--bg-secondary);
+            color: var(--accent-blue);
+        }
+
+        .checklist {
+            list-style: none;
+        }
+
+        .checklist li {
+            padding: 0.5rem 0;
+            padding-left: 2rem;
+            position: relative;
+        }
+
+        .checklist li::before {
+            content: "☐";
+            position: absolute;
+            left: 0;
+            color: var(--accent-green);
+        }
+
+        .collapsible {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .collapsible-header {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .collapsible-header:hover {
+            background: var(--bg-secondary);
+        }
+
+        .collapsible-content {
+            padding: 0 1.5rem;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s, padding 0.3s;
+        }
+
+        .collapsible.active .collapsible-content {
+            max-height: 2000px;
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .collapsible-header::after {
+            content: "▶";
+            transition: transform 0.3s;
+        }
+
+        .collapsible.active .collapsible-header::after {
+            transform: rotate(90deg);
+        }
+
+        .highlight {
+            background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: bold;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            header h1 { font-size: 1.8rem; }
+            nav ul { gap: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Playbook System Guide</h1>
+            <p>How to understand, navigate, and create playbooks</p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#what">What Are Playbooks?</a></li>
+            <li><a href="#structure">Structure</a></li>
+            <li><a href="#catalog">Catalog</a></li>
+            <li><a href="#diagram">System Diagram</a></li>
+            <li><a href="#create">Create New</a></li>
+            <li><a href="#conventions">Conventions</a></li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        <section id="what">
+            <h2>What Are Playbooks?</h2>
+            <div class="card">
+                <p><strong>Playbooks transform documentation into executable recipes.</strong> They show:</p>
+                <ul style="margin: 1rem 0 1rem 2rem;">
+                    <li><strong>WHAT</strong> combinations work</li>
+                    <li><strong>WHEN</strong> to use them</li>
+                    <li><strong>HOW</strong> to implement</li>
+                    <li><strong>WHY</strong> (cost/speed/quality trade-offs)</li>
+                </ul>
+            </div>
+
+            <h3>The Philosophy</h3>
+            <p>Playbooks follow the <span class="highlight">NLKE v3.0 methodology</span>: Build WITH AI, Document AS you build. Each playbook is:</p>
+            <div class="card-grid">
+                <div class="card">
+                    <h4>Self-Contained</h4>
+                    <p>Everything needed to implement a capability in one document.</p>
+                </div>
+                <div class="card">
+                    <h4>Cross-Referenced</h4>
+                    <p>Links to related playbooks for deeper exploration.</p>
+                </div>
+                <div class="card">
+                    <h4>Standardized</h4>
+                    <p>Consistent structure for predictable navigation.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="structure">
+            <h2>Playbook Structure</h2>
+            <p>Every playbook follows this standard anatomy:</p>
+
+            <div class="collapsible active">
+                <div class="collapsible-header">
+                    <span><strong>1. Header Metadata</strong></span>
+                </div>
+                <div class="collapsible-content">
+<pre><code># Playbook N: Title
+## Subtitle describing the capability
+
+**Version:** 1.0
+**Last Updated:** November 2025
+**Target Audience:** [Who should read this]
+**Difficulty:** [Beginner/Intermediate/Advanced]
+**Time to Implement:** [Estimate]
+**Value:** [What you'll achieve]
+**Related Playbooks:** [Links to related PBs]</code></pre>
+                </div>
+            </div>
+
+            <div class="collapsible">
+                <div class="collapsible-header">
+                    <span><strong>2. Table of Contents</strong></span>
+                </div>
+                <div class="collapsible-content">
+<pre><code>## Table of Contents
+
+1. [Overview](#overview)
+2. [Strategic Context](#strategic-context)
+3. [Core Patterns](#core-patterns)
+4. [Implementation Guide](#implementation-guide)
+5. [Decision Framework](#decision-framework)
+...etc</code></pre>
+                </div>
+            </div>
+
+            <div class="collapsible">
+                <div class="collapsible-header">
+                    <span><strong>3. Overview Section</strong></span>
+                </div>
+                <div class="collapsible-content">
+                    <p>Always use <code>## Overview</code> (not "Introduction") for consistency.</p>
+                    <p>Include:</p>
+                    <ul style="margin-left: 2rem;">
+                        <li>What You'll Learn</li>
+                        <li>Prerequisites</li>
+                        <li>Key concepts introduction</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="collapsible">
+                <div class="collapsible-header">
+                    <span><strong>4. See Also Section</strong></span>
+                </div>
+                <div class="collapsible-content">
+<pre><code>## Additional Resources
+
+**See Also (Playbooks):**
+- **[Playbook N: Name](PLAYBOOK-N-NAME.md)** - Brief description
+- **[Playbook M: Name](PLAYBOOK-M-NAME.md)** - Brief description</code></pre>
+                </div>
+            </div>
+
+            <div class="collapsible">
+                <div class="collapsible-header">
+                    <span><strong>5. Footer Metadata</strong></span>
+                </div>
+                <div class="collapsible-content">
+<pre><code>---
+
+**Playbook Version:** 1.0
+**Last Updated:** November 27, 2025
+**Created By:** [Author]
+**Methodology:** NLKE v3.0 - Build WITH AI, Document AS you build</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="catalog">
+            <h2>Playbook Catalog</h2>
+
+            <h3>Meta Layer <span class="tag tag-meta">META</span></h3>
+            <div class="card-grid">
+                <div class="playbook-card meta">
+                    <h4>PB 0: Playbook System</h4>
+                    <p>How to create, maintain, and navigate playbooks. The meta-playbook.</p>
+                    <span class="tag tag-meta">Self-Referential</span>
+                </div>
+                <div class="playbook-card meta">
+                    <h4>PB 7: Fractal Reasoning</h4>
+                    <p>Discover optimal combinations through recursive reasoning composition.</p>
+                    <span class="tag tag-meta">Combinatorial</span>
+                </div>
+            </div>
+
+            <h3>Foundations <span class="tag tag-foundation">ERA 1</span></h3>
+            <div class="card-grid">
+                <div class="playbook-card foundation">
+                    <h4>PB 1: Cost Optimization</h4>
+                    <p>Reduce API costs by 90-95% using caching + batch.</p>
+                    <span class="tag tag-foundation">High Value</span>
+                </div>
+                <div class="playbook-card foundation">
+                    <h4>PB 2: Extended Thinking</h4>
+                    <p>Enable visible reasoning for complex problems.</p>
+                    <span class="tag tag-foundation">Transparency</span>
+                </div>
+                <div class="playbook-card foundation">
+                    <h4>PB 3: Agent Development</h4>
+                    <p>Build autonomous AI workflows.</p>
+                    <span class="tag tag-foundation">Production</span>
+                </div>
+            </div>
+
+            <h3>Advanced <span class="tag tag-advanced">ERA 2</span></h3>
+            <div class="card-grid">
+                <div class="playbook-card advanced">
+                    <h4>PB 4: Knowledge Engineering</h4>
+                    <p>Build knowledge graphs from documents.</p>
+                    <span class="tag tag-advanced">KG</span>
+                </div>
+                <div class="playbook-card advanced">
+                    <h4>PB 5: Enhanced Coding</h4>
+                    <p>10x development productivity with AI.</p>
+                    <span class="tag tag-advanced">Code</span>
+                </div>
+                <div class="playbook-card advanced">
+                    <h4>PB 6: Augmented Intelligence ML</h4>
+                    <p>NLKE v3.0 / SRAIS for ML development.</p>
+                    <span class="tag tag-advanced">ML</span>
+                </div>
+            </div>
+
+            <h3>System Integration <span class="tag tag-integration">INTEGRATION</span></h3>
+            <div class="card-grid">
+                <div class="playbook-card integration">
+                    <h4>PB 8: Continuous Learning Loop</h4>
+                    <p>Persistent knowledge across sessions.</p>
+                    <span class="tag tag-integration">Persistence</span>
+                </div>
+                <div class="playbook-card integration">
+                    <h4>PB 9: Metacognition Workflows</h4>
+                    <p>35 tools for validated reasoning.</p>
+                    <span class="tag tag-integration">Validation</span>
+                </div>
+                <div class="playbook-card integration">
+                    <h4>PB 10: MCP Server Development</h4>
+                    <p>Build custom Claude Code tools (68 tools, 6 servers).</p>
+                    <span class="tag tag-integration">Tools</span>
+                </div>
+                <div class="playbook-card integration">
+                    <h4>PB 11: Session Handoff Protocol</h4>
+                    <p>Knowledge transfer between sessions.</p>
+                    <span class="tag tag-integration">Transfer</span>
+                </div>
+            </div>
+
+            <h3>Recursive Intelligence <span class="tag tag-meta">RECURSIVE</span> ⭐ NEW</h3>
+            <div class="card-grid">
+                <div class="playbook-card meta">
+                    <h4>PB 17: High-Depth Insight Logging</h4>
+                    <p>Achieve depth 7-11+ through 5-tool methodology.</p>
+                    <span class="tag tag-meta">Depth 7-11</span>
+                </div>
+                <div class="playbook-card meta">
+                    <h4>PB 18: Meta-Optimization</h4>
+                    <p>Self-improving processes. P18+9+2+8+4+17 = 100x compression.</p>
+                    <span class="tag tag-meta">Meta^3</span>
+                </div>
+            </div>
+
+            <h3>Operations & Orchestration</h3>
+            <div class="card-grid">
+                <div class="playbook-card foundation">
+                    <h4>PB 12: Production Deployment</h4>
+                    <p>Deploy AI systems with circuit breakers and monitoring.</p>
+                    <span class="tag tag-foundation">Production</span>
+                </div>
+                <div class="playbook-card foundation">
+                    <h4>PB 13: Multi-Model Workflows</h4>
+                    <p>Orchestrate Claude + Gemini for complex tasks.</p>
+                    <span class="tag tag-foundation">Orchestration</span>
+                </div>
+                <div class="playbook-card advanced">
+                    <h4>PB 14: Embedding Systems</h4>
+                    <p>Build semantic search (88.5% recall case study).</p>
+                    <span class="tag tag-advanced">Search</span>
+                </div>
+                <div class="playbook-card foundation">
+                    <h4>PB 15: Testing & QA</h4>
+                    <p>Test AI systems with semantic assertions.</p>
+                    <span class="tag tag-foundation">Quality</span>
+                </div>
+                <div class="playbook-card foundation">
+                    <h4>PB 16: Prompt Engineering</h4>
+                    <p>Master prompts with complete library of personas.</p>
+                    <span class="tag tag-foundation">Prompts</span>
+                </div>
+                <div class="playbook-card integration">
+                    <h4>PB 19-20: Opus Advisor Pattern</h4>
+                    <p>Model cascading for Claude Code rate limits.</p>
+                    <span class="tag tag-integration">Cascade</span>
+                </div>
+                <div class="playbook-card integration">
+                    <h4>PB 21: Haiku 4.5 Delegation</h4>
+                    <p>67% cost reduction + 2x speed via task routing.</p>
+                    <span class="tag tag-integration">Optimization</span>
+                </div>
+                <div class="playbook-card advanced">
+                    <h4>PB 22: Full-Stack Scaffolding</h4>
+                    <p>Generate apps in 10-15 min (100% success rate).</p>
+                    <span class="tag tag-advanced">Generative</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="diagram">
+            <h2>System Diagram</h2>
+            <p>Visual representation of playbook relationships and dependencies:</p>
+
+            <div class="mermaid">
+flowchart TB
+    subgraph META["META LAYER (2)"]
+        PB0["PB 0: Playbook System"]
+        PB7["PB 7: Fractal Reasoning"]
+    end
+
+    subgraph FOUNDATIONS["FOUNDATIONS (4)"]
+        PB1["PB 1: Cost Optimization"]
+        PB2["PB 2: Extended Thinking"]
+        PB3["PB 3: Agent Development"]
+        PB16["PB 16: Prompt Engineering"]
+    end
+
+    subgraph ADVANCED["ADVANCED (3)"]
+        PB4["PB 4: Knowledge Engineering"]
+        PB5["PB 5: Enhanced Coding"]
+        PB6["PB 6: Augmented Intelligence ML"]
+    end
+
+    subgraph INTEGRATION["SYSTEM INTEGRATION (4)"]
+        PB8["PB 8: Continuous Learning"]
+        PB9["PB 9: Metacognition"]
+        PB10["PB 10: MCP Server Dev"]
+        PB11["PB 11: Session Handoff"]
+    end
+
+    subgraph RECURSIVE["RECURSIVE INTELLIGENCE (2) ⭐"]
+        PB17["PB 17: High-Depth Insight"]
+        PB18["PB 18: Meta-Optimization<br/>P18+9+2+8+4+17 = 100x"]
+    end
+
+    subgraph OPERATIONS["OPERATIONS (5)"]
+        PB12["PB 12: Production Deploy"]
+        PB15["PB 15: Testing & QA"]
+        PB19["PB 19-20: Opus Advisor"]
+    end
+
+    subgraph ORCHESTRATION["ORCHESTRATION (4)"]
+        PB13["PB 13: Multi-Model"]
+        PB14["PB 14: Embeddings"]
+        PB21["PB 21: Haiku 4.5"]
+        PB22["PB 22: Full-Stack"]
+    end
+
+    PB1 --> PB3
+    PB2 --> PB3
+    PB2 --> PB9
+    PB3 --> PB10
+    PB4 --> PB6
+    PB4 --> PB8
+    PB6 --> PB8
+    PB8 <--> PB9
+    PB8 --> PB11
+    PB10 --> PB8
+    PB10 --> PB9
+    PB8 --> PB17
+    PB9 --> PB17
+    PB17 --> PB18
+    PB18 --> PB18
+    PB2 --> PB18
+    PB4 --> PB18
+            </div>
+        </section>
+
+        <section id="create">
+            <h2>Creating a New Playbook</h2>
+
+            <h3>Step 1: Identify the Gap</h3>
+            <div class="card">
+                <p>Before creating a new playbook, ask:</p>
+                <ul class="checklist">
+                    <li>Does this capability exist in another playbook?</li>
+                    <li>Could this be a section in an existing playbook?</li>
+                    <li>Is this substantial enough for a full playbook (~500+ lines)?</li>
+                    <li>Does it follow the "executable recipe" philosophy?</li>
+                </ul>
+            </div>
+
+            <h3>Step 2: Choose Your Number</h3>
+            <div class="card">
+                <table>
+                    <tr><th>Number</th><th>Category</th><th>Notes</th></tr>
+                    <tr><td>0</td><td>Meta</td><td>Reserved for playbook system</td></tr>
+                    <tr><td>1-3</td><td>Foundations</td><td>Core API patterns</td></tr>
+                    <tr><td>4-6</td><td>Advanced</td><td>Domain-specific</td></tr>
+                    <tr><td>7</td><td>Meta</td><td>Fractal discovery</td></tr>
+                    <tr><td>8-11</td><td>Integration</td><td>System connectivity</td></tr>
+                    <tr><td>12+</td><td>Extensions</td><td>Future growth</td></tr>
+                </table>
+            </div>
+
+            <h3>Step 3: Use the Template</h3>
+            <div class="card">
+<pre><code># Playbook N: [Title]
+## [Subtitle]
+
+**Version:** 1.0
+**Last Updated:** [Date]
+**Target Audience:** [Who]
+**Difficulty:** [Level]
+**Time to Implement:** [Estimate]
+**Value:** [Outcome]
+**Related Playbooks:** [Links]
+
+---
+
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Strategic Context](#strategic-context)
+3. [Core Patterns](#core-patterns)
+4. [Implementation Guide](#implementation-guide)
+5. [Decision Framework](#decision-framework)
+6. [Validation & Testing](#validation--testing)
+7. [Troubleshooting](#troubleshooting)
+8. [Real-World Examples](#real-world-examples)
+
+---
+
+## Overview
+
+### What is [Topic]?
+[Explanation]
+
+### Why [Topic] Matters
+[Value proposition]
+
+### What You'll Learn
+- Point 1
+- Point 2
+- Point 3
+
+---
+
+[... remaining sections ...]
+
+---
+
+## Additional Resources
+
+**See Also (Playbooks):**
+- **[Playbook N](PLAYBOOK-N-NAME.md)** - Description
+
+---
+
+**Playbook Version:** 1.0
+**Last Updated:** [Date]
+**Created By:** [Author]
+**Methodology:** NLKE v3.0</code></pre>
+            </div>
+
+            <h3>Step 4: Update the Index</h3>
+            <div class="card">
+                <p>After creating your playbook:</p>
+                <ul class="checklist">
+                    <li>Add entry to PLAYBOOK-INDEX.md</li>
+                    <li>Update the Quick Reference Matrix</li>
+                    <li>Add to appropriate Reading Path(s)</li>
+                    <li>Update Feature Comparison Matrix</li>
+                    <li>Add comprehensive summary</li>
+                    <li>Update CLAUDE.md playbook count</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="conventions">
+            <h2>Conventions & Standards</h2>
+
+            <div class="card-grid">
+                <div class="card">
+                    <h4>Naming</h4>
+                    <p><code>PLAYBOOK-N-TITLE-WITH-DASHES.md</code></p>
+                    <p>All caps, dashes between words.</p>
+                </div>
+                <div class="card">
+                    <h4>Section Names</h4>
+                    <p>Use "Overview" not "Introduction"</p>
+                    <p>Use "See Also (Playbooks):" for links</p>
+                </div>
+                <div class="card">
+                    <h4>Links</h4>
+                    <p>Relative paths: <code>PLAYBOOK-N-NAME.md</code></p>
+                    <p>Full format: <code>**[PB N: Name](file.md)**</code></p>
+                </div>
+                <div class="card">
+                    <h4>Headers</h4>
+                    <p>Always include Version, Date, Audience, Related Playbooks</p>
+                </div>
+            </div>
+
+            <h3>Quality Checklist</h3>
+            <div class="card">
+                <ul class="checklist">
+                    <li>Has all required header metadata</li>
+                    <li>Has Table of Contents with working links</li>
+                    <li>Uses "Overview" section (not Introduction)</li>
+                    <li>Has "See Also (Playbooks):" section</li>
+                    <li>Has footer metadata</li>
+                    <li>At least 3 related playbook links</li>
+                    <li>Includes real-world examples</li>
+                    <li>Has troubleshooting section</li>
+                    <li>Added to PLAYBOOK-INDEX.md</li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>NLKE Project | November 2025 | Built WITH AI, Documented AS we build</p>
+        <p><strong>22 Playbooks | ~48,000 Lines | Meta^3-Optimization: P18+9+2+8+4+17 - 100x Compression ⭐</strong></p>
+    </footer>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            themeVariables: {
+                primaryColor: '#4A90A4',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#2E5A6B',
+                lineColor: '#5C6BC0',
+                secondaryColor: '#81C784',
+                tertiaryColor: '#FFB74D',
+                background: '#1f2937'
+            }
+        });
+
+        // Collapsible functionality
+        document.querySelectorAll('.collapsible-header').forEach(header => {
+            header.addEventListener('click', () => {
+                header.parentElement.classList.toggle('active');
+            });
+        });
+    </script>
+</body>
+</html>

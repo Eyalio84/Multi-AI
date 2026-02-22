@@ -1,0 +1,144 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#4A90A4', 'primaryTextColor': '#fff', 'primaryBorderColor': '#2E5A6B', 'lineColor': '#5C6BC0', 'secondaryColor': '#81C784', 'tertiaryColor': '#FFB74D'}}}%%
+
+flowchart TB
+    subgraph META["🎯 META LAYER (2)"]
+        PB0["<b>PB 0: Playbook System</b><br/>How to create & maintain playbooks"]
+        PB7["<b>PB 7: Fractal Reasoning</b><br/>Discover optimal combinations"]
+    end
+
+    subgraph FOUNDATIONS["📚 FOUNDATIONS (Era 1)"]
+        PB1["<b>PB 1: Cost Optimization</b><br/>90-95% API savings"]
+        PB2["<b>PB 2: Extended Thinking</b><br/>Visible reasoning"]
+        PB3["<b>PB 3: Agent Development</b><br/>Autonomous workflows"]
+    end
+
+    subgraph ADVANCED["🔬 ADVANCED (Era 2)"]
+        PB4["<b>PB 4: Knowledge Engineering</b><br/>Build knowledge graphs"]
+        PB5["<b>PB 5: Enhanced Coding</b><br/>10x dev productivity"]
+        PB6["<b>PB 6: Augmented Intelligence ML</b><br/>NLKE v3.0 / SRAIS"]
+    end
+
+    subgraph INTEGRATION["🔗 SYSTEM INTEGRATION (4)"]
+        PB8["<b>PB 8: Continuous Learning</b><br/>Persistent knowledge"]
+        PB9["<b>PB 9: Metacognition</b><br/>35 validation tools"]
+        PB10["<b>PB 10: MCP Server Dev</b><br/>68 tools across 6 servers"]
+        PB11["<b>PB 11: Session Handoff</b><br/>Knowledge transfer"]
+    end
+
+    subgraph RECURSIVE["⚡ RECURSIVE INTELLIGENCE (4)"]
+        PB17["<b>PB 17: High-Depth Insight</b><br/>Depth 7-11+ methodology"]
+        PB18["<b>PB 18: Meta-Optimization</b><br/>100x compression (P18+9+2+8+4+17)"]
+        PB23["<b>PB 23: Oracle Construction</b><br/>NP-hard → polynomial"]
+        PB24["<b>PB 24: Reasoning Engine</b><br/>Unknown unknowns discovery"]
+    end
+
+    subgraph OPERATIONS["🚀 OPERATIONS (5)"]
+        PB12["<b>PB 12: Production Deploy</b>"]
+        PB15["<b>PB 15: Testing & QA</b>"]
+        PB16["<b>PB 16: Prompt Engineering</b>"]
+        PB19["<b>PB 19: Opus Advisor Pattern</b>"]
+        PB20["<b>PB 20: Opus Advisor Usage</b>"]
+    end
+
+    subgraph ORCHESTRATION["🌐 ORCHESTRATION (4)"]
+        PB13["<b>PB 13: Multi-Model Workflows</b>"]
+        PB14["<b>PB 14: Embedding Systems</b>"]
+        PB21["<b>PB 21: Haiku 4.5 Delegation</b>"]
+        PB22["<b>PB 22: Full-Stack Scaffolding</b>"]
+    end
+
+    subgraph SESSION["📝 SESSION & DOCUMENTATION (3)"]
+        PB25["<b>PB 25: Session Continuity</b><br/>90% context at 10% cost"]
+        PB26["<b>PB 26: Doc Ecosystem Auto</b><br/>42x faster maintenance"]
+        PB27["<b>PB 27: Advanced RAG</b><br/>3x retrieval accuracy"]
+    end
+
+    subgraph INTERVIEW["🎤 INTERVIEW ENGINEERING (1)"]
+        PB28["<b>PB 28: Story-Driven Interviews</b><br/>10x context extraction"]
+    end
+
+    %% Meta relationships
+    PB0 -.->|governs all| PB1
+    PB0 -.->|governs all| PB4
+    PB0 -.->|governs all| PB8
+    PB7 -->|analyzes| PB1
+    PB7 -->|analyzes| PB4
+    PB7 -->|analyzes| PB8
+
+    %% Foundation flow
+    PB1 -->|cost patterns| PB3
+    PB2 -->|reasoning| PB3
+    PB1 -->|caching| PB4
+    PB2 -->|thinking| PB9
+
+    %% Advanced connections
+    PB3 -->|agents use| PB10
+    PB4 -->|KG for| PB6
+    PB4 -->|entities to| PB8
+    PB5 -->|code for| PB10
+    PB6 -->|ML insights| PB8
+
+    %% Integration layer
+    PB8 <-->|persistence + validation| PB9
+    PB8 -->|facts to| PB11
+    PB9 -->|validates| PB11
+    PB10 -->|tools for| PB8
+    PB10 -->|tools for| PB9
+    PB11 -->|enables| PB8
+
+    %% Recursive Intelligence layer
+    PB8 -->|persistence| PB17
+    PB9 -->|validation| PB17
+    PB17 -->|depth tracking| PB18
+    PB18 -->|meta-loop| PB18
+    PB2 -->|thinking| PB18
+    PB4 -->|automation| PB18
+    PB17 -->|insights| PB23
+    PB18 -->|patterns| PB23
+    PB23 -->|oracle queries| PB24
+    PB9 -->|validation| PB24
+    PB2 -->|reasoning| PB24
+
+    %% Operations connections
+    PB3 -->|deploys| PB12
+    PB12 <-->|testing| PB15
+    PB16 -->|prompts for| PB1
+
+    %% Orchestration connections
+    PB1 -->|costs| PB13
+    PB4 -->|KG| PB14
+    PB13 <-->|delegation| PB21
+    PB18 -->|patterns| PB22
+
+    %% Session & Documentation connections
+    PB11 -->|handoff to| PB25
+    PB0 -->|governs| PB26
+    PB26 -->|automates| PB0
+    PB4 -->|KG for| PB27
+    PB14 -->|embeddings for| PB27
+
+    %% Interview Engineering connections
+    PB18 -->|interview pattern| PB28
+    PB28 -->|structured input| PB22
+    PB16 -->|prompts for| PB28
+
+    %% Styling
+    classDef meta fill:#9C27B0,stroke:#6A1B9A,color:#fff
+    classDef foundation fill:#4A90A4,stroke:#2E5A6B,color:#fff
+    classDef advanced fill:#81C784,stroke:#4CAF50,color:#000
+    classDef integration fill:#FFB74D,stroke:#FF9800,color:#000
+    classDef recursive fill:#E91E63,stroke:#C2185B,color:#fff
+    classDef operations fill:#00BCD4,stroke:#0097A7,color:#000
+    classDef orchestration fill:#9E9E9E,stroke:#616161,color:#fff
+
+    class PB0,PB7 meta
+    class PB1,PB2,PB3,PB16 foundation
+    class PB4,PB5,PB6 advanced
+    class PB8,PB9,PB10,PB11 integration
+    class PB17,PB18,PB23,PB24 recursive
+    class PB12,PB15,PB19,PB20 operations
+    class PB13,PB14,PB21,PB22 orchestration
+    classDef session fill:#8E24AA,stroke:#6A1B9A,color:#fff
+    classDef interview fill:#FF5722,stroke:#E64A19,color:#fff
+    class PB25,PB26,PB27 session
+    class PB28 interview

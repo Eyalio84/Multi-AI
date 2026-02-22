@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Guide — Multi-AI Agentic Workspace</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; line-height: 1.6; }
+  .container { max-width: 900px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 32px; color: #38bdf8; margin-bottom: 8px; }
+  h2 { font-size: 22px; color: #f0abfc; margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 1px solid #334155; }
+  h3 { font-size: 16px; color: #a5b4fc; margin: 24px 0 8px; }
+  p { color: #94a3b8; margin: 8px 0; }
+  .subtitle { color: #64748b; font-size: 14px; }
+  .toc { background: #1e293b; border-radius: 12px; padding: 20px; margin: 24px 0; }
+  .toc h3 { margin-top: 0; }
+  .toc a { color: #38bdf8; text-decoration: none; display: block; padding: 4px 0; font-size: 14px; }
+  .toc a:hover { color: #7dd3fc; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin: 16px 0; }
+  .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .card-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .card h4 { font-size: 16px; color: #e2e8f0; }
+  .card p { font-size: 13px; }
+  code { background: #334155; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #f0abfc; }
+  pre { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
+  pre code { background: none; padding: 0; color: #94a3b8; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge-gemini { background: #1e3a5f; color: #38bdf8; }
+  .badge-claude { background: #3b2a1a; color: #fb923c; }
+  .badge-both { background: #1a2744; color: #a78bfa; }
+  .steps { counter-reset: step; }
+  .step { counter-increment: step; padding: 12px 12px 12px 48px; position: relative; margin: 8px 0; background: #1e293b; border-radius: 8px; }
+  .step::before { content: counter(step); position: absolute; left: 12px; top: 12px; width: 24px; height: 24px; background: #0ea5e9; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+  .tip { background: #172554; border-left: 3px solid #3b82f6; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 12px 0; font-size: 13px; }
+  .warning { background: #451a03; border-left: 3px solid #f97316; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  th { text-align: left; padding: 8px 12px; background: #1e293b; color: #94a3b8; font-size: 12px; border-bottom: 1px solid #334155; }
+  td { padding: 8px 12px; border-bottom: 1px solid #1e293b; font-size: 13px; color: #cbd5e1; }
+  @media (max-width: 600px) { .container { padding: 16px; } h1 { font-size: 24px; } .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>User Guide</h1>
+<p class="subtitle">Multi-AI Agentic Workspace v1.0 — Professional workflow orchestrator for Gemini + Claude</p>
+
+<div class="toc">
+  <h3>Table of Contents</h3>
+  <a href="#getting-started">1. Getting Started</a>
+  <a href="#chat">2. Chat (Dual-Model)</a>
+  <a href="#coding">3. Coding IDE</a>
+  <a href="#agents">4. NLKE Agents</a>
+  <a href="#playbooks">5. Playbooks</a>
+  <a href="#workflows">6. Workflows</a>
+  <a href="#kg-studio">7. KG Studio</a>
+  <a href="#builder">8. Web App Builder</a>
+  <a href="#themes">9. Themes</a>
+  <a href="#settings">10. Settings & Modes</a>
+  <a href="#tips">11. Tips & Shortcuts</a>
+</div>
+
+<h2 id="getting-started">1. Getting Started</h2>
+
+<div class="steps">
+  <div class="step">Start the backend: <code>cd backend && uvicorn main:app --host 0.0.0.0 --port 8000</code></div>
+  <div class="step">Start the frontend: <code>cd frontend && npm run dev</code></div>
+  <div class="step">Open <code>http://localhost:5173</code> in your browser</div>
+  <div class="step">Verify the backend: visit <code>http://localhost:8000/docs</code> for Swagger UI</div>
+</div>
+
+<div class="tip">
+  <strong>Phone setup:</strong> Run <code>npm install</code> on a laptop, then copy <code>node_modules/</code> to your phone. The Vite dev server works on the phone.
+</div>
+
+<h2 id="chat">2. Chat</h2>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-icon" style="background:#1e3a5f">💬</div>
+    <h4>Dual-Model Streaming</h4>
+  </div>
+  <p>Chat with either <span class="badge badge-gemini">Gemini</span> or <span class="badge badge-claude">Claude</span>. Switch providers using the ModelSelector at the top.</p>
+</div>
+
+<h3>Model Selection</h3>
+<table>
+  <tr><th>Need</th><th>Choose</th></tr>
+  <tr><td>Fast, cheap responses</td><td><span class="badge badge-gemini">Gemini 2.5 Flash</span></td></tr>
+  <tr><td>Deep reasoning</td><td><span class="badge badge-claude">Claude Opus 4.6</span></td></tr>
+  <tr><td>Balanced quality</td><td><span class="badge badge-claude">Claude Sonnet 4.6</span></td></tr>
+  <tr><td>Extended thinking</td><td>Enable "Think" checkbox (Claude only), set budget</td></tr>
+  <tr><td>Web search</td><td>Available with Gemini models</td></tr>
+</table>
+
+<h2 id="coding">3. Coding IDE</h2>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-icon" style="background:#1a3320">⚡</div>
+    <h4>AI-Powered Code Editor</h4>
+  </div>
+  <p>Create projects, add files, and chat with AI to generate code. The AI has 7 tools:</p>
+</div>
+
+<table>
+  <tr><th>Tool</th><th>What It Does</th></tr>
+  <tr><td><code>listFiles</code></td><td>Shows all files in the project</td></tr>
+  <tr><td><code>createFile</code></td><td>Creates a new file with content</td></tr>
+  <tr><td><code>readFile</code></td><td>Reads file contents</td></tr>
+  <tr><td><code>updateFile</code></td><td>Updates existing file content</td></tr>
+  <tr><td><code>deleteFile</code></td><td>Removes a file</td></tr>
+  <tr><td><code>searchNpm</code></td><td>Searches npm for packages</td></tr>
+  <tr><td><code>runPython</code></td><td>Executes Python code in-browser</td></tr>
+</table>
+
+<h2 id="agents">4. NLKE Agents</h2>
+
+<div class="grid">
+  <div class="card">
+    <h4>Run Individual Agents</h4>
+    <p>Select an agent, load an example workload, customize it, and run. View structured results (recommendations, rules, anti-patterns).</p>
+  </div>
+  <div class="card">
+    <h4>Build Pipelines</h4>
+    <p>Chain multiple agents together. Click "Add to pipeline" to queue agents, then "Run Pipeline" to execute in sequence.</p>
+  </div>
+</div>
+
+<h3>Agent Categories</h3>
+<table>
+  <tr><th>Category</th><th>Count</th><th>Examples</th></tr>
+  <tr><td>FOUNDATION</td><td>4</td><td>cost-advisor, error-recovery</td></tr>
+  <tr><td>DEV</td><td>8</td><td>code-reviewer, test-generator, doc-generator</td></tr>
+  <tr><td>AGENT</td><td>4</td><td>workflow-orchestrator, task-decomposer</td></tr>
+  <tr><td>KNOWLEDGE</td><td>4</td><td>kg-builder, entity-extractor</td></tr>
+  <tr><td>REASONING</td><td>4</td><td>fact-validator, metacognition-advisor</td></tr>
+  <tr><td>SPECIALIZED</td><td>4</td><td>playbook-advisor, pattern-detector</td></tr>
+  <tr><td>ORCHESTRATION</td><td>5</td><td>deployment-planner, scaling-advisor</td></tr>
+</table>
+
+<h2 id="playbooks">5. Playbooks</h2>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-icon" style="background:#3b2a1a">📚</div>
+    <h4>53 Implementation Recipes</h4>
+  </div>
+  <p>Search by keyword or filter by category. Click any playbook to read the full content with syntax-highlighted code examples.</p>
+</div>
+
+<h2 id="workflows">6. Workflows</h2>
+
+<div class="steps">
+  <div class="step">Choose a template (Dev Lifecycle, Research, KG Pipeline, Decision Making) or type a custom goal</div>
+  <div class="step">Click "AI Plan" to generate steps with model assignments</div>
+  <div class="step">Review the planned steps — each shows which model will execute it</div>
+  <div class="step">Click "Execute Workflow" — watch real-time progress via SSE streaming</div>
+</div>
+
+<h2 id="kg-studio">7. KG Studio</h2>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-icon" style="background:#2a1a3b">🔗</div>
+    <h4>Knowledge Graph Explorer</h4>
+  </div>
+  <p>Visualize nodes and edges in an SVG graph. Click "Load Demo Graph" to see a sample. Filter by node type, search by name, inspect properties and connections.</p>
+</div>
+
+<h2 id="builder">8. Web App Builder</h2>
+
+<div class="steps">
+  <div class="step"><strong>Idea:</strong> Describe what you want to build</div>
+  <div class="step"><strong>Plan:</strong> AI generates project architecture (name, features, tech stack, file structure)</div>
+  <div class="step"><strong>Theme:</strong> Choose color palette and typography</div>
+  <div class="step"><strong>Generate:</strong> AI creates all project files</div>
+  <div class="step"><strong>Export:</strong> Open in IDE (creates a project in /coding) or download as ZIP</div>
+</div>
+
+<h2 id="themes">9. Themes</h2>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-icon" style="background:#2a1a3b">🎨</div>
+    <h4>5 Built-in Themes</h4>
+  </div>
+  <p>Switch themes via the palette icon in the NavBar or from the Settings page. Your choice is saved in localStorage and persists across sessions.</p>
+</div>
+
+<table>
+  <tr><th>Theme</th><th>Style</th><th>Special Effects</th></tr>
+  <tr><td><strong>Default</strong></td><td>Dark slate, sky-blue accents</td><td>None</td></tr>
+  <tr><td><strong>Deluxe-CRT</strong></td><td>Amber phosphor, monospace font</td><td>Subtle scanlines, vignette, text glow</td></tr>
+  <tr><td><strong>Scratch</strong></td><td>B&W, hand-drawn doodle</td><td>Dashed borders, box-shadows, Patrick Hand font</td></tr>
+  <tr><td><strong>Solarized Zen</strong></td><td>Warm earth tones, teal/amber</td><td>Clean & minimal</td></tr>
+  <tr><td><strong>Sunset Warm</strong></td><td>Coral, amber, rose gold</td><td>Subtle gradient accents</td></tr>
+</table>
+
+<div class="tip">
+  <strong>How it works:</strong> Themes use CSS custom properties (<code>--t-bg</code>, <code>--t-surface</code>, <code>--t-primary</code>, etc.) applied to <code>:root</code>. All components reference these variables instead of hardcoded colors, so the entire UI updates instantly when you switch themes.
+</div>
+
+<h2 id="settings">10. Settings & Modes</h2>
+
+<h3>Standalone Mode (default)</h3>
+<p>Both Gemini and Claude APIs are active. Full dual-model experience.</p>
+
+<h3>Claude Code Mode</h3>
+<p>Only Gemini API is active. When you select Claude as provider, the app generates structured JSON context that you can feed into a Claude Code session. This saves Anthropic API costs (subscription vs per-token).</p>
+
+<h3>Workspace Transfer</h3>
+<p>Export your entire workspace (projects, files, chat history, personas) as JSON. Import it in the other mode or on another device.</p>
+
+<h2 id="tips">11. Tips & Shortcuts</h2>
+
+<div class="grid">
+  <div class="tip">
+    <strong>Cost savings:</strong> Use Gemini Flash for routine tasks, Claude Sonnet for quality work, Opus only for complex reasoning.
+  </div>
+  <div class="tip">
+    <strong>Extended thinking:</strong> Enable the "Think" checkbox for Claude to see its reasoning process. Budget 4K-8K tokens for most tasks.
+  </div>
+  <div class="tip">
+    <strong>Agent pipelines:</strong> Chain cost-advisor → prompt-engineer → code-reviewer for a complete optimization workflow.
+  </div>
+  <div class="tip">
+    <strong>Playbook search:</strong> Search "cost" to find optimization recipes, "agent" for autonomous workflows, "reasoning" for metacognition tools.
+  </div>
+  <div class="tip">
+    <strong>Theme switching:</strong> Click the palette icon in the NavBar to quickly switch themes. Try Deluxe-CRT for a retro terminal feel or Scratch for a whiteboard doodle aesthetic.
+  </div>
+</div>
+
+<div class="tip warning">
+  <strong>Note:</strong> API keys are stored in <code>backend/config.py</code>. Set environment variables <code>GEMINI_API_KEY</code> and <code>ANTHROPIC_API_KEY</code> to override. Never commit keys to public repositories.
+</div>
+
+<hr style="border: 1px solid #1e293b; margin: 40px 0;">
+<p style="text-align: center; font-size: 12px; color: #475569;">Multi-AI Agentic Workspace v1.0 — Built with FastAPI + React 19 + Gemini + Claude</p>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,8 @@
+/storage/emulated/0/Download/synthesis-rules/playbooks/AGENT-parallel-orchestration.pb
+
+/storage/emulated/0/Download/synthesis-rules/playbooks/REASONING-patterns.pb
+
+/storage/emulated/0/Download/synthesis-rules/playbooks/REASONING-metacognition-workflows.pb
+
+/storage/emulated/0/Download/synthesis-rules/playbooks/DEV-augmented-intelligence-ml.pb
+
