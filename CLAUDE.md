@@ -1,8 +1,8 @@
-# CLAUDE.md — Multi-AI Agentic Workspace v1.0.2
+# CLAUDE.md — Multi-AI Agentic Workspace v2.0.0
 
 ## What This Is
 
-A professional agentic workflow orchestrator combining Gemini + Claude intelligence. Built as a FastAPI backend + React 19 frontend with dual-model streaming, 33 NLKE agents, 53 playbooks, visual workflow execution, and a full Graph-RAG Knowledge Graph workspace (57 SQLite KGs, 6 schema profiles, live hybrid search with numpy cosine similarity, d3-force graph visualization, NetworkX analytics, RAG chat, edge browser with edit/delete, multi-KG cross-search).
+A professional agentic workflow orchestrator combining Gemini + Claude intelligence. Built as a FastAPI backend + React 19 frontend with dual-model streaming, 33 NLKE agents, 53 playbooks, visual workflow execution, a full Graph-RAG Knowledge Graph workspace (57 SQLite KGs, 6 schema profiles, live hybrid search with numpy cosine similarity, d3-force graph visualization, NetworkX analytics, RAG chat, edge browser with edit/delete, multi-KG cross-search), and an **AI-powered Studio** for generating full-stack React apps with live Sandpack preview, 3 editing modes, SQLite project persistence, and version history.
 
 ## Quick Start
 
@@ -22,13 +22,14 @@ multi-ai-agentic-workspace/
 ├── backend/                    # FastAPI (Python)
 │   ├── main.py                 # App entry, CORS, router mounting
 │   ├── config.py               # API keys, model catalog, paths
-│   ├── routers/                # 9 API routers
+│   ├── routers/                # 10 API routers
 │   │   ├── chat.py             # POST /api/chat/stream (SSE, dual-model)
 │   │   ├── coding.py           # POST /api/coding/stream (tool use)
 │   │   ├── agents.py           # NLKE agent CRUD + execution
 │   │   ├── playbooks.py        # Playbook search + retrieval
 │   │   ├── workflows.py        # Workflow templates + execution
-│   │   ├── builder.py          # Web app plan + generate
+│   │   ├── builder.py          # Legacy web app plan + generate
+│   │   ├── studio.py           # Studio: SSE streaming + project CRUD (18 endpoints)
 │   │   ├── media.py            # Image edit + video gen
 │   │   ├── interchange.py      # JSON import/export, mode toggle
 │   │   └── kg.py               # KG Studio (33 endpoints, CRUD, search, analytics, RAG)
@@ -38,6 +39,10 @@ multi-ai-agentic-workspace/
 │   │   ├── model_router.py     # Intelligent model selection
 │   │   ├── agent_bridge.py     # NLKE agent system bridge
 │   │   ├── playbook_index.py   # Playbook file parser + search
+│   │   ├── studio_service.py   # Studio SQLite CRUD, versions, ZIP export
+│   │   ├── openapi_extractor.py # FastAPI code → OpenAPI spec (AST + regex)
+│   │   ├── type_generator.py   # OpenAPI → TypeScript interfaces
+│   │   ├── mock_server_manager.py # Node.js mock server process lifecycle
 │   │   ├── kg_service.py       # KG core: 6 schema profiles, auto-detect, CRUD
 │   │   ├── embedding_service.py # Hybrid search (numpy cosine + BM25 + graph boost)
 │   │   ├── analytics_service.py # NetworkX graph algorithms
@@ -49,12 +54,14 @@ multi-ai-agentic-workspace/
 │   ├── src/
 │   │   ├── App.tsx             # Router + layout shell
 │   │   ├── context/AppContext   # Global state (projects, models, personas)
-│   │   ├── pages/              # 8 route pages
+│   │   ├── context/StudioContext # Studio state (files, mode, streaming, versions)
+│   │   ├── pages/              # 8 route pages (Studio replaces Builder at /builder)
 │   │   ├── components/         # Reusable UI components
+│   │   ├── components/studio/  # 28 Studio components (panels, editors, overlays)
 │   │   ├── themes/             # 5 theme definitions (CSS variable maps)
 │   │   ├── hooks/              # useChat (streaming), useTheme (CSS vars), useToast (global notifications)
-│   │   ├── services/           # API + localStorage services
-│   │   └── types/              # TypeScript interfaces
+│   │   ├── services/           # API + localStorage + studioApiService
+│   │   └── types/              # TypeScript interfaces (inc. studio.ts)
 │   └── package.json
 │
 ├── agents -> NLKE/agents       # Symlink to 33 NLKE agents
@@ -87,8 +94,21 @@ multi-ai-agentic-workspace/
 | GET | /api/playbooks/search?q= | Search playbooks |
 | GET | /api/workflows/templates | 4 workflow templates |
 | POST | /api/workflows/execute | Execute workflow (SSE) |
-| POST | /api/builder/plan | AI project planning |
-| POST | /api/builder/generate | Full code generation |
+| POST | /api/builder/plan | Legacy AI project planning |
+| POST | /api/builder/generate | Legacy full code generation |
+| POST | /api/studio/stream | Studio AI streaming (generate/refine) |
+| POST | /api/studio/projects | Create Studio project |
+| GET | /api/studio/projects | List Studio projects |
+| GET | /api/studio/projects/{id} | Load project (files + chat + versions) |
+| PUT | /api/studio/projects/{id} | Update project |
+| DELETE | /api/studio/projects/{id} | Delete project |
+| POST | /api/studio/projects/{id}/save | Save version snapshot |
+| GET | /api/studio/projects/{id}/versions | List versions |
+| POST | /api/studio/projects/{id}/versions/{ver}/restore | Restore version |
+| GET | /api/studio/projects/{id}/export | Download ZIP archive |
+| POST | /api/studio/projects/{id}/mock/start | Start mock server |
+| GET | /api/studio/projects/{id}/api-spec | Get OpenAPI spec |
+| GET | /api/studio/projects/{id}/types | Get generated TypeScript types |
 | POST | /api/export | Export workspace JSON |
 | POST | /api/import | Import workspace JSON |
 | GET | /api/kg/databases | List 57 KG databases with stats |
@@ -124,7 +144,7 @@ multi-ai-agentic-workspace/
 | /playbooks | PlaybooksPage | 53 playbooks search + reader |
 | /workflows | WorkflowsPage | Visual workflow designer + executor |
 | /kg-studio | KGStudioPage | Graph-RAG KG workspace (10 tabs, 57 DBs, React Flow + d3-force, edge browser, multi-KG search) |
-| /builder | BuilderPage | 5-step web app generator |
+| /builder | StudioPage | AI Studio: chat→generate→preview, 3 modes, version history |
 | /settings | SettingsPage | Mode toggle, themes, export/import |
 
 ## Theme System

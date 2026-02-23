@@ -9,6 +9,7 @@
     "preview": "ESBUILD_BINARY_PATH=/data/data/com.termux/files/usr/tmp/esbuild-native/esbuild node node_modules/vite/bin/vite.js preview"
   },
   "dependencies": {
+    "@codesandbox/sandpack-react": "^2.20.0",
     "@rollup/rollup-android-arm64": "^4.59.0",
     "@types/d3-force": "^3.0.10",
     "@xyflow/react": "^12.4.0",

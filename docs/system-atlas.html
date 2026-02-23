@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>System Atlas — Multi-AI Agentic Workspace v1.0.2</title>
+<title>System Atlas — Multi-AI Agentic Workspace v2.0.0</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; overflow-x: hidden; }
@@ -14,7 +14,7 @@
   .btn { padding: 6px 16px; border: 1px solid #334155; background: #1e293b; color: #94a3b8; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
   .btn:hover, .btn.active { background: #0ea5e9; color: white; border-color: #0ea5e9; }
   .canvas { position: relative; width: 100%; min-height: calc(100vh - 160px); overflow: auto; }
-  svg { width: 100%; height: 100%; min-height: 900px; }
+  svg { width: 100%; height: 100%; min-height: 1000px; }
   .node { cursor: pointer; transition: transform 0.2s; }
   .node:hover { transform: scale(1.08); }
   .node rect { rx: 8; ry: 8; stroke-width: 2; }
@@ -37,7 +37,7 @@
 
 <div class="header">
   <h1>System Atlas</h1>
-  <p>Interactive architecture map — Multi-AI Agentic Workspace v1.0.2</p>
+  <p>Interactive architecture map — Multi-AI Agentic Workspace v2.0.0</p>
 </div>
 
 <div class="controls">
@@ -50,7 +50,7 @@
 </div>
 
 <div class="canvas">
-<svg viewBox="0 0 1200 900" id="atlas">
+<svg viewBox="0 0 1200 1000" id="atlas">
   <defs>
     <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#334155" />
@@ -97,10 +97,10 @@
     <text x="800" y="72" text-anchor="middle">KG Studio</text>
     <text x="800" y="86" text-anchor="middle" class="subtitle">/kg-studio</text>
   </g>
-  <g class="node" data-layer="frontend" data-tip="BuilderPage|5-step web app generator: idea, plan, theme, generate, export|Route: /builder" onclick="showTip(this, event)">
-    <rect x="880" y="50" width="120" height="50" fill="#1e3a5f" stroke="#3b82f6" />
-    <text x="940" y="72" text-anchor="middle">BuilderPage</text>
-    <text x="940" y="86" text-anchor="middle" class="subtitle">/builder</text>
+  <g class="node" data-layer="frontend" data-tip="StudioPage|AI-powered React app generator: Chat/Code/Visual modes, Sandpack live preview, 28 components, SQLite persistence, version history, ZIP export|Route: /builder" onclick="showTip(this, event)">
+    <rect x="880" y="50" width="120" height="50" fill="#1e3a5f" stroke="#38bdf8" stroke-width="3" />
+    <text x="940" y="72" text-anchor="middle">Studio</text>
+    <text x="940" y="86" text-anchor="middle" class="subtitle">/builder (v2)</text>
   </g>
   <g class="node" data-layer="frontend" data-tip="SettingsPage|Theme switcher (5 themes), mode toggle, export/import, API config|Route: /settings" onclick="showTip(this, event)">
     <rect x="1020" y="50" width="120" height="50" fill="#1e3a5f" stroke="#3b82f6" />
@@ -152,10 +152,10 @@
     <text x="705" y="242" text-anchor="middle">workflows.py</text>
     <text x="705" y="256" text-anchor="middle" class="subtitle">/workflows/*</text>
   </g>
-  <g class="node" data-layer="backend" data-tip="builder.py|POST /api/builder/plan and /generate|AI-powered project architecture and code gen" onclick="showTip(this, event)">
-    <rect x="790" y="220" width="130" height="50" fill="#1a3320" stroke="#22c55e" />
-    <text x="855" y="242" text-anchor="middle">builder.py</text>
-    <text x="855" y="256" text-anchor="middle" class="subtitle">/builder/*</text>
+  <g class="node" data-layer="backend" data-tip="studio.py|18 endpoints: SSE streaming with file extraction, project CRUD, version management, mock server, OpenAPI spec, TypeScript types, ZIP export|AI Studio backend" onclick="showTip(this, event)">
+    <rect x="790" y="220" width="130" height="50" fill="#1a3320" stroke="#38bdf8" stroke-width="3" />
+    <text x="855" y="242" text-anchor="middle">studio.py</text>
+    <text x="855" y="256" text-anchor="middle" class="subtitle">/studio/* (18)</text>
   </g>
   <g class="node" data-layer="backend" data-tip="media.py|POST /api/image/edit, /video/generate, GET /video/status|Gemini multimodal + Veo 2.0" onclick="showTip(this, event)">
     <rect x="940" y="220" width="130" height="50" fill="#1a3320" stroke="#22c55e" />
@@ -228,6 +228,30 @@
     <text x="1020" y="552" text-anchor="middle">rag_chat_service.py</text>
     <text x="1020" y="566" text-anchor="middle" class="subtitle">RAG + streaming</text>
   </g>
+
+  <!-- Services (row 3: Studio services) -->
+  <g class="node" data-layer="services" data-tip="studio_service.py|SQLite CRUD for projects + versions, ZIP export, file persistence|Studio data layer" onclick="showTip(this, event)">
+    <rect x="40" y="600" width="180" height="40" fill="#1a3a2a" stroke="#38bdf8" />
+    <text x="130" y="624" text-anchor="middle">studio_service.py</text>
+  </g>
+  <g class="node" data-layer="services" data-tip="openapi_extractor.py|Parse FastAPI code into OpenAPI spec via AST + regex|API contract extraction" onclick="showTip(this, event)">
+    <rect x="240" y="600" width="180" height="40" fill="#1a3a2a" stroke="#38bdf8" />
+    <text x="330" y="624" text-anchor="middle">openapi_extractor.py</text>
+  </g>
+  <g class="node" data-layer="services" data-tip="type_generator.py|OpenAPI schemas → TypeScript interfaces (pure Python)|TS type generation" onclick="showTip(this, event)">
+    <rect x="440" y="600" width="170" height="40" fill="#1a3a2a" stroke="#38bdf8" />
+    <text x="525" y="624" text-anchor="middle">type_generator.py</text>
+  </g>
+  <g class="node" data-layer="services" data-tip="mock_server_manager.py|Spawn/kill Node.js mock servers on dynamic ports from OpenAPI spec|Mock API server" onclick="showTip(this, event)">
+    <rect x="630" y="600" width="200" height="40" fill="#1a3a2a" stroke="#38bdf8" />
+    <text x="730" y="624" text-anchor="middle">mock_server_manager.py</text>
+  </g>
+
+  <!-- Studio router → Studio services -->
+  <line class="edge active" data-layer="data" x1="855" y1="270" x2="130" y2="600" marker-end="url(#arrowhead-active)" />
+  <line class="edge active" data-layer="data" x1="855" y1="270" x2="330" y2="600" marker-end="url(#arrowhead-active)" />
+  <line class="edge active" data-layer="data" x1="855" y1="270" x2="525" y2="600" marker-end="url(#arrowhead-active)" />
+  <line class="edge active" data-layer="data" x1="855" y1="270" x2="730" y2="600" marker-end="url(#arrowhead-active)" />
 
   <!-- External -->
   <g class="node" data-layer="external" data-tip="Gemini API|Google AI models: Flash, Pro, 3-Pro, Embedding, Veo|1M token context, multimodal" onclick="showTip(this, event)">
@@ -308,6 +332,7 @@
   <div class="legend-item"><div class="legend-dot" style="background:#a855f7"></div> Support Services</div>
   <div class="legend-item"><div class="legend-dot" style="background:#06b6d4"></div> KG Services (5)</div>
   <div class="legend-item"><div class="legend-dot" style="background:#0ea5e9"></div> External APIs</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div> Studio (18 endpoints)</div>
   <div class="legend-item"><div class="legend-dot" style="background:#6366f1"></div> Theme System (5)</div>
 </div>
 

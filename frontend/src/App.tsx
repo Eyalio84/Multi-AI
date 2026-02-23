@@ -8,7 +8,7 @@ import AgentsPage from './pages/AgentsPage';
 import PlaybooksPage from './pages/PlaybooksPage';
 import WorkflowsPage from './pages/WorkflowsPage';
 import KGStudioPage from './pages/KGStudioPage';
-import BuilderPage from './pages/BuilderPage';
+import StudioPage from './pages/StudioPage';
 import SettingsPage from './pages/SettingsPage';
 import ToastContainer from './components/ToastContainer';
 
@@ -27,7 +27,7 @@ const AppContent: React.FC = () => {
           <Route path="/playbooks" element={<PlaybooksPage />} />
           <Route path="/workflows" element={<WorkflowsPage />} />
           <Route path="/kg-studio" element={<KGStudioPage />} />
-          <Route path="/builder" element={<BuilderPage />} />
+          <Route path="/builder" element={<StudioPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </div>

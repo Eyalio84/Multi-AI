@@ -1,6 +1,6 @@
-# Multi-AI Agentic Workspace v1.0.2
+# Multi-AI Agentic Workspace v2.0.0
 
-A professional agentic workflow orchestrator combining **Gemini** and **Claude** intelligence into a unified web interface. Build real software with 33 NLKE agents, 53 playbooks, visual workflows, a dual-model coding IDE, and a full Graph-RAG Knowledge Graph workspace.
+A professional agentic workflow orchestrator combining **Gemini** and **Claude** intelligence into a unified web interface. Build real software with 33 NLKE agents, 53 playbooks, visual workflows, a dual-model coding IDE, a full Graph-RAG Knowledge Graph workspace, and an **AI-powered Studio** for generating full-stack React apps with live preview.
 
 ## Features
 
@@ -10,7 +10,7 @@ A professional agentic workflow orchestrator combining **Gemini** and **Claude**
 - **53 Playbooks** — Searchable library of implementation recipes with category filtering
 - **Visual Workflows** — 4 templates, AI-planned custom workflows, SSE execution with progress
 - **KG Studio** — Full Graph-RAG workspace: 57 SQLite KGs, 6 auto-detected schema profiles, d3-force + React Flow visualization, **live hybrid semantic search** (0.40\*embedding + 0.45\*BM25 + 0.15\*graph via numpy cosine similarity), CRUD, edge browser with edit/delete, **multi-KG cross-search**, AI ingestion (Gemini + LightRAG with resilient fallback), NetworkX analytics (PageRank, communities, centrality), RAG chat with source citations, KG compare/diff/merge, embedding dashboard with PCA projections (10 tabs), toast notifications for all errors
-- **Web App Builder** — 5-step wizard: idea → plan → theme → generate → export/IDE
+- **Studio** — AI-powered full-stack React app generator: describe in chat → live Sandpack preview → 3 modes (Chat/Code/Visual) → SQLite project persistence with version history → ZIP export. 28 components, mobile-responsive with bottom tab bar
 - **Workspace Transfer** — JSON import/export between standalone and Claude Code modes
 - **5 Themes** — Default, Deluxe-CRT, Scratch (B&W doodle), Solarized Zen, Sunset Warm — switchable via NavBar or Settings
 - **Mobile-First** — Responsive design, collapsible sidebars, touch-friendly
@@ -26,7 +26,7 @@ A professional agentic workflow orchestrator combining **Gemini** and **Claude**
 │                    Proxy /api → :8000                     │
 ├──────────────────────────────────────────────────────────┤
 │                    FastAPI Backend (:8000)                │
-│  9 Routers │ 10 Services │ Model Router │ Agent Bridge   │
+│  10 Routers │ 15 Services │ Model Router │ Agent Bridge  │
 ├──────────────────────────────────────────────────────────┤
 │              External APIs                                │
 │  Gemini API (google-genai) │ Claude API (anthropic)      │
@@ -88,7 +88,8 @@ multi-ai-agentic-workspace/
 │   │   ├── agents.py           # NLKE agent execution
 │   │   ├── playbooks.py        # Playbook search/retrieval
 │   │   ├── workflows.py        # Workflow engine
-│   │   ├── builder.py          # Web app generator
+│   │   ├── builder.py          # Legacy web app generator
+│   │   ├── studio.py           # Studio: AI app gen + project CRUD (18 endpoints)
 │   │   ├── media.py            # Image/video
 │   │   ├── interchange.py      # Export/import
 │   │   └── kg.py               # KG Studio (33 endpoints)
@@ -98,6 +99,10 @@ multi-ai-agentic-workspace/
 │   │   ├── model_router.py     # Smart model selection
 │   │   ├── agent_bridge.py     # NLKE bridge
 │   │   ├── playbook_index.py   # .pb file parser
+│   │   ├── studio_service.py   # Studio SQLite persistence + versions + ZIP export
+│   │   ├── openapi_extractor.py # FastAPI → OpenAPI spec extractor
+│   │   ├── type_generator.py   # OpenAPI → TypeScript interfaces
+│   │   ├── mock_server_manager.py # Node.js mock server lifecycle
 │   │   ├── kg_service.py       # KG core: 6 schema profiles, CRUD
 │   │   ├── embedding_service.py # Hybrid search (numpy cosine + BM25 + graph boost)
 │   │   ├── analytics_service.py # NetworkX graph algorithms
@@ -108,19 +113,22 @@ multi-ai-agentic-workspace/
 │   ├── src/
 │   │   ├── App.tsx             # React Router shell
 │   │   ├── context/            # Global state
-│   │   ├── pages/              # 8 route pages
+│   │   ├── context/StudioContext # Studio state (files, mode, streaming, versions)
+│   │   ├── pages/              # 8 route pages (Studio replaces Builder)
 │   │   ├── components/         # UI components
+│   │   ├── components/studio/  # 28 Studio components (panels, editors, overlays)
 │   │   ├── themes/             # 5 theme definitions (CSS vars)
 │   │   ├── hooks/              # useChat, useTheme, useToast
-│   │   ├── services/           # API + storage
-│   │   └── types/              # TypeScript interfaces
+│   │   ├── services/           # API + storage + studioApiService
+│   │   └── types/              # TypeScript interfaces (inc. studio.ts)
 │   ├── package.json
 │   └── vite.config.ts
 ├── docs/
-│   ├── API-Endpoints.md        # Full API reference
+│   ├── API-Endpoints.md        # Full API reference (inc. 18 Studio endpoints)
+│   ├── STUDIO-ROADMAP.md       # Studio future enhancements roadmap
 │   ├── KG-Libraries-Guide.md   # KG library capabilities (NetworkX, Model2Vec, LightRAG, d3-force)
 │   ├── RTX3060-Build-Guide.md  # Desktop build guide (dual-boot, CUDA, local LLMs)
-│   ├── system-atlas.html       # Interactive architecture
+│   ├── system-atlas.html       # Interactive architecture (updated for Studio)
 │   └── user-guide.html         # Usage guide
 ├── agents -> NLKE/agents       # 33 agents (symlink)
 ├── playbooks -> playbooks-v2   # 53 playbooks (symlink)

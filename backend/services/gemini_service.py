@@ -7,15 +7,17 @@ from google.genai import types
 from config import GEMINI_API_KEY, DEFAULT_GEMINI_MODEL
 
 _client = None
+_client_key = None
 
 
 def _get_client():
-    global _client
+    global _client, _client_key
     from config import GEMINI_API_KEY as key
     if not key:
         raise ValueError("GEMINI_API_KEY not configured")
-    if _client is None or _client._api_client._http_options.api_key != key:
+    if _client is None or _client_key != key:
         _client = genai.Client(api_key=key)
+        _client_key = key
     return _client
 
 

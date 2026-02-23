@@ -1,4 +1,4 @@
-# API Endpoints Reference — v1.0.2
+# API Endpoints Reference — v2.0.0
 
 Base URL: `http://localhost:8000/api`
 
@@ -203,7 +203,116 @@ data: {"type": "workflow_complete", "step_count": 5}
 
 ---
 
-## Builder
+## Studio (replaces Builder)
+
+### POST /api/studio/stream
+SSE streaming for AI-powered React app generation with live file extraction.
+
+**Request:**
+```json
+{
+  "project_id": "uuid-or-null",
+  "prompt": "Build a todo app with categories",
+  "files": {},
+  "chat_history": [],
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "mode": "generate"
+}
+```
+
+**SSE Response Events:**
+```
+data: {"type": "token", "content": "I'll create a todo app..."}
+data: {"type": "studio_plan", "content": "Plan text before files"}
+data: {"type": "studio_file", "path": "/App.js", "content": "import React..."}
+data: {"type": "studio_deps", "dependencies": {"axios": "^1.6.0"}}
+data: {"type": "error", "content": "Error message"}
+data: {"type": "done"}
+```
+
+**Modes:** `generate` (new app from scratch), `refine` (modify existing files)
+
+### POST /api/studio/projects
+Create a new Studio project.
+
+**Request:** `{ "name": "My App", "description": "A todo app" }`
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "name": "My App",
+  "description": "A todo app",
+  "settings": {},
+  "files": {},
+  "chat_history": [],
+  "current_version": 0,
+  "created_at": "2026-02-23T...",
+  "updated_at": "2026-02-23T..."
+}
+```
+
+### GET /api/studio/projects
+List all projects (summaries with file counts).
+
+### GET /api/studio/projects/{id}
+Load full project with files, chat history, settings, and versions.
+
+### PUT /api/studio/projects/{id}
+Update project fields (name, description, files, chat_history, settings).
+
+### DELETE /api/studio/projects/{id}
+Delete project and all versions (cascade).
+
+### POST /api/studio/projects/{id}/save
+Save a version snapshot of current project files.
+
+**Request:** `{ "message": "Added dark mode" }`
+
+**Response:**
+```json
+{
+  "id": "version-uuid",
+  "project_id": "project-uuid",
+  "version_number": 3,
+  "message": "Added dark mode",
+  "timestamp": "2026-02-23T..."
+}
+```
+
+### GET /api/studio/projects/{id}/versions
+List all versions for a project (newest first).
+
+### GET /api/studio/projects/{id}/versions/{ver}
+Get a specific version snapshot with files.
+
+### POST /api/studio/projects/{id}/versions/{ver}/restore
+Restore project to a previous version (auto-saves current state first).
+
+### GET /api/studio/projects/{id}/export?scope=all
+Download project as ZIP archive.
+
+**Query params:** `scope` = `all` | `frontend` | `backend`
+
+### POST /api/studio/projects/{id}/mock/start
+Start Node.js mock server (stub — infrastructure ready).
+
+### POST /api/studio/projects/{id}/mock/stop
+Stop mock server.
+
+### GET /api/studio/projects/{id}/mock/status
+Get mock server status (running, port, pid).
+
+### GET /api/studio/projects/{id}/api-spec
+Extract OpenAPI spec from project's Python/FastAPI files.
+
+### GET /api/studio/projects/{id}/types
+Generate TypeScript interfaces from project's API spec.
+
+---
+
+## Builder (Legacy)
 
 ### POST /api/builder/plan
 Generate a project plan from an idea.
