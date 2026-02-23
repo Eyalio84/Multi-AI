@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A professional agentic workflow orchestrator combining Gemini + Claude intelligence. Built as a FastAPI backend + React 19 frontend with dual-model streaming, 33 NLKE agents, 53 playbooks, and visual workflow execution.
+A professional agentic workflow orchestrator combining Gemini + Claude intelligence. Built as a FastAPI backend + React 19 frontend with dual-model streaming, 33 NLKE agents, 53 playbooks, visual workflow execution, and a full Graph-RAG Knowledge Graph workspace (57 SQLite KGs, 6 schema profiles, hybrid search, analytics, RAG chat).
 
 ## Quick Start
 
@@ -22,7 +22,7 @@ multi-ai-agentic-workspace/
 ├── backend/                    # FastAPI (Python)
 │   ├── main.py                 # App entry, CORS, router mounting
 │   ├── config.py               # API keys, model catalog, paths
-│   ├── routers/                # 8 API routers
+│   ├── routers/                # 9 API routers
 │   │   ├── chat.py             # POST /api/chat/stream (SSE, dual-model)
 │   │   ├── coding.py           # POST /api/coding/stream (tool use)
 │   │   ├── agents.py           # NLKE agent CRUD + execution
@@ -30,13 +30,19 @@ multi-ai-agentic-workspace/
 │   │   ├── workflows.py        # Workflow templates + execution
 │   │   ├── builder.py          # Web app plan + generate
 │   │   ├── media.py            # Image edit + video gen
-│   │   └── interchange.py      # JSON import/export, mode toggle
+│   │   ├── interchange.py      # JSON import/export, mode toggle
+│   │   └── kg.py               # KG Studio (33 endpoints, CRUD, search, analytics, RAG)
 │   ├── services/               # Business logic
-│   │   ├── gemini_service.py   # google-genai SDK wrapper
+│   │   ├── gemini_service.py   # google-genai SDK wrapper (lazy init)
 │   │   ├── claude_service.py   # anthropic SDK wrapper
 │   │   ├── model_router.py     # Intelligent model selection
 │   │   ├── agent_bridge.py     # NLKE agent system bridge
-│   │   └── playbook_index.py   # Playbook file parser + search
+│   │   ├── playbook_index.py   # Playbook file parser + search
+│   │   ├── kg_service.py       # KG core: 6 schema profiles, auto-detect, CRUD
+│   │   ├── embedding_service.py # Multi-strategy search (Gemini, BM25, hybrid)
+│   │   ├── analytics_service.py # NetworkX graph algorithms
+│   │   ├── ingestion_service.py # AI entity extraction from text
+│   │   └── rag_chat_service.py  # RAG chat with streaming + source citations
 │   └── tests/                  # API integration tests
 │
 ├── frontend/                   # React 19 + TypeScript + Vite
@@ -85,6 +91,14 @@ multi-ai-agentic-workspace/
 | POST | /api/builder/generate | Full code generation |
 | POST | /api/export | Export workspace JSON |
 | POST | /api/import | Import workspace JSON |
+| GET | /api/kg/databases | List 57 KG databases with stats |
+| GET | /api/kg/databases/{id}/nodes | Paginated nodes (search, filter) |
+| POST | /api/kg/databases/{id}/search | Hybrid semantic search (BM25+embedding+graph) |
+| POST | /api/kg/databases/{id}/chat | RAG chat with streaming + source citations |
+| GET | /api/kg/databases/{id}/analytics/* | Graph metrics, centrality, communities, paths |
+| POST | /api/kg/compare | Structural KG comparison |
+| POST | /api/kg/merge | Merge KGs (union/intersection/complement) |
+| POST | /api/kg/databases/{id}/ingest | AI entity extraction from text |
 | GET | /api/health | Health check + mode |
 | GET | /api/models | Available model catalog |
 
@@ -108,7 +122,7 @@ multi-ai-agentic-workspace/
 | /agents | AgentsPage | 33 NLKE agents + pipeline builder |
 | /playbooks | PlaybooksPage | 53 playbooks search + reader |
 | /workflows | WorkflowsPage | Visual workflow designer + executor |
-| /kg-studio | KGStudioPage | Knowledge graph explorer |
+| /kg-studio | KGStudioPage | Graph-RAG KG workspace (10 tabs, 57 DBs, React Flow) |
 | /builder | BuilderPage | 5-step web app generator |
 | /settings | SettingsPage | Mode toggle, themes, export/import |
 

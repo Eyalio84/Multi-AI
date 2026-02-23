@@ -6,7 +6,26 @@ from google.genai import types
 
 from config import GEMINI_API_KEY, DEFAULT_GEMINI_MODEL
 
-client = genai.Client(api_key=GEMINI_API_KEY)
+_client = None
+
+
+def _get_client():
+    global _client
+    from config import GEMINI_API_KEY as key
+    if not key:
+        raise ValueError("GEMINI_API_KEY not configured")
+    if _client is None or _client._api_client._http_options.api_key != key:
+        _client = genai.Client(api_key=key)
+    return _client
+
+
+# Keep backward-compatible `client` reference as a lazy proxy
+class _ClientProxy:
+    def __getattr__(self, name):
+        return getattr(_get_client(), name)
+
+
+client = _ClientProxy()
 
 
 def _convert_messages(messages: list[dict]) -> list[types.Content]:

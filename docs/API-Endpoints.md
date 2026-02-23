@@ -298,6 +298,174 @@ Import workspace JSON.
 
 ---
 
+## Knowledge Graph Studio
+
+### GET /api/kg/databases
+List all KG databases with metadata, stats, and schema profile.
+
+**Response:**
+```json
+[
+  {
+    "id": "claude-code-tools-kg",
+    "filename": "claude-code-tools-kg.db",
+    "size_mb": 0.45,
+    "modified": "2025-11-20T...",
+    "is_kg": true,
+    "profile": "claude",
+    "node_count": 511,
+    "edge_count": 631
+  }
+]
+```
+
+### GET /api/kg/databases/{db_id}/stats
+Database statistics: node/edge counts, type breakdowns.
+
+### GET /api/kg/databases/{db_id}/nodes?node_type=&search=&limit=50&offset=0
+Paginated node listing with optional type filter and text search.
+
+### GET /api/kg/databases/{db_id}/nodes/{node_id}
+Single node with all properties and connections.
+
+### GET /api/kg/databases/{db_id}/nodes/{node_id}/neighbors?depth=1&limit=50
+Subgraph around a node for graph visualization.
+
+### GET /api/kg/databases/{db_id}/edges?edge_type=&limit=50&offset=0
+Paginated edge listing with optional type filter.
+
+### GET /api/kg/databases/{db_id}/types
+Node and edge type lists with counts.
+
+### POST /api/kg/databases/{db_id}/search
+Semantic search with multiple modes.
+
+**Request:**
+```json
+{
+  "query": "cost optimization",
+  "mode": "hybrid",
+  "limit": 20
+}
+```
+**Modes:** `fts` (BM25/FTS5), `embedding` (vector), `hybrid` (combined: 0.40*embedding + 0.45*BM25 + 0.15*graph)
+
+### POST /api/kg/search/multi
+Cross-KG search across multiple databases.
+
+### POST /api/kg/databases
+Create a new KG database.
+
+**Request:** `{ "name": "my-knowledge-graph", "description": "..." }`
+
+### POST /api/kg/databases/{db_id}/nodes
+Create a node.
+
+**Request:** `{ "name": "Node Name", "node_type": "concept", "properties": {} }`
+
+### PUT /api/kg/databases/{db_id}/nodes/{node_id}
+Update a node.
+
+### DELETE /api/kg/databases/{db_id}/nodes/{node_id}
+Delete a node and its connected edges.
+
+### POST /api/kg/databases/{db_id}/edges
+Create an edge.
+
+**Request:** `{ "source_id": "...", "target_id": "...", "edge_type": "relates_to" }`
+
+### PUT /api/kg/databases/{db_id}/edges/{edge_id}
+Update an edge.
+
+### DELETE /api/kg/databases/{db_id}/edges/{edge_id}
+Delete an edge.
+
+### POST /api/kg/databases/{db_id}/bulk
+Batch insert nodes and edges.
+
+**Request:** `{ "nodes": [...], "edges": [...] }`
+
+### POST /api/kg/databases/{db_id}/ingest
+AI entity extraction from text using Gemini.
+
+**Request:**
+```json
+{
+  "text": "React is a JavaScript library maintained by Meta...",
+  "method": "ai"
+}
+```
+**Methods:** `ai` (Gemini entity extraction), `lightrag` (LightRAG pipeline), `manual` (store as document node)
+
+### GET /api/kg/databases/{db_id}/analytics/summary
+Graph metrics: density, components, clustering, avg degree, isolates.
+
+### GET /api/kg/databases/{db_id}/analytics/centrality?metric=degree&limit=20
+Top-k nodes by centrality metric.
+
+**Metrics:** `degree`, `betweenness`, `pagerank`
+
+### GET /api/kg/databases/{db_id}/analytics/communities
+Community detection via greedy modularity.
+
+### POST /api/kg/databases/{db_id}/analytics/path
+Shortest path between two nodes.
+
+**Request:** `{ "source_id": "...", "target_id": "..." }`
+
+### POST /api/kg/databases/{db_id}/chat
+RAG chat with SSE streaming and source citations.
+
+**Request:**
+```json
+{
+  "query": "How does cost optimization work?",
+  "mode": "hybrid",
+  "model": "gemini-2.5-flash"
+}
+```
+
+**SSE Events:**
+```
+data: {"type": "token", "content": "Cost optimization..."}
+data: {"type": "sources", "nodes": [{"id": "...", "name": "...", "score": 0.95}]}
+data: {"type": "done"}
+```
+
+### POST /api/kg/compare
+Structural comparison between two KGs.
+
+**Request:** `{ "db_a": "claude-kg", "db_b": "gemini-kg" }`
+
+### POST /api/kg/diff
+Detailed diff: added/removed/modified nodes and edges.
+
+### POST /api/kg/merge
+Merge source KG into target.
+
+**Request:** `{ "source": "...", "target": "...", "strategy": "union" }`
+**Strategies:** `union`, `intersection`, `complement`
+
+### POST /api/kg/databases/{db_id}/batch/delete-by-type
+Batch delete all nodes of a given type.
+
+### POST /api/kg/databases/{db_id}/batch/retype
+Batch rename a node type.
+
+### GET /api/kg/databases/{db_id}/embedding-status
+Check embedding availability for a KG.
+
+### GET /api/kg/databases/{db_id}/embeddings/projection
+2D t-SNE/PCA projection data for embedding visualization.
+
+### POST /api/kg/databases/{db_id}/embeddings/generate
+Generate embeddings for all nodes in a KG.
+
+### GET /api/kg/databases/{db_id}/embeddings/quality
+Embedding quality metrics: coverage, similarity distribution.
+
+---
+
 ## Notes
 
 ### Theme System

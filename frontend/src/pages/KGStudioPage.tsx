@@ -1,198 +1,277 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { KGDatabase, KGDatabaseStats, KGNode, KGSubgraph, KGTab } from '../types/kg';
+import * as api from '../services/apiService';
+import KGSidebar from '../components/kg/KGSidebar';
+import KGCanvas from '../components/kg/KGCanvas';
+import KGInspector from '../components/kg/KGInspector';
+import KGSearchPanel from '../components/kg/KGSearchPanel';
+import KGNodeEditor from '../components/kg/KGNodeEditor';
+import KGEdgeEditor from '../components/kg/KGEdgeEditor';
+import KGIngestPanel from '../components/kg/KGIngestPanel';
+import KGCreateDialog from '../components/kg/KGCreateDialog';
+import KGAnalyticsPanel from '../components/kg/KGAnalyticsPanel';
+import KGRagChat from '../components/kg/KGRagChat';
+import KGComparePanel from '../components/kg/KGComparePanel';
+import KGMergePanel from '../components/kg/KGMergePanel';
+import KGEmbeddingDashboard from '../components/kg/KGEmbeddingDashboard';
+import KGBatchPanel from '../components/kg/KGBatchPanel';
 
-interface KGNode {
-  id: string;
-  label: string;
-  type: string;
-  properties: Record<string, any>;
-  x: number;
-  y: number;
-}
-
-interface KGEdge {
-  id: string;
-  source: string;
-  target: string;
-  label: string;
-}
-
-const NODE_COLORS: Record<string, string> = {
-  tool: '#3b82f6',
-  capability: '#10b981',
-  parameter: '#f59e0b',
-  pattern: '#8b5cf6',
-  use_case: '#ef4444',
-  config: '#06b6d4',
-  command: '#f97316',
-  default: '#6b7280',
-};
+const TABS: { id: KGTab; label: string }[] = [
+  { id: 'explore', label: 'Explore' },
+  { id: 'search', label: 'Search' },
+  { id: 'edit', label: 'Edit' },
+  { id: 'ingest', label: 'Ingest' },
+  { id: 'analytics', label: 'Analytics' },
+  { id: 'chat', label: 'RAG Chat' },
+  { id: 'compare', label: 'Compare' },
+  { id: 'merge', label: 'Merge' },
+  { id: 'embeddings', label: 'Embeddings' },
+  { id: 'batch', label: 'Batch' },
+];
 
 const KGStudioPage: React.FC = () => {
-  const [nodes, setNodes] = useState<KGNode[]>([]);
-  const [edges, setEdges] = useState<KGEdge[]>([]);
+  const [databases, setDatabases] = useState<KGDatabase[]>([]);
+  const [selectedDb, setSelectedDb] = useState<string | null>(null);
+  const [stats, setStats] = useState<KGDatabaseStats | null>(null);
   const [selectedNode, setSelectedNode] = useState<KGNode | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<string>('all');
+  const [subgraph, setSubgraph] = useState<KGSubgraph | null>(null);
+  const [tab, setTab] = useState<KGTab>('explore');
+  const [loading, setLoading] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editingNode, setEditingNode] = useState<KGNode | null | undefined>(undefined);
+  const [showEdgeEditor, setShowEdgeEditor] = useState(false);
 
-  // Demo nodes for preview
-  const loadDemoGraph = () => {
-    const demoNodes: KGNode[] = [
-      { id: '1', label: 'Read Tool', type: 'tool', properties: { description: 'Read files from disk' }, x: 200, y: 150 },
-      { id: '2', label: 'Write Tool', type: 'tool', properties: { description: 'Write files to disk' }, x: 400, y: 150 },
-      { id: '3', label: 'Edit Tool', type: 'tool', properties: { description: 'Edit existing files' }, x: 300, y: 300 },
-      { id: '4', label: 'File Operations', type: 'capability', properties: { category: 'filesystem' }, x: 300, y: 50 },
-      { id: '5', label: 'Bash Tool', type: 'tool', properties: { description: 'Execute shell commands' }, x: 550, y: 200 },
-      { id: '6', label: 'Glob Tool', type: 'tool', properties: { description: 'Find files by pattern' }, x: 100, y: 300 },
-      { id: '7', label: 'Grep Tool', type: 'tool', properties: { description: 'Search file contents' }, x: 500, y: 350 },
-      { id: '8', label: 'Code Search', type: 'use_case', properties: { goal: 'Find code patterns' }, x: 300, y: 450 },
-    ];
-    const demoEdges: KGEdge[] = [
-      { id: 'e1', source: '4', target: '1', label: 'enables' },
-      { id: 'e2', source: '4', target: '2', label: 'enables' },
-      { id: 'e3', source: '4', target: '3', label: 'enables' },
-      { id: 'e4', source: '1', target: '3', label: 'complements' },
-      { id: 'e5', source: '6', target: '8', label: 'used_for' },
-      { id: 'e6', source: '7', target: '8', label: 'used_for' },
-      { id: 'e7', source: '5', target: '7', label: 'alternative_to' },
-    ];
-    setNodes(demoNodes);
-    setEdges(demoEdges);
+  // Load database list on mount
+  useEffect(() => {
+    loadDatabases();
+  }, []);
+
+  const loadDatabases = async () => {
+    try {
+      const dbs = await api.listKGDatabases();
+      setDatabases(dbs);
+    } catch { /* ignore */ }
   };
 
-  const filteredNodes = nodes.filter(n => {
-    if (filterType !== 'all' && n.type !== filterType) return false;
-    if (searchQuery && !n.label.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    return true;
-  });
+  // Load stats when database changes
+  useEffect(() => {
+    if (!selectedDb) { setStats(null); setSubgraph(null); setSelectedNode(null); return; }
+    loadStats();
+  }, [selectedDb]);
 
-  const nodeTypes = [...new Set(nodes.map(n => n.type))];
+  const loadStats = async () => {
+    if (!selectedDb) return;
+    setLoading(true);
+    try {
+      const s = await api.getKGStats(selectedDb);
+      setStats(s);
+    } catch { /* ignore */ }
+    setLoading(false);
+  };
+
+  const handleSelectDb = useCallback((dbId: string) => {
+    setSelectedDb(dbId);
+    setSelectedNode(null);
+    setSubgraph(null);
+  }, []);
+
+  const handleSelectNode = useCallback(async (node: KGNode) => {
+    setSelectedNode(node);
+    if (!selectedDb) return;
+    setLoading(true);
+    try {
+      const sg = await api.getKGNeighbors(selectedDb, node.id, 1, 50);
+      setSubgraph(sg);
+    } catch { /* ignore */ }
+    setLoading(false);
+  }, [selectedDb]);
+
+  const handleCanvasNodeClick = useCallback(async (nodeId: string) => {
+    if (!selectedDb) return;
+    try {
+      const node = await api.getKGNode(selectedDb, nodeId);
+      if (node) {
+        setSelectedNode(node);
+        const sg = await api.getKGNeighbors(selectedDb, nodeId, 1, 50);
+        setSubgraph(sg);
+      }
+    } catch { /* ignore */ }
+  }, [selectedDb]);
+
+  const handleDeleteNode = useCallback(async (nodeId: string) => {
+    if (!selectedDb) return;
+    try {
+      await api.deleteKGNode(selectedDb, nodeId);
+      setSelectedNode(null);
+      setSubgraph(null);
+      loadStats();
+    } catch { /* ignore */ }
+  }, [selectedDb]);
+
+  const handleNodeSaved = useCallback(async (node: KGNode) => {
+    setEditingNode(undefined);
+    setSelectedNode(node);
+    if (selectedDb) {
+      const sg = await api.getKGNeighbors(selectedDb, node.id, 1, 50);
+      setSubgraph(sg);
+    }
+    loadStats();
+  }, [selectedDb]);
+
+  const handleDbCreated = useCallback(() => {
+    setShowCreateDialog(false);
+    loadDatabases();
+  }, []);
+
+  // Render the active tab content
+  const renderTabContent = () => {
+    switch (tab) {
+      case 'explore':
+        return (
+          <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+            <KGCanvas
+              subgraph={subgraph}
+              selectedNodeId={selectedNode?.id || null}
+              onNodeClick={handleCanvasNodeClick}
+              loading={loading}
+            />
+            <KGInspector
+              node={selectedNode}
+              edges={subgraph?.edges || []}
+              allNodes={subgraph?.nodes || []}
+              onNavigate={handleCanvasNodeClick}
+              onEdit={(n) => setEditingNode(n)}
+              onDelete={handleDeleteNode}
+            />
+          </div>
+        );
+      case 'search':
+        return <KGSearchPanel dbId={selectedDb} onSelectNode={handleSelectNode} />;
+      case 'edit':
+        return (
+          <div className="flex-1 flex flex-col p-3 gap-3">
+            <div className="flex gap-2">
+              <button onClick={() => setEditingNode(null)}
+                className="t-btn px-3 py-1.5 text-xs rounded"
+                style={{ background: 'var(--t-primary)', color: '#fff' }}>
+                + New Node
+              </button>
+              <button onClick={() => setShowEdgeEditor(true)}
+                className="t-btn px-3 py-1.5 text-xs rounded"
+                style={{ background: 'var(--t-accent1, var(--t-primary))', color: '#fff' }}>
+                + New Edge
+              </button>
+              <button onClick={() => setShowCreateDialog(true)}
+                className="t-btn px-3 py-1.5 text-xs rounded"
+                style={{ background: 'var(--t-surface2)', color: 'var(--t-text2)' }}>
+                + New Database
+              </button>
+            </div>
+            {selectedNode && (
+              <div className="p-3 rounded" style={{ background: 'var(--t-surface2)' }}>
+                <p className="text-xs" style={{ color: 'var(--t-muted)' }}>Selected: </p>
+                <p className="text-sm font-bold" style={{ color: 'var(--t-text)' }}>{selectedNode.name}</p>
+                <p className="text-xs" style={{ color: 'var(--t-muted)' }}>ID: {selectedNode.id} | Type: {selectedNode.type}</p>
+                <div className="flex gap-2 mt-2">
+                  <button onClick={() => setEditingNode(selectedNode)}
+                    className="t-btn px-2 py-1 text-[10px] rounded"
+                    style={{ background: 'var(--t-primary)', color: '#fff' }}>Edit</button>
+                  <button onClick={() => handleDeleteNode(selectedNode.id)}
+                    className="t-btn px-2 py-1 text-[10px] rounded"
+                    style={{ background: '#7f1d1d', color: '#fca5a5' }}>Delete</button>
+                  <button onClick={() => { setShowEdgeEditor(true); }}
+                    className="t-btn px-2 py-1 text-[10px] rounded"
+                    style={{ background: 'var(--t-surface)', color: 'var(--t-text2)' }}>Add Edge From</button>
+                </div>
+              </div>
+            )}
+            {!selectedDb && (
+              <div className="flex-1 flex items-center justify-center" style={{ color: 'var(--t-muted)' }}>
+                Select a database to edit
+              </div>
+            )}
+          </div>
+        );
+      case 'ingest':
+        return <KGIngestPanel dbId={selectedDb} />;
+      case 'analytics':
+        return <KGAnalyticsPanel dbId={selectedDb} onSelectNode={handleSelectNode} />;
+      case 'chat':
+        return <KGRagChat dbId={selectedDb} />;
+      case 'compare':
+        return <KGComparePanel databases={databases} />;
+      case 'merge':
+        return <KGMergePanel databases={databases} onMerged={loadDatabases} />;
+      case 'embeddings':
+        return <KGEmbeddingDashboard dbId={selectedDb} />;
+      case 'batch':
+        return <KGBatchPanel dbId={selectedDb} stats={stats} onRefresh={loadStats} />;
+      default:
+        return null;
+    }
+  };
 
   return (
-    <div className="flex flex-col lg:flex-row h-full">
-      {/* Left panel — search + filters */}
-      <div className="w-full lg:w-64 border-b lg:border-b-0 lg:border-r flex flex-col" style={{ borderColor: 'var(--t-border)' }}>
-        <div className="p-2 border-b" style={{ borderColor: 'var(--t-border)' }}>
-          <input
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search nodes..."
-            className="w-full px-3 py-2 rounded text-sm focus:outline-none focus:ring-1"
-            style={{ background: 'var(--t-surface2)', color: 'var(--t-text)', '--tw-ring-color': 'var(--t-primary)' } as React.CSSProperties}
-          />
-        </div>
-        <div className="p-2 border-b flex flex-wrap gap-1" style={{ borderColor: 'var(--t-border)' }}>
+    <div className="flex flex-col h-full">
+      {/* Tab bar */}
+      <div className="border-b flex overflow-x-auto" style={{ borderColor: 'var(--t-border)' }}>
+        {TABS.map(t => (
           <button
-            onClick={() => setFilterType('all')}
-            className={`t-btn px-2 py-0.5 text-[10px] rounded`}
-            style={filterType === 'all' ? { background: 'var(--t-primary)', color: 'var(--t-text)' } : { background: 'var(--t-surface2)', color: 'var(--t-text2)' }}
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className="t-btn px-3 py-2 text-xs whitespace-nowrap border-b-2"
+            style={{
+              borderColor: tab === t.id ? 'var(--t-primary)' : 'transparent',
+              color: tab === t.id ? 'var(--t-primary)' : 'var(--t-text2)',
+              background: tab === t.id ? 'var(--t-surface2)' : undefined,
+            }}
           >
-            ALL
+            {t.label}
           </button>
-          {nodeTypes.map(t => (
-            <button
-              key={t}
-              onClick={() => setFilterType(t)}
-              className={`t-btn px-2 py-0.5 text-[10px] rounded`}
-              style={filterType === t ? { background: 'var(--t-primary)', color: 'var(--t-text)' } : { background: 'var(--t-surface2)', color: 'var(--t-text2)' }}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-        <div className="p-2 border-b" style={{ borderColor: 'var(--t-border)' }}>
-          <button onClick={loadDemoGraph} className="t-btn w-full px-3 py-2 text-sm rounded" style={{ background: 'var(--t-accent1)', color: 'var(--t-text)' }}>
-            Load Demo Graph
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {filteredNodes.map(n => (
-            <button
-              key={n.id}
-              onClick={() => setSelectedNode(n)}
-              className={`t-btn w-full text-left px-3 py-2 border-b`}
-              style={{
-                borderColor: 'var(--t-surface)',
-                ...(selectedNode?.id === n.id ? { background: 'var(--t-surface2)' } : {}),
-              }}
-              onMouseEnter={e => { if (selectedNode?.id !== n.id) e.currentTarget.style.background = 'var(--t-surface2)'; }}
-              onMouseLeave={e => { if (selectedNode?.id !== n.id) e.currentTarget.style.background = ''; }}
-            >
-              <div className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full" style={{ backgroundColor: NODE_COLORS[n.type] || NODE_COLORS.default }} />
-                <span className="text-sm" style={{ color: 'var(--t-text2)' }}>{n.label}</span>
-              </div>
-              <span className="text-[10px]" style={{ color: 'var(--t-muted)' }}>{n.type}</span>
-            </button>
-          ))}
-        </div>
+        ))}
       </div>
 
-      {/* Canvas */}
-      <div className="flex-1 relative overflow-hidden" style={{ background: 'var(--t-bg)' }}>
-        {nodes.length === 0 ? (
-          <div className="flex items-center justify-center h-full" style={{ color: 'var(--t-muted)' }}>
-            <div className="text-center">
-              <p className="text-lg">KG Studio</p>
-              <p className="text-sm mt-1">Load a demo graph or connect to a KG database</p>
-            </div>
-          </div>
-        ) : (
-          <svg className="w-full h-full" viewBox="0 0 700 500">
-            {/* Edges */}
-            {edges.map(e => {
-              const source = nodes.find(n => n.id === e.source);
-              const target = nodes.find(n => n.id === e.target);
-              if (!source || !target) return null;
-              return (
-                <g key={e.id}>
-                  <line x1={source.x} y1={source.y} x2={target.x} y2={target.y} stroke="#4b5563" strokeWidth="1.5" markerEnd="url(#arrow)" />
-                  <text x={(source.x + target.x) / 2} y={(source.y + target.y) / 2 - 5} fill="#6b7280" fontSize="9" textAnchor="middle">{e.label}</text>
-                </g>
-              );
-            })}
-            {/* Arrow marker */}
-            <defs>
-              <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
-                <polygon points="0 0, 10 3.5, 0 7" fill="#4b5563" />
-              </marker>
-            </defs>
-            {/* Nodes */}
-            {filteredNodes.map(n => (
-              <g key={n.id} onClick={() => setSelectedNode(n)} className="cursor-pointer">
-                <circle cx={n.x} cy={n.y} r="20" fill={NODE_COLORS[n.type] || NODE_COLORS.default} opacity={selectedNode?.id === n.id ? 1 : 0.7} stroke={selectedNode?.id === n.id ? '#fff' : 'none'} strokeWidth="2" />
-                <text x={n.x} y={n.y + 32} fill="#d1d5db" fontSize="10" textAnchor="middle">{n.label}</text>
-              </g>
-            ))}
-          </svg>
+      {/* Main content */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* Sidebar (always visible for explore/search/edit/analytics tabs) */}
+        {['explore', 'search', 'edit', 'analytics', 'chat', 'ingest', 'embeddings', 'batch'].includes(tab) && (
+          <KGSidebar
+            databases={databases}
+            selectedDb={selectedDb}
+            stats={stats}
+            onSelectDb={handleSelectDb}
+            onSelectNode={handleSelectNode}
+            selectedNodeId={selectedNode?.id || null}
+            loading={loading}
+          />
         )}
+
+        {/* Tab content */}
+        {renderTabContent()}
       </div>
 
-      {/* Right panel — node inspector */}
-      {selectedNode && (
-        <div className="t-card w-full lg:w-64 border-t lg:border-t-0 lg:border-l p-3" style={{ borderColor: 'var(--t-border)' }}>
-          <h3 className="text-sm font-bold mb-2" style={{ color: 'var(--t-text)' }}>{selectedNode.label}</h3>
-          <p className="text-xs mb-2" style={{ color: 'var(--t-muted)' }}>Type: <span style={{ color: 'var(--t-text2)' }}>{selectedNode.type}</span></p>
-          <div className="space-y-1">
-            {Object.entries(selectedNode.properties).map(([k, v]) => (
-              <div key={k}>
-                <span className="text-[10px]" style={{ color: 'var(--t-muted)' }}>{k}</span>
-                <p className="text-xs" style={{ color: 'var(--t-text2)' }}>{String(v)}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3">
-            <p className="text-[10px] mb-1" style={{ color: 'var(--t-muted)' }}>Connections</p>
-            {edges.filter(e => e.source === selectedNode.id || e.target === selectedNode.id).map(e => {
-              const other = e.source === selectedNode.id ? nodes.find(n => n.id === e.target) : nodes.find(n => n.id === e.source);
-              const direction = e.source === selectedNode.id ? '->' : '<-';
-              return (
-                <div key={e.id} className="text-xs" style={{ color: 'var(--t-muted)' }}>
-                  {direction} {e.label} {direction} {other?.label}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      {/* Modals */}
+      {editingNode !== undefined && selectedDb && (
+        <KGNodeEditor
+          dbId={selectedDb}
+          node={editingNode}
+          onSaved={handleNodeSaved}
+          onClose={() => setEditingNode(undefined)}
+        />
+      )}
+      {showEdgeEditor && selectedDb && (
+        <KGEdgeEditor
+          dbId={selectedDb}
+          sourceId={selectedNode?.id}
+          onSaved={() => { setShowEdgeEditor(false); loadStats(); }}
+          onClose={() => setShowEdgeEditor(false)}
+        />
+      )}
+      {showCreateDialog && (
+        <KGCreateDialog
+          onCreated={handleDbCreated}
+          onClose={() => setShowCreateDialog(false)}
+        />
       )}
     </div>
   );

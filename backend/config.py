@@ -29,6 +29,7 @@ def update_api_keys(gemini_key: str = None, anthropic_key: str = None):
 PROJECT_ROOT = Path(__file__).parent.parent
 AGENTS_DIR = PROJECT_ROOT / "agents"
 PLAYBOOKS_DIR = PROJECT_ROOT / "docs" / "playbooks-v2"
+KGS_DIR = Path(os.getenv("KGS_DIR", str(PROJECT_ROOT / "docs" / "KGS")))
 
 # --- Model Catalog ---
 MODELS = {

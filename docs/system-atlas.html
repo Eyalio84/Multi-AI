@@ -14,7 +14,7 @@
   .btn { padding: 6px 16px; border: 1px solid #334155; background: #1e293b; color: #94a3b8; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
   .btn:hover, .btn.active { background: #0ea5e9; color: white; border-color: #0ea5e9; }
   .canvas { position: relative; width: 100%; min-height: calc(100vh - 160px); overflow: auto; }
-  svg { width: 100%; height: 100%; min-height: 700px; }
+  svg { width: 100%; height: 100%; min-height: 900px; }
   .node { cursor: pointer; transition: transform 0.2s; }
   .node:hover { transform: scale(1.08); }
   .node rect { rx: 8; ry: 8; stroke-width: 2; }
@@ -50,7 +50,7 @@
 </div>
 
 <div class="canvas">
-<svg viewBox="0 0 1200 750" id="atlas">
+<svg viewBox="0 0 1200 900" id="atlas">
   <defs>
     <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#334155" />
@@ -63,8 +63,8 @@
   <!-- Layer labels -->
   <text x="20" y="30" fill="#475569" font-size="12" font-weight="700">FRONTEND</text>
   <text x="20" y="205" fill="#475569" font-size="12" font-weight="700">API LAYER</text>
-  <text x="20" y="380" fill="#475569" font-size="12" font-weight="700">SERVICES</text>
-  <text x="20" y="530" fill="#475569" font-size="12" font-weight="700">EXTERNAL</text>
+  <text x="20" y="440" fill="#475569" font-size="12" font-weight="700">SERVICES</text>
+  <text x="20" y="640" fill="#475569" font-size="12" font-weight="700">EXTERNAL</text>
 
   <!-- Frontend nodes -->
   <g class="node" data-layer="frontend" data-tip="ChatPage|Dual-model streaming chat with Gemini + Claude|Route: /chat" onclick="showTip(this, event)">
@@ -92,7 +92,7 @@
     <text x="660" y="72" text-anchor="middle">WorkflowsPage</text>
     <text x="660" y="86" text-anchor="middle" class="subtitle">/workflows</text>
   </g>
-  <g class="node" data-layer="frontend" data-tip="KGStudioPage|Knowledge graph explorer with SVG visualization|Route: /kg-studio" onclick="showTip(this, event)">
+  <g class="node" data-layer="frontend" data-tip="KGStudioPage|Graph-RAG workspace: 57 KGs, 10 tabs, React Flow, hybrid search, analytics, RAG chat|Route: /kg-studio" onclick="showTip(this, event)">
     <rect x="740" y="50" width="120" height="50" fill="#1e3a5f" stroke="#3b82f6" />
     <text x="800" y="72" text-anchor="middle">KG Studio</text>
     <text x="800" y="86" text-anchor="middle" class="subtitle">/kg-studio</text>
@@ -168,74 +168,132 @@
     <text x="1140" y="256" text-anchor="middle" class="subtitle">/mode, /export</text>
   </g>
 
-  <!-- Services -->
-  <g class="node" data-layer="services" data-tip="gemini_service.py|google-genai SDK wrapper: stream_chat, stream_with_tools, generate_content, edit_image, generate_video|Core Gemini integration" onclick="showTip(this, event)">
-    <rect x="100" y="400" width="200" height="50" fill="#3b1a1a" stroke="#ef4444" />
-    <text x="200" y="422" text-anchor="middle">gemini_service.py</text>
-    <text x="200" y="436" text-anchor="middle" class="subtitle">google-genai SDK</text>
+  <!-- KG Router (row 2) -->
+  <g class="node" data-layer="backend" data-tip="kg.py|33 REST endpoints: databases, nodes, edges, search, analytics, chat, compare, merge, ingest, embeddings|Full KG Studio backend" onclick="showTip(this, event)">
+    <rect x="40" y="290" width="200" height="50" fill="#1a3320" stroke="#22c55e" />
+    <text x="140" y="312" text-anchor="middle">kg.py</text>
+    <text x="140" y="326" text-anchor="middle" class="subtitle">/kg/* (33 endpoints)</text>
+  </g>
+
+  <!-- Services (row 1: core) -->
+  <g class="node" data-layer="services" data-tip="gemini_service.py|google-genai SDK wrapper: stream_chat, stream_with_tools, generate_content, edit_image, generate_video|Lazy init proxy pattern" onclick="showTip(this, event)">
+    <rect x="100" y="460" width="200" height="50" fill="#3b1a1a" stroke="#ef4444" />
+    <text x="200" y="482" text-anchor="middle">gemini_service.py</text>
+    <text x="200" y="496" text-anchor="middle" class="subtitle">google-genai SDK</text>
   </g>
   <g class="node" data-layer="services" data-tip="claude_service.py|anthropic SDK wrapper: stream_chat, stream_with_tools, stream_with_thinking|Core Claude integration" onclick="showTip(this, event)">
-    <rect x="340" y="400" width="200" height="50" fill="#3b2a1a" stroke="#f97316" />
-    <text x="440" y="422" text-anchor="middle">claude_service.py</text>
-    <text x="440" y="436" text-anchor="middle" class="subtitle">anthropic SDK</text>
+    <rect x="340" y="460" width="200" height="50" fill="#3b2a1a" stroke="#f97316" />
+    <text x="440" y="482" text-anchor="middle">claude_service.py</text>
+    <text x="440" y="496" text-anchor="middle" class="subtitle">anthropic SDK</text>
   </g>
   <g class="node" data-layer="services" data-tip="model_router.py|Intelligent model selection based on task_type, complexity, budget, context_length|Routes to optimal model" onclick="showTip(this, event)">
-    <rect x="580" y="400" width="180" height="50" fill="#2a1a3b" stroke="#a855f7" />
-    <text x="670" y="422" text-anchor="middle">model_router.py</text>
-    <text x="670" y="436" text-anchor="middle" class="subtitle">Smart routing</text>
+    <rect x="580" y="460" width="180" height="50" fill="#2a1a3b" stroke="#a855f7" />
+    <text x="670" y="482" text-anchor="middle">model_router.py</text>
+    <text x="670" y="496" text-anchor="middle" class="subtitle">Smart routing</text>
   </g>
   <g class="node" data-layer="services" data-tip="agent_bridge.py|Bridge to NLKE agent system: list, run, pipeline, 33 agent catalog|Imports AgentRunner SDK" onclick="showTip(this, event)">
-    <rect x="800" y="400" width="170" height="50" fill="#2a1a3b" stroke="#a855f7" />
-    <text x="885" y="422" text-anchor="middle">agent_bridge.py</text>
-    <text x="885" y="436" text-anchor="middle" class="subtitle">NLKE SDK bridge</text>
+    <rect x="800" y="460" width="170" height="50" fill="#2a1a3b" stroke="#a855f7" />
+    <text x="885" y="482" text-anchor="middle">agent_bridge.py</text>
+    <text x="885" y="496" text-anchor="middle" class="subtitle">NLKE SDK bridge</text>
   </g>
   <g class="node" data-layer="services" data-tip="playbook_index.py|Parses 53 .pb files, builds search index, keyword matching|In-memory playbook search" onclick="showTip(this, event)">
-    <rect x="1010" y="400" width="160" height="50" fill="#2a1a3b" stroke="#a855f7" />
-    <text x="1090" y="422" text-anchor="middle">playbook_index.py</text>
-    <text x="1090" y="436" text-anchor="middle" class="subtitle">53 .pb files</text>
+    <rect x="1010" y="460" width="160" height="50" fill="#2a1a3b" stroke="#a855f7" />
+    <text x="1090" y="482" text-anchor="middle">playbook_index.py</text>
+    <text x="1090" y="496" text-anchor="middle" class="subtitle">53 .pb files</text>
+  </g>
+
+  <!-- Services (row 2: KG services) -->
+  <g class="node" data-layer="services" data-tip="kg_service.py|Core KG: 6 schema profiles (unified, standard, claude, hal, from_node, entities), auto-detect, lazy connections, CRUD|Handles 57 SQLite databases" onclick="showTip(this, event)">
+    <rect x="40" y="530" width="200" height="50" fill="#1a2a3b" stroke="#06b6d4" />
+    <text x="140" y="552" text-anchor="middle">kg_service.py</text>
+    <text x="140" y="566" text-anchor="middle" class="subtitle">6 schema profiles</text>
+  </g>
+  <g class="node" data-layer="services" data-tip="embedding_service.py|Multi-strategy search: Gemini API, BM25/FTS5, Model2Vec offline, sqlite-vec|Hybrid formula: 0.40*emb + 0.45*BM25 + 0.15*graph" onclick="showTip(this, event)">
+    <rect x="260" y="530" width="200" height="50" fill="#1a2a3b" stroke="#06b6d4" />
+    <text x="360" y="552" text-anchor="middle">embedding_service.py</text>
+    <text x="360" y="566" text-anchor="middle" class="subtitle">Hybrid search</text>
+  </g>
+  <g class="node" data-layer="services" data-tip="analytics_service.py|NetworkX: centrality (degree, betweenness, PageRank), communities (Louvain), shortest path, density|Graph algorithms" onclick="showTip(this, event)">
+    <rect x="480" y="530" width="200" height="50" fill="#1a2a3b" stroke="#06b6d4" />
+    <text x="580" y="552" text-anchor="middle">analytics_service.py</text>
+    <text x="580" y="566" text-anchor="middle" class="subtitle">NetworkX algorithms</text>
+  </g>
+  <g class="node" data-layer="services" data-tip="ingestion_service.py|AI entity extraction: Gemini structured output, LightRAG pipeline, manual document node|3 ingestion methods" onclick="showTip(this, event)">
+    <rect x="700" y="530" width="200" height="50" fill="#1a2a3b" stroke="#06b6d4" />
+    <text x="800" y="552" text-anchor="middle">ingestion_service.py</text>
+    <text x="800" y="566" text-anchor="middle" class="subtitle">AI entity extraction</text>
+  </g>
+  <g class="node" data-layer="services" data-tip="rag_chat_service.py|RAG chat: hybrid search top-k, graph expansion 1-2 hops, Gemini streaming, source citations|Knowledge-augmented chat" onclick="showTip(this, event)">
+    <rect x="920" y="530" width="200" height="50" fill="#1a2a3b" stroke="#06b6d4" />
+    <text x="1020" y="552" text-anchor="middle">rag_chat_service.py</text>
+    <text x="1020" y="566" text-anchor="middle" class="subtitle">RAG + streaming</text>
   </g>
 
   <!-- External -->
   <g class="node" data-layer="external" data-tip="Gemini API|Google AI models: Flash, Pro, 3-Pro, Embedding, Veo|1M token context, multimodal" onclick="showTip(this, event)">
-    <rect x="100" y="550" width="200" height="60" fill="#0c2340" stroke="#0ea5e9" stroke-width="3" />
-    <text x="200" y="575" text-anchor="middle" font-size="13">Gemini API</text>
-    <text x="200" y="595" text-anchor="middle" class="subtitle">Flash • Pro • 3-Pro • Veo</text>
+    <rect x="40" y="660" width="180" height="60" fill="#0c2340" stroke="#0ea5e9" stroke-width="3" />
+    <text x="130" y="685" text-anchor="middle" font-size="13">Gemini API</text>
+    <text x="130" y="705" text-anchor="middle" class="subtitle">Flash • Pro • 3-Pro • Veo</text>
   </g>
   <g class="node" data-layer="external" data-tip="Claude API|Anthropic models: Haiku, Sonnet, Opus|Extended thinking, tool use" onclick="showTip(this, event)">
-    <rect x="380" y="550" width="200" height="60" fill="#3b1800" stroke="#f97316" stroke-width="3" />
-    <text x="480" y="575" text-anchor="middle" font-size="13">Claude API</text>
-    <text x="480" y="595" text-anchor="middle" class="subtitle">Haiku • Sonnet • Opus</text>
+    <rect x="240" y="660" width="180" height="60" fill="#3b1800" stroke="#f97316" stroke-width="3" />
+    <text x="330" y="685" text-anchor="middle" font-size="13">Claude API</text>
+    <text x="330" y="705" text-anchor="middle" class="subtitle">Haiku • Sonnet • Opus</text>
+  </g>
+  <g class="node" data-layer="external" data-tip="57 SQLite KGs|docs/KGS/ — 350MB total, 48 valid KGs, up to 677K edges|6 auto-detected schema profiles" onclick="showTip(this, event)">
+    <rect x="440" y="660" width="200" height="60" fill="#0c2a2a" stroke="#06b6d4" stroke-width="3" />
+    <text x="540" y="685" text-anchor="middle" font-size="13">57 SQLite KGs</text>
+    <text x="540" y="705" text-anchor="middle" class="subtitle">350MB • 6 schema profiles</text>
   </g>
   <g class="node" data-layer="external" data-tip="33 NLKE Agents|Python agent fleet: cost-advisor, code-reviewer, workflow-orchestrator...|7 categories, AgentRunner SDK" onclick="showTip(this, event)">
-    <rect x="660" y="550" width="200" height="60" fill="#1a0c33" stroke="#a855f7" stroke-width="3" />
-    <text x="760" y="575" text-anchor="middle" font-size="13">33 NLKE Agents</text>
-    <text x="760" y="595" text-anchor="middle" class="subtitle">Python • 7 Categories</text>
+    <rect x="660" y="660" width="180" height="60" fill="#1a0c33" stroke="#a855f7" stroke-width="3" />
+    <text x="750" y="685" text-anchor="middle" font-size="13">33 NLKE Agents</text>
+    <text x="750" y="705" text-anchor="middle" class="subtitle">Python • 7 Categories</text>
   </g>
   <g class="node" data-layer="external" data-tip="53 Playbooks|Implementation recipes in .pb format|FOUNDATION, DEV, AGENT, KNOWLEDGE, REASONING, SPECIALIZED, ORCHESTRATION" onclick="showTip(this, event)">
-    <rect x="940" y="550" width="200" height="60" fill="#1a0c33" stroke="#a855f7" stroke-width="3" />
-    <text x="1040" y="575" text-anchor="middle" font-size="13">53 Playbooks</text>
-    <text x="1040" y="595" text-anchor="middle" class="subtitle">.pb files • 7 Categories</text>
+    <rect x="860" y="660" width="180" height="60" fill="#1a0c33" stroke="#a855f7" stroke-width="3" />
+    <text x="950" y="685" text-anchor="middle" font-size="13">53 Playbooks</text>
+    <text x="950" y="705" text-anchor="middle" class="subtitle">.pb files • 7 Categories</text>
   </g>
 
-  <!-- Key edges -->
+  <!-- Key edges: Frontend → Routers -->
   <line class="edge" data-layer="data" x1="100" y1="100" x2="105" y2="220" marker-end="url(#arrowhead)" />
   <line class="edge" data-layer="data" x1="240" y1="100" x2="255" y2="220" marker-end="url(#arrowhead)" />
   <line class="edge" data-layer="data" x1="380" y1="100" x2="405" y2="220" marker-end="url(#arrowhead)" />
   <line class="edge" data-layer="data" x1="520" y1="100" x2="555" y2="220" marker-end="url(#arrowhead)" />
   <line class="edge" data-layer="data" x1="660" y1="100" x2="705" y2="220" marker-end="url(#arrowhead)" />
+  <line class="edge" data-layer="data" x1="800" y1="100" x2="140" y2="290" marker-end="url(#arrowhead)" />
   <line class="edge" data-layer="data" x1="940" y1="100" x2="855" y2="220" marker-end="url(#arrowhead)" />
 
-  <line class="edge" data-layer="data" x1="105" y1="270" x2="200" y2="400" marker-end="url(#arrowhead)" />
-  <line class="edge" data-layer="data" x1="105" y1="270" x2="440" y2="400" marker-end="url(#arrowhead)" />
-  <line class="edge" data-layer="data" x1="255" y1="270" x2="200" y2="400" marker-end="url(#arrowhead)" />
-  <line class="edge" data-layer="data" x1="405" y1="270" x2="885" y2="400" marker-end="url(#arrowhead)" />
-  <line class="edge" data-layer="data" x1="555" y1="270" x2="1090" y2="400" marker-end="url(#arrowhead)" />
-  <line class="edge" data-layer="data" x1="705" y1="270" x2="670" y2="400" marker-end="url(#arrowhead)" />
+  <!-- Routers → Core Services -->
+  <line class="edge" data-layer="data" x1="105" y1="270" x2="200" y2="460" marker-end="url(#arrowhead)" />
+  <line class="edge" data-layer="data" x1="105" y1="270" x2="440" y2="460" marker-end="url(#arrowhead)" />
+  <line class="edge" data-layer="data" x1="255" y1="270" x2="200" y2="460" marker-end="url(#arrowhead)" />
+  <line class="edge" data-layer="data" x1="405" y1="270" x2="885" y2="460" marker-end="url(#arrowhead)" />
+  <line class="edge" data-layer="data" x1="555" y1="270" x2="1090" y2="460" marker-end="url(#arrowhead)" />
+  <line class="edge" data-layer="data" x1="705" y1="270" x2="670" y2="460" marker-end="url(#arrowhead)" />
 
-  <line class="edge" data-layer="data" x1="200" y1="450" x2="200" y2="550" marker-end="url(#arrowhead)" />
-  <line class="edge" data-layer="data" x1="440" y1="450" x2="480" y2="550" marker-end="url(#arrowhead)" />
-  <line class="edge" data-layer="data" x1="885" y1="450" x2="760" y2="550" marker-end="url(#arrowhead)" />
-  <line class="edge" data-layer="data" x1="1090" y1="450" x2="1040" y2="550" marker-end="url(#arrowhead)" />
+  <!-- KG Router → KG Services -->
+  <line class="edge active" data-layer="data" x1="140" y1="340" x2="140" y2="530" marker-end="url(#arrowhead-active)" />
+  <line class="edge active" data-layer="data" x1="140" y1="340" x2="360" y2="530" marker-end="url(#arrowhead-active)" />
+  <line class="edge active" data-layer="data" x1="140" y1="340" x2="580" y2="530" marker-end="url(#arrowhead-active)" />
+  <line class="edge active" data-layer="data" x1="140" y1="340" x2="800" y2="530" marker-end="url(#arrowhead-active)" />
+  <line class="edge active" data-layer="data" x1="140" y1="340" x2="1020" y2="530" marker-end="url(#arrowhead-active)" />
+
+  <!-- Core Services → External APIs -->
+  <line class="edge" data-layer="data" x1="200" y1="510" x2="130" y2="660" marker-end="url(#arrowhead)" />
+  <line class="edge" data-layer="data" x1="440" y1="510" x2="330" y2="660" marker-end="url(#arrowhead)" />
+  <line class="edge" data-layer="data" x1="885" y1="510" x2="750" y2="660" marker-end="url(#arrowhead)" />
+  <line class="edge" data-layer="data" x1="1090" y1="510" x2="950" y2="660" marker-end="url(#arrowhead)" />
+
+  <!-- KG Services → SQLite KGs -->
+  <line class="edge active" data-layer="data" x1="140" y1="580" x2="540" y2="660" marker-end="url(#arrowhead-active)" />
+  <line class="edge active" data-layer="data" x1="360" y1="580" x2="540" y2="660" marker-end="url(#arrowhead-active)" />
+  <line class="edge active" data-layer="data" x1="580" y1="580" x2="540" y2="660" marker-end="url(#arrowhead-active)" />
+
+  <!-- RAG/Ingestion → Gemini API -->
+  <line class="edge" data-layer="data" x1="800" y1="580" x2="130" y2="660" marker-end="url(#arrowhead)" />
+  <line class="edge" data-layer="data" x1="1020" y1="580" x2="130" y2="660" marker-end="url(#arrowhead)" />
 </svg>
 </div>
 
@@ -248,6 +306,7 @@
   <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> Gemini Service</div>
   <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div> Claude Service</div>
   <div class="legend-item"><div class="legend-dot" style="background:#a855f7"></div> Support Services</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#06b6d4"></div> KG Services (5)</div>
   <div class="legend-item"><div class="legend-dot" style="background:#0ea5e9"></div> External APIs</div>
   <div class="legend-item"><div class="legend-dot" style="background:#6366f1"></div> Theme System (5)</div>
 </div>

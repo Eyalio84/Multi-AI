@@ -9,7 +9,7 @@ A professional agentic workflow orchestrator combining **Gemini** and **Claude**
 - **33 NLKE Agents** — Run specialized agents (cost-advisor, code-reviewer, workflow-orchestrator, etc.)
 - **53 Playbooks** — Searchable library of implementation recipes with category filtering
 - **Visual Workflows** — 4 templates, AI-planned custom workflows, SSE execution with progress
-- **KG Studio** — Knowledge graph explorer with node/edge visualization
+- **KG Studio** — Full Graph-RAG workspace: 57 SQLite KGs, 6 auto-detected schema profiles, React Flow visualization, hybrid semantic search (BM25+embedding+graph), CRUD, AI ingestion, NetworkX analytics, RAG chat with source citations, KG compare/diff/merge, embedding dashboard (10 tabs)
 - **Web App Builder** — 5-step wizard: idea → plan → theme → generate → export/IDE
 - **Workspace Transfer** — JSON import/export between standalone and Claude Code modes
 - **5 Themes** — Default, Deluxe-CRT, Scratch (B&W doodle), Solarized Zen, Sunset Warm — switchable via NavBar or Settings
@@ -26,7 +26,7 @@ A professional agentic workflow orchestrator combining **Gemini** and **Claude**
 │                    Proxy /api → :8000                     │
 ├──────────────────────────────────────────────────────────┤
 │                    FastAPI Backend (:8000)                │
-│  8 Routers │ 5 Services │ Model Router │ Agent Bridge    │
+│  9 Routers │ 10 Services │ Model Router │ Agent Bridge   │
 ├──────────────────────────────────────────────────────────┤
 │              External APIs                                │
 │  Gemini API (google-genai) │ Claude API (anthropic)      │
@@ -90,13 +90,19 @@ multi-ai-agentic-workspace/
 │   │   ├── workflows.py        # Workflow engine
 │   │   ├── builder.py          # Web app generator
 │   │   ├── media.py            # Image/video
-│   │   └── interchange.py      # Export/import
+│   │   ├── interchange.py      # Export/import
+│   │   └── kg.py               # KG Studio (33 endpoints)
 │   ├── services/
-│   │   ├── gemini_service.py   # google-genai wrapper
+│   │   ├── gemini_service.py   # google-genai wrapper (lazy init)
 │   │   ├── claude_service.py   # anthropic wrapper
 │   │   ├── model_router.py     # Smart model selection
 │   │   ├── agent_bridge.py     # NLKE bridge
-│   │   └── playbook_index.py   # .pb file parser
+│   │   ├── playbook_index.py   # .pb file parser
+│   │   ├── kg_service.py       # KG core: 6 schema profiles, CRUD
+│   │   ├── embedding_service.py # Hybrid search (BM25+embedding+graph)
+│   │   ├── analytics_service.py # NetworkX graph algorithms
+│   │   ├── ingestion_service.py # AI entity extraction
+│   │   └── rag_chat_service.py  # RAG chat + source citations
 │   └── tests/                  # Integration tests
 ├── frontend/
 │   ├── src/
