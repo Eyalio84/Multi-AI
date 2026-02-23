@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { KGDatabase, KGDatabaseStats, KGNode, KGNodePage, KGTypeCount } from '../../types/kg';
 import KGDatabaseSelector from './KGDatabaseSelector';
 import * as api from '../../services/apiService';
+import { showToast } from '../../hooks/useToast';
 
 const NODE_COLORS: Record<string, string> = {
   tool: '#3b82f6', capability: '#10b981', parameter: '#f59e0b', pattern: '#8b5cf6',
@@ -48,7 +49,7 @@ const KGSidebar: React.FC<Props> = ({
       setNodes(off === 0 ? page.nodes : [...nodes, ...page.nodes]);
       setTotal(page.total);
       setOffset(off);
-    } catch { /* ignore */ }
+    } catch (e: any) { showToast(e.message || 'Failed to load nodes'); }
   };
 
   const nodeTypes: KGTypeCount[] = stats?.node_types || [];

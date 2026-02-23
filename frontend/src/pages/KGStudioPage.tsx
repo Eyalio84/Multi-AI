@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { KGDatabase, KGDatabaseStats, KGNode, KGSubgraph, KGTab } from '../types/kg';
+import { KGDatabase, KGDatabaseStats, KGNode, KGEdge, KGEdgePage, KGSubgraph, KGTab } from '../types/kg';
 import * as api from '../services/apiService';
+import { showToast } from '../hooks/useToast';
 import KGSidebar from '../components/kg/KGSidebar';
 import KGCanvas from '../components/kg/KGCanvas';
 import KGInspector from '../components/kg/KGInspector';
@@ -40,6 +41,13 @@ const KGStudioPage: React.FC = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingNode, setEditingNode] = useState<KGNode | null | undefined>(undefined);
   const [showEdgeEditor, setShowEdgeEditor] = useState(false);
+  const [editingEdge, setEditingEdge] = useState<KGEdge | null>(null);
+  // Edge browser state
+  const [edgeBrowserEdges, setEdgeBrowserEdges] = useState<KGEdge[]>([]);
+  const [edgeBrowserTotal, setEdgeBrowserTotal] = useState(0);
+  const [edgeBrowserOffset, setEdgeBrowserOffset] = useState(0);
+  const [edgeBrowserFilter, setEdgeBrowserFilter] = useState('all');
+  const edgeBrowserLimit = 50;
 
   // Load database list on mount
   useEffect(() => {
@@ -50,7 +58,7 @@ const KGStudioPage: React.FC = () => {
     try {
       const dbs = await api.listKGDatabases();
       setDatabases(dbs);
-    } catch { /* ignore */ }
+    } catch (e: any) { showToast(e.message || 'Failed to load databases'); }
   };
 
   // Load stats when database changes
@@ -65,7 +73,7 @@ const KGStudioPage: React.FC = () => {
     try {
       const s = await api.getKGStats(selectedDb);
       setStats(s);
-    } catch { /* ignore */ }
+    } catch (e: any) { showToast(e.message || 'Failed to load stats'); }
     setLoading(false);
   };
 
@@ -82,7 +90,7 @@ const KGStudioPage: React.FC = () => {
     try {
       const sg = await api.getKGNeighbors(selectedDb, node.id, 1, 50);
       setSubgraph(sg);
-    } catch { /* ignore */ }
+    } catch (e: any) { showToast(e.message || 'Failed to load neighbors'); }
     setLoading(false);
   }, [selectedDb]);
 
@@ -95,7 +103,7 @@ const KGStudioPage: React.FC = () => {
         const sg = await api.getKGNeighbors(selectedDb, nodeId, 1, 50);
         setSubgraph(sg);
       }
-    } catch { /* ignore */ }
+    } catch (e: any) { showToast(e.message || 'Failed to load node'); }
   }, [selectedDb]);
 
   const handleDeleteNode = useCallback(async (nodeId: string) => {
@@ -105,7 +113,7 @@ const KGStudioPage: React.FC = () => {
       setSelectedNode(null);
       setSubgraph(null);
       loadStats();
-    } catch { /* ignore */ }
+    } catch (e: any) { showToast(e.message || 'Failed to delete node'); }
   }, [selectedDb]);
 
   const handleNodeSaved = useCallback(async (node: KGNode) => {
@@ -122,6 +130,61 @@ const KGStudioPage: React.FC = () => {
     setShowCreateDialog(false);
     loadDatabases();
   }, []);
+
+  // Edge handlers
+  const handleEditEdge = useCallback((edge: KGEdge) => {
+    setEditingEdge(edge);
+    setShowEdgeEditor(true);
+  }, []);
+
+  const handleDeleteEdge = useCallback(async (edgeId: string) => {
+    if (!selectedDb) return;
+    try {
+      await api.deleteKGEdge(selectedDb, edgeId);
+      // Refresh subgraph if viewing a node
+      if (selectedNode) {
+        const sg = await api.getKGNeighbors(selectedDb, selectedNode.id, 1, 50);
+        setSubgraph(sg);
+      }
+      loadStats();
+      loadEdges(0);
+    } catch (e: any) { showToast(e.message || 'Failed to delete edge'); }
+  }, [selectedDb, selectedNode]);
+
+  const handleEdgeSaved = useCallback(() => {
+    setShowEdgeEditor(false);
+    setEditingEdge(null);
+    loadStats();
+    loadEdges(edgeBrowserOffset);
+    // Refresh subgraph if viewing a node
+    if (selectedDb && selectedNode) {
+      api.getKGNeighbors(selectedDb, selectedNode.id, 1, 50).then(sg => setSubgraph(sg)).catch(() => {});
+    }
+  }, [selectedDb, selectedNode, edgeBrowserOffset]);
+
+  // Edge browser loader
+  const loadEdges = useCallback(async (off: number) => {
+    if (!selectedDb) { setEdgeBrowserEdges([]); return; }
+    try {
+      const page: KGEdgePage = await api.listKGEdges(
+        selectedDb,
+        edgeBrowserFilter === 'all' ? undefined : edgeBrowserFilter,
+        edgeBrowserLimit,
+        off,
+      );
+      setEdgeBrowserEdges(off === 0 ? page.edges : [...edgeBrowserEdges, ...page.edges]);
+      setEdgeBrowserTotal(page.total);
+      setEdgeBrowserOffset(off);
+    } catch (e: any) { showToast(e.message || 'Failed to load edges'); }
+  }, [selectedDb, edgeBrowserFilter, edgeBrowserEdges]);
+
+  // Load edges when db or filter changes (only on edit tab)
+  useEffect(() => {
+    if (tab === 'edit' && selectedDb) {
+      setEdgeBrowserOffset(0);
+      loadEdges(0);
+    }
+  }, [selectedDb, edgeBrowserFilter, tab]);
 
   // Render the active tab content
   const renderTabContent = () => {
@@ -142,21 +205,23 @@ const KGStudioPage: React.FC = () => {
               onNavigate={handleCanvasNodeClick}
               onEdit={(n) => setEditingNode(n)}
               onDelete={handleDeleteNode}
+              onEditEdge={handleEditEdge}
+              onDeleteEdge={handleDeleteEdge}
             />
           </div>
         );
       case 'search':
-        return <KGSearchPanel dbId={selectedDb} onSelectNode={handleSelectNode} />;
+        return <KGSearchPanel dbId={selectedDb} databases={databases} onSelectNode={handleSelectNode} />;
       case 'edit':
         return (
-          <div className="flex-1 flex flex-col p-3 gap-3">
+          <div className="flex-1 flex flex-col p-3 gap-3 overflow-hidden">
             <div className="flex gap-2">
               <button onClick={() => setEditingNode(null)}
                 className="t-btn px-3 py-1.5 text-xs rounded"
                 style={{ background: 'var(--t-primary)', color: '#fff' }}>
                 + New Node
               </button>
-              <button onClick={() => setShowEdgeEditor(true)}
+              <button onClick={() => { setEditingEdge(null); setShowEdgeEditor(true); }}
                 className="t-btn px-3 py-1.5 text-xs rounded"
                 style={{ background: 'var(--t-accent1, var(--t-primary))', color: '#fff' }}>
                 + New Edge
@@ -179,9 +244,68 @@ const KGStudioPage: React.FC = () => {
                   <button onClick={() => handleDeleteNode(selectedNode.id)}
                     className="t-btn px-2 py-1 text-[10px] rounded"
                     style={{ background: '#7f1d1d', color: '#fca5a5' }}>Delete</button>
-                  <button onClick={() => { setShowEdgeEditor(true); }}
+                  <button onClick={() => { setEditingEdge(null); setShowEdgeEditor(true); }}
                     className="t-btn px-2 py-1 text-[10px] rounded"
                     style={{ background: 'var(--t-surface)', color: 'var(--t-text2)' }}>Add Edge From</button>
+                </div>
+              </div>
+            )}
+            {/* Edge Browser */}
+            {selectedDb && (
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-bold" style={{ color: 'var(--t-text)' }}>
+                    Edges ({edgeBrowserTotal})
+                  </p>
+                  <div className="flex gap-1 flex-wrap">
+                    <button onClick={() => setEdgeBrowserFilter('all')}
+                      className="t-btn px-2 py-0.5 text-[10px] rounded"
+                      style={edgeBrowserFilter === 'all'
+                        ? { background: 'var(--t-primary)', color: '#fff' }
+                        : { background: 'var(--t-surface2)', color: 'var(--t-text2)' }}>
+                      ALL
+                    </button>
+                    {(stats?.edge_types || []).map(t => (
+                      <button key={t.type} onClick={() => setEdgeBrowserFilter(t.type)}
+                        className="t-btn px-2 py-0.5 text-[10px] rounded"
+                        style={edgeBrowserFilter === t.type
+                          ? { background: 'var(--t-primary)', color: '#fff' }
+                          : { background: 'var(--t-surface2)', color: 'var(--t-text2)' }}>
+                        {t.type} ({t.count})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto space-y-1">
+                  {edgeBrowserEdges.map(e => (
+                    <div key={e.id} className="flex items-center gap-2 px-2 py-1.5 rounded text-xs"
+                      style={{ background: 'var(--t-surface2)' }}>
+                      <span className="truncate max-w-[80px]" style={{ color: 'var(--t-text2)' }}
+                        title={e.source}>{e.source}</span>
+                      <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px]"
+                        style={{ background: 'var(--t-primary)', color: '#fff' }}>{e.type}</span>
+                      <span className="truncate max-w-[80px]" style={{ color: 'var(--t-text2)' }}
+                        title={e.target}>{e.target}</span>
+                      <div className="ml-auto flex gap-1 flex-shrink-0">
+                        <button onClick={() => handleEditEdge(e)} title="Edit"
+                          className="t-btn text-[10px] px-1 rounded"
+                          style={{ color: 'var(--t-muted)' }}>&#9998;</button>
+                        <button onClick={() => { if (confirm(`Delete edge "${e.type}"?`)) handleDeleteEdge(e.id); }}
+                          title="Delete" className="t-btn text-[10px] px-1 rounded"
+                          style={{ color: '#fca5a5' }}>&times;</button>
+                      </div>
+                    </div>
+                  ))}
+                  {edgeBrowserEdges.length < edgeBrowserTotal && (
+                    <button onClick={() => loadEdges(edgeBrowserOffset + edgeBrowserLimit)}
+                      className="t-btn w-full py-2 text-xs"
+                      style={{ color: 'var(--t-primary)' }}>
+                      Load more ({edgeBrowserTotal - edgeBrowserEdges.length} remaining)
+                    </button>
+                  )}
+                  {edgeBrowserEdges.length === 0 && (
+                    <p className="text-xs text-center py-4" style={{ color: 'var(--t-muted)' }}>No edges found</p>
+                  )}
                 </div>
               </div>
             )}
@@ -263,8 +387,9 @@ const KGStudioPage: React.FC = () => {
         <KGEdgeEditor
           dbId={selectedDb}
           sourceId={selectedNode?.id}
-          onSaved={() => { setShowEdgeEditor(false); loadStats(); }}
-          onClose={() => setShowEdgeEditor(false)}
+          edge={editingEdge}
+          onSaved={handleEdgeSaved}
+          onClose={() => { setShowEdgeEditor(false); setEditingEdge(null); }}
         />
       )}
       {showCreateDialog && (

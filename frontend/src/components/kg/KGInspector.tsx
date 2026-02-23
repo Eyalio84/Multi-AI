@@ -9,9 +9,11 @@ interface Props {
   onNavigate: (nodeId: string) => void;
   onEdit?: (node: KGNode) => void;
   onDelete?: (nodeId: string) => void;
+  onEditEdge?: (edge: KGEdge) => void;
+  onDeleteEdge?: (edgeId: string) => void;
 }
 
-const KGInspector: React.FC<Props> = ({ node, edges, allNodes, onNavigate, onEdit, onDelete }) => {
+const KGInspector: React.FC<Props> = ({ node, edges, allNodes, onNavigate, onEdit, onDelete, onEditEdge, onDeleteEdge }) => {
   if (!node) return null;
 
   const connected = edges.filter(e => e.source === node.id || e.target === node.id);
@@ -81,17 +83,29 @@ const KGInspector: React.FC<Props> = ({ node, edges, allNodes, onNavigate, onEdi
             const otherId = isOutgoing ? e.target : e.source;
             const other = nodeMap[otherId];
             return (
-              <button
-                key={e.id}
-                onClick={() => onNavigate(otherId)}
-                className="t-btn w-full text-left px-2 py-1 rounded text-xs flex items-center gap-1"
-                style={{ background: 'var(--t-surface2)' }}
-              >
-                <span style={{ color: 'var(--t-muted)' }}>{isOutgoing ? '\u2192' : '\u2190'}</span>
-                <span style={{ color: 'var(--t-primary)' }}>{e.type}</span>
-                <span style={{ color: 'var(--t-muted)' }}>{isOutgoing ? '\u2192' : '\u2190'}</span>
-                <span className="truncate" style={{ color: 'var(--t-text2)' }}>{other?.name || otherId}</span>
-              </button>
+              <div key={e.id} className="flex items-center gap-1 rounded px-2 py-1"
+                style={{ background: 'var(--t-surface2)' }}>
+                <button
+                  onClick={() => onNavigate(otherId)}
+                  className="t-btn flex-1 text-left text-xs flex items-center gap-1 min-w-0"
+                >
+                  <span style={{ color: 'var(--t-muted)' }}>{isOutgoing ? '\u2192' : '\u2190'}</span>
+                  <span style={{ color: 'var(--t-primary)' }}>{e.type}</span>
+                  <span style={{ color: 'var(--t-muted)' }}>{isOutgoing ? '\u2192' : '\u2190'}</span>
+                  <span className="truncate" style={{ color: 'var(--t-text2)' }}>{other?.name || otherId}</span>
+                </button>
+                {onEditEdge && (
+                  <button onClick={() => onEditEdge(e)} title="Edit edge"
+                    className="t-btn text-[10px] px-1 rounded flex-shrink-0"
+                    style={{ color: 'var(--t-muted)' }}>&#9998;</button>
+                )}
+                {onDeleteEdge && (
+                  <button onClick={() => { if (confirm(`Delete edge "${e.type}"?`)) onDeleteEdge(e.id); }}
+                    title="Delete edge"
+                    className="t-btn text-[10px] px-1 rounded flex-shrink-0"
+                    style={{ color: '#fca5a5' }}>&times;</button>
+                )}
+              </div>
             );
           })}
         </div>

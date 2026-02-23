@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import * as apiService from '../services/apiService';
 import { NlkeAgent } from '../types/index';
+import { showToast } from '../hooks/useToast';
 
 const CATEGORIES = ['ALL', 'FOUNDATION', 'DEV', 'AGENT', 'KNOWLEDGE', 'REASONING', 'SPECIALIZED', 'ORCHESTRATION'];
 
@@ -24,7 +25,7 @@ const AgentsPage: React.FC = () => {
   const [pipelineSteps, setPipelineSteps] = useState<string[]>([]);
 
   useEffect(() => {
-    apiService.listAgents().then(data => setAgents(data.agents || [])).catch(() => {});
+    apiService.listAgents().then(data => setAgents(data.agents || [])).catch((e: any) => showToast(e.message || 'Failed to load agents'));
   }, []);
 
   const filtered = category === 'ALL' ? agents : agents.filter(a => a.category === category);
@@ -34,7 +35,7 @@ const AgentsPage: React.FC = () => {
     try {
       const data = await apiService.getAgentExample(selectedAgent.name);
       setWorkload(JSON.stringify(data.example || {}, null, 2));
-    } catch {}
+    } catch (e: any) { showToast(e.message || 'Failed to load example'); }
   };
 
   const handleRun = async () => {

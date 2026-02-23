@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import * as api from '../../services/apiService';
+import { showToast } from '../../hooks/useToast';
 import { KGAnalyticsSummary, KGCentralityNode, KGCommunity, KGNode } from '../../types/kg';
 import { NODE_COLORS } from './KGSidebar';
 
@@ -47,7 +48,7 @@ const KGAnalyticsPanel: React.FC<Props> = ({ dbId, onSelectNode }) => {
     try {
       const data = await api.getKGCommunities(dbId);
       setCommunities(data.communities || []);
-    } catch { /* ignore */ }
+    } catch (e: any) { showToast(e.message || 'Failed to detect communities'); }
   };
 
   const findPath = async () => {
@@ -66,7 +67,7 @@ const KGAnalyticsPanel: React.FC<Props> = ({ dbId, onSelectNode }) => {
     try {
       const c = await api.getKGCentrality(dbId, m, 15);
       setCentrality(c.nodes || []);
-    } catch { /* ignore */ }
+    } catch (e: any) { showToast(e.message || 'Failed to load centrality'); }
   };
 
   if (!dbId) return (

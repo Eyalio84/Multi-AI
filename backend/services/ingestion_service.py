@@ -113,12 +113,18 @@ class IngestionService:
         """Use LightRAG pipeline for entity extraction + graph construction."""
         try:
             from lightrag import LightRAG, QueryParam
-            from lightrag.llm.google import gpt_4o_mini_complete
         except ImportError:
             # Fallback to AI method if LightRAG not installed
             return await self._ingest_ai(db_id, text, source)
 
-        from config import GEMINI_API_KEY, KGS_DIR
+        # LightRAG's Google LLM adapter may not exist in all versions
+        try:
+            from lightrag.llm.google import gpt_4o_mini_complete
+        except (ImportError, AttributeError):
+            # Adapter missing — fall back to AI method
+            return await self._ingest_ai(db_id, text, source)
+
+        from config import GEMINI_API_KEY
         import os
         import tempfile
 
@@ -130,12 +136,16 @@ class IngestionService:
 
         try:
             os.environ["GEMINI_API_KEY"] = GEMINI_API_KEY
-            rag = LightRAG(
-                working_dir=work_dir,
-                llm_model_func=gpt_4o_mini_complete,
-                llm_model_name="gemini-2.5-flash",
-            )
-            await rag.ainsert(text)
+            try:
+                rag = LightRAG(
+                    working_dir=work_dir,
+                    llm_model_func=gpt_4o_mini_complete,
+                    llm_model_name="gemini-2.5-flash",
+                )
+                await rag.ainsert(text)
+            except Exception as e:
+                # LightRAG runtime failure — fall back to AI extraction
+                return await self._ingest_ai(db_id, text, source)
 
             # Extract entities from LightRAG's internal storage
             # LightRAG stores entities in its own format — we convert to our KG

@@ -1,4 +1,4 @@
-# API Endpoints Reference — v1.0.1
+# API Endpoints Reference — v1.0.2
 
 Base URL: `http://localhost:8000/api`
 
@@ -356,7 +356,31 @@ Semantic search with multiple modes.
 3. Model2Vec with pad/truncate — fallback for dimension mismatches
 
 ### POST /api/kg/search/multi
-Cross-KG search across multiple databases.
+Cross-KG search across multiple databases simultaneously.
+
+**Request:**
+```json
+{
+  "query": "cost optimization",
+  "db_ids": ["claude-code-tools-kg", "gemini-3-pro-kg"],
+  "mode": "hybrid",
+  "limit": 10
+}
+```
+
+**Response:**
+```json
+{
+  "claude-code-tools-kg": {
+    "results": [
+      { "id": "...", "name": "...", "type": "...", "score": 0.92, "snippet": "..." }
+    ]
+  },
+  "gemini-3-pro-kg": {
+    "results": [...]
+  }
+}
+```
 
 ### POST /api/kg/databases
 Create a new KG database.

@@ -3,7 +3,7 @@ import json
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from config import MODE
+from config import MODE, ANTHROPIC_API_KEY
 from services import gemini_service, claude_service
 
 router = APIRouter()
@@ -46,7 +46,7 @@ Return ONLY valid JSON."""
             target_model = model or "claude-sonnet-4-6"
             # Use Claude for planning
             import anthropic
-            client = anthropic.Anthropic(api_key=__import__("config").ANTHROPIC_API_KEY)
+            client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
             response = client.messages.create(
                 model=target_model,
                 max_tokens=4096,
@@ -101,7 +101,7 @@ Return ONLY a valid JSON object mapping file paths to their string contents."""
         if provider == "claude" and MODE == "standalone":
             target_model = model or "claude-sonnet-4-6"
             import anthropic
-            client = anthropic.Anthropic(api_key=__import__("config").ANTHROPIC_API_KEY)
+            client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
             response = client.messages.create(
                 model=target_model,
                 max_tokens=16384,

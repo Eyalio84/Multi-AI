@@ -10,6 +10,7 @@ import WorkflowsPage from './pages/WorkflowsPage';
 import KGStudioPage from './pages/KGStudioPage';
 import BuilderPage from './pages/BuilderPage';
 import SettingsPage from './pages/SettingsPage';
+import ToastContainer from './components/ToastContainer';
 
 const AppContent: React.FC = () => {
   const { globalError, setGlobalError } = useAppContext();
@@ -40,6 +41,8 @@ const AppContent: React.FC = () => {
           <p className="text-sm mt-1">{globalError}</p>
         </div>
       )}
+
+      <ToastContainer />
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import * as apiService from '../services/apiService';
 import { PlaybookMeta } from '../types/index';
+import { showToast } from '../hooks/useToast';
 
 const difficultyColors: Record<string, string> = {
   beginner: 'bg-green-700',
@@ -18,8 +19,8 @@ const PlaybooksPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    apiService.listPlaybooks().then(data => setPlaybooks(data.playbooks || [])).catch(() => {});
-    apiService.listPlaybookCategories().then(data => setCategories(data.categories || [])).catch(() => {});
+    apiService.listPlaybooks().then(data => setPlaybooks(data.playbooks || [])).catch((e: any) => showToast(e.message || 'Failed to load playbooks'));
+    apiService.listPlaybookCategories().then(data => setCategories(data.categories || [])).catch((e: any) => showToast(e.message || 'Failed to load categories'));
   }, []);
 
   const handleSearch = async () => {
@@ -37,7 +38,7 @@ const PlaybooksPage: React.FC = () => {
     try {
       const data = await apiService.getPlaybook(filename);
       setSelectedPlaybook(data);
-    } catch {}
+    } catch (e: any) { showToast(e.message || 'Failed to load playbook'); }
     setLoading(false);
   };
 

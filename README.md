@@ -1,4 +1,4 @@
-# Multi-AI Agentic Workspace v1.0.1
+# Multi-AI Agentic Workspace v1.0.2
 
 A professional agentic workflow orchestrator combining **Gemini** and **Claude** intelligence into a unified web interface. Build real software with 33 NLKE agents, 53 playbooks, visual workflows, a dual-model coding IDE, and a full Graph-RAG Knowledge Graph workspace.
 
@@ -9,7 +9,7 @@ A professional agentic workflow orchestrator combining **Gemini** and **Claude**
 - **33 NLKE Agents** — Run specialized agents (cost-advisor, code-reviewer, workflow-orchestrator, etc.)
 - **53 Playbooks** — Searchable library of implementation recipes with category filtering
 - **Visual Workflows** — 4 templates, AI-planned custom workflows, SSE execution with progress
-- **KG Studio** — Full Graph-RAG workspace: 57 SQLite KGs, 6 auto-detected schema profiles, d3-force + React Flow visualization, **live hybrid semantic search** (0.40\*embedding + 0.45\*BM25 + 0.15\*graph via numpy cosine similarity), CRUD, AI ingestion (Gemini + LightRAG), NetworkX analytics (PageRank, communities, centrality), RAG chat with source citations, KG compare/diff/merge, embedding dashboard with PCA projections (10 tabs)
+- **KG Studio** — Full Graph-RAG workspace: 57 SQLite KGs, 6 auto-detected schema profiles, d3-force + React Flow visualization, **live hybrid semantic search** (0.40\*embedding + 0.45\*BM25 + 0.15\*graph via numpy cosine similarity), CRUD, edge browser with edit/delete, **multi-KG cross-search**, AI ingestion (Gemini + LightRAG with resilient fallback), NetworkX analytics (PageRank, communities, centrality), RAG chat with source citations, KG compare/diff/merge, embedding dashboard with PCA projections (10 tabs), toast notifications for all errors
 - **Web App Builder** — 5-step wizard: idea → plan → theme → generate → export/IDE
 - **Workspace Transfer** — JSON import/export between standalone and Claude Code modes
 - **5 Themes** — Default, Deluxe-CRT, Scratch (B&W doodle), Solarized Zen, Sunset Warm — switchable via NavBar or Settings
@@ -111,7 +111,7 @@ multi-ai-agentic-workspace/
 │   │   ├── pages/              # 8 route pages
 │   │   ├── components/         # UI components
 │   │   ├── themes/             # 5 theme definitions (CSS vars)
-│   │   ├── hooks/              # useChat, useTheme
+│   │   ├── hooks/              # useChat, useTheme, useToast
 │   │   ├── services/           # API + storage
 │   │   └── types/              # TypeScript interfaces
 │   ├── package.json

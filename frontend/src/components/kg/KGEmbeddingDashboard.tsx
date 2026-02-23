@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import * as api from '../../services/apiService';
+import { showToast } from '../../hooks/useToast';
 import { KGEmbeddingStatus, KGProjectionPoint } from '../../types/kg';
 import { NODE_COLORS } from './KGSidebar';
 
@@ -28,7 +29,7 @@ const KGEmbeddingDashboard: React.FC<Props> = ({ dbId }) => {
     try {
       const s = await api.getKGEmbeddingStatus(dbId);
       setStatus(s);
-    } catch { /* ignore */ }
+    } catch (e: any) { showToast(e.message || 'Failed to load embedding status'); }
     setLoading(false);
   };
 
@@ -37,7 +38,7 @@ const KGEmbeddingDashboard: React.FC<Props> = ({ dbId }) => {
     try {
       const q = await api.getKGEmbeddingQuality(dbId);
       setQuality(q);
-    } catch { /* ignore */ }
+    } catch (e: any) { showToast(e.message || 'Failed to load quality metrics'); }
   };
 
   const loadProjection = async () => {
@@ -45,7 +46,7 @@ const KGEmbeddingDashboard: React.FC<Props> = ({ dbId }) => {
     try {
       const data = await api.getKGEmbeddingProjection(dbId, projMethod, 500);
       setProjection(data.points || []);
-    } catch { /* ignore */ }
+    } catch (e: any) { showToast(e.message || 'Failed to load projection'); }
   };
 
   const generateEmbeddings = async () => {
