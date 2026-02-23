@@ -7,7 +7,6 @@ httpx>=0.27.0
 # KG Studio dependencies
 numpy>=1.24.0
 networkx>=3.0
-# Optional: uncomment if available on your platform
-# sqlite-vec>=0.1.6
-# model2vec>=0.4.0
-# lightrag-hku>=1.0.0
+model2vec>=0.4.0
+lightrag-hku>=1.0.0
+# sqlite-vec>=0.1.6  # No wheel for aarch64/Termux — vector search degrades to FTS5
