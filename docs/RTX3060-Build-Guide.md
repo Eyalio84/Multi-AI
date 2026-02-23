@@ -10,15 +10,16 @@
 
 1. [Linux Distro Selection](#1-linux-distro-selection)
 2. [Dual Boot: Windows 11 + Linux](#2-dual-boot-windows-11--linux)
-3. [NVIDIA Drivers + CUDA Toolkit](#3-nvidia-drivers--cuda-toolkit)
-4. [Ollama + Local LLMs](#4-ollama--local-llms)
-5. [Model Catalog: What Runs on 12GB](#5-model-catalog-what-runs-on-12gb)
-6. [Claude Code CLI](#6-claude-code-cli)
-7. [Gemini CLI](#7-gemini-cli)
-8. [Python + Node.js Dev Environment](#8-python--nodejs-dev-environment)
-9. [Multi-AI Agentic Workspace Setup](#9-multi-ai-agentic-workspace-setup)
-10. [Simultaneous Models & RAG Configurations](#10-simultaneous-models--rag-configurations)
-11. [Quick Reference: Complete Install Script](#11-quick-reference-complete-install-script)
+3. [Python Virtual Environment (DO THIS FIRST)](#3-python-virtual-environment-do-this-first)
+4. [NVIDIA Drivers + CUDA Toolkit](#4-nvidia-drivers--cuda-toolkit)
+5. [Ollama + Local LLMs](#5-ollama--local-llms)
+6. [Model Catalog: What Runs on 12GB](#6-model-catalog-what-runs-on-12gb)
+7. [Claude Code CLI](#7-claude-code-cli)
+8. [Gemini CLI](#8-gemini-cli)
+9. [Python + Node.js Dev Environment](#9-python--nodejs-dev-environment)
+10. [Multi-AI Agentic Workspace Setup](#10-multi-ai-agentic-workspace-setup)
+11. [Simultaneous Models & RAG Configurations](#11-simultaneous-models--rag-configurations)
+12. [Quick Reference: Complete Install Script](#12-quick-reference-complete-install-script)
 
 ---
 
@@ -174,7 +175,94 @@ sudo mount -a
 
 ---
 
-## 3. NVIDIA Drivers + CUDA Toolkit
+## 3. Python Virtual Environment (DO THIS FIRST)
+
+> **Why this matters:** On Termux we installed packages globally as root — that's how we ended up fighting pandas 3.0 vs lightrag wanting <2.4, safetensors needing ANDROID_API_LEVEL hacks, and `--no-deps` workarounds. Never again. A virtual environment isolates your AI packages from the system Python so nothing can conflict.
+
+### 3.1 The Rule
+
+**NEVER `pip install` anything globally.** Every project gets its own venv. System Python stays untouched.
+
+```bash
+# Install venv support (Ubuntu 24.04)
+sudo apt update
+sudo apt install -y python3-pip python3-venv python3-dev
+```
+
+### 3.2 Create Your Main AI Virtual Environment
+
+```bash
+# Create it once
+python3 -m venv ~/ai-env
+
+# Activate it (you'll do this every time you open a terminal for AI work)
+source ~/ai-env/bin/activate
+
+# Your prompt changes to show you're inside the venv:
+# (ai-env) user@machine:~$
+
+# Verify pip points to the venv, not system
+which pip
+# Should show: /home/youruser/ai-env/bin/pip  (NOT /usr/bin/pip)
+which python
+# Should show: /home/youruser/ai-env/bin/python
+```
+
+### 3.3 Auto-Activate on Login (Optional)
+
+Add to `~/.bashrc` so the venv activates every time you open a terminal:
+
+```bash
+echo '# Auto-activate AI virtual environment' >> ~/.bashrc
+echo 'source ~/ai-env/bin/activate' >> ~/.bashrc
+```
+
+Or if you prefer manual activation, create an alias:
+
+```bash
+echo 'alias ai="source ~/ai-env/bin/activate"' >> ~/.bashrc
+```
+
+Then just type `ai` to activate.
+
+### 3.4 Per-Project Venvs (For Isolated Work)
+
+For the multi-ai-agentic-workspace specifically:
+
+```bash
+cd ~/projects/multi-ai-agentic-workspace/backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+This keeps workspace dependencies separate from your general AI environment.
+
+### 3.5 What Goes Where
+
+| Environment | What to Install | Why |
+|------------|----------------|-----|
+| **System Python** (`sudo apt install python3-xyz`) | ONLY system tools (e.g., `python3-venv` itself) | Managed by Ubuntu's package manager, never breaks |
+| **~/ai-env** (main venv) | numpy, torch, model2vec, lightrag-hku, etc. | Your general AI toolkit, pip-managed |
+| **project/.venv** (per-project) | Project-specific requirements.txt | Isolated per project, reproducible |
+
+### 3.6 Lesson from Termux
+
+What we dealt with on the phone and why venvs prevent it:
+
+| Termux Problem | Venv Solution |
+|---------------|--------------|
+| `pip install` as root, global | `pip install` inside venv, user-owned |
+| pandas 3.0 (system) vs lightrag wants <2.4 | Venv has its own pandas version, no conflict |
+| safetensors build failure → ANDROID_API_LEVEL hack | x86_64 + venv = clean pip install, no hacks |
+| `python3` was 3.13, `pip` installed to 3.12 | Venv pins one Python version, `pip` and `python` always match |
+| Couldn't uninstall broken packages without breaking others | `rm -rf ~/ai-env && python3 -m venv ~/ai-env` — fresh in 2 seconds |
+
+> **From here forward, every `pip install` command in this guide assumes you have activated a virtual environment.** If your prompt doesn't show `(ai-env)` or `(.venv)`, activate first.
+
+---
+
+## 4. NVIDIA Drivers + CUDA Toolkit
 
 ### 3.1 Install NVIDIA Driver
 
@@ -264,7 +352,7 @@ docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu24.04 nvidia-smi
 
 ---
 
-## 4. Ollama + Local LLMs
+## 5. Ollama + Local LLMs
 
 ### 4.1 Install Ollama
 
@@ -367,7 +455,7 @@ nvidia-smi
 
 ---
 
-## 5. Model Catalog: What Runs on 12GB
+## 6. Model Catalog: What Runs on 12GB
 
 ### Complete Reference Table
 
@@ -410,7 +498,7 @@ nvidia-smi
 
 ---
 
-## 6. Claude Code CLI
+## 7. Claude Code CLI
 
 ### 6.1 Install (Native Installer — No Node.js Required)
 
@@ -466,7 +554,7 @@ claude
 
 ---
 
-## 7. Gemini CLI
+## 8. Gemini CLI
 
 ### 7.1 Install (Requires Node.js 18+)
 
@@ -513,7 +601,7 @@ echo "I prefer concise responses with code examples" > ~/.gemini/GEMINI.md
 
 ---
 
-## 8. Python + Node.js Dev Environment
+## 9. Python + Node.js Dev Environment
 
 ### 8.1 Python
 
@@ -566,7 +654,7 @@ sudo usermod -aG docker $USER
 
 ---
 
-## 9. Multi-AI Agentic Workspace Setup
+## 10. Multi-AI Agentic Workspace Setup
 
 Once all the above is installed, clone and run the workspace:
 
@@ -622,7 +710,7 @@ The KG Studio's RAG Chat and Ingestion tabs can be configured to use Ollama inst
 
 ---
 
-## 10. Simultaneous Models & RAG Configurations
+## 11. Simultaneous Models & RAG Configurations
 
 Since nomic-embed-text uses only ~300 MB VRAM, you can always run it alongside a chat model.
 
@@ -672,7 +760,7 @@ ollama pull nomic-embed-text        # Embedding model for search
 
 ---
 
-## 11. Quick Reference: Complete Install Script
+## 12. Quick Reference: Complete Install Script
 
 Run this after dual-boot is set up and you're booted into Ubuntu:
 
@@ -755,15 +843,20 @@ curl -fsSL https://claude.ai/install.sh | bash
 echo "=== Step 13: Gemini CLI ==="
 npm install -g @google/gemini-cli
 
-echo "=== Step 14: Python AI Environment ==="
+echo "=== Step 14: Python Virtual Environment (CRITICAL — never pip install globally) ==="
 python3 -m venv ~/ai-env
 source ~/ai-env/bin/activate
+echo '# Auto-activate AI virtual environment' >> ~/.bashrc
+echo 'source ~/ai-env/bin/activate' >> ~/.bashrc
+
+echo "=== Step 15: Python AI Packages (inside venv) ==="
+pip install --upgrade pip
 pip install numpy networkx fastapi uvicorn httpx
 pip install google-genai anthropic
 pip install model2vec lightrag-hku sqlite-vec safetensors tokenizers
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
 
-echo "=== Step 15: Clone Multi-AI Workspace ==="
+echo "=== Step 16: Clone Multi-AI Workspace ==="
 mkdir -p ~/projects
 cd ~/projects
 git clone https://github.com/Eyalio84/Multi-AI.git multi-ai-agentic-workspace
