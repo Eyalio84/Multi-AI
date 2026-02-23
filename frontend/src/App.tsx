@@ -9,7 +9,9 @@ import PlaybooksPage from './pages/PlaybooksPage';
 import WorkflowsPage from './pages/WorkflowsPage';
 import KGStudioPage from './pages/KGStudioPage';
 import StudioPage from './pages/StudioPage';
+import IntegrationsPage from './pages/IntegrationsPage';
 import SettingsPage from './pages/SettingsPage';
+import ExpertsPage from './pages/ExpertsPage';
 import ToastContainer from './components/ToastContainer';
 
 const AppContent: React.FC = () => {
@@ -28,6 +30,8 @@ const AppContent: React.FC = () => {
           <Route path="/workflows" element={<WorkflowsPage />} />
           <Route path="/kg-studio" element={<KGStudioPage />} />
           <Route path="/builder" element={<StudioPage />} />
+          <Route path="/experts" element={<ExpertsPage />} />
+          <Route path="/integrations" element={<IntegrationsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </div>

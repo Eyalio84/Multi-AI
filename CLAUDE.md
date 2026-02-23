@@ -1,8 +1,8 @@
-# CLAUDE.md — Multi-AI Agentic Workspace v2.0.0
+# CLAUDE.md — Multi-AI Agentic Workspace v2.1.0
 
 ## What This Is
 
-A professional agentic workflow orchestrator combining Gemini + Claude intelligence. Built as a FastAPI backend + React 19 frontend with dual-model streaming, 33 NLKE agents, 53 playbooks, visual workflow execution, a full Graph-RAG Knowledge Graph workspace (57 SQLite KGs, 6 schema profiles, live hybrid search with numpy cosine similarity, d3-force graph visualization, NetworkX analytics, RAG chat, edge browser with edit/delete, multi-KG cross-search), and an **AI-powered Studio** for generating full-stack React apps with live Sandpack preview, 3 editing modes, SQLite project persistence, and version history.
+A professional agentic workflow orchestrator combining Gemini + Claude intelligence. Built as a FastAPI backend + React 19 frontend with dual-model streaming, 33 NLKE agents, 53 playbooks, visual workflow execution, a full Graph-RAG Knowledge Graph workspace (57 SQLite KGs, 6 schema profiles, live hybrid search with numpy cosine similarity, d3-force graph visualization, NetworkX analytics, RAG chat, edge browser with edit/delete, multi-KG cross-search), an **AI-powered Studio** for generating full-stack React apps with live Sandpack preview, 3 editing modes, SQLite project persistence, and version history, and a **KG-OS Expert Builder** for creating AI experts backed by structured knowledge graphs with intent-driven retrieval, a 4-weight scoring formula, and 56 semantic dimensions.
 
 ## Quick Start
 
@@ -22,7 +22,7 @@ multi-ai-agentic-workspace/
 ├── backend/                    # FastAPI (Python)
 │   ├── main.py                 # App entry, CORS, router mounting
 │   ├── config.py               # API keys, model catalog, paths
-│   ├── routers/                # 10 API routers
+│   ├── routers/                # 11 API routers
 │   │   ├── chat.py             # POST /api/chat/stream (SSE, dual-model)
 │   │   ├── coding.py           # POST /api/coding/stream (tool use)
 │   │   ├── agents.py           # NLKE agent CRUD + execution
@@ -30,6 +30,7 @@ multi-ai-agentic-workspace/
 │   │   ├── workflows.py        # Workflow templates + execution
 │   │   ├── builder.py          # Legacy web app plan + generate
 │   │   ├── studio.py           # Studio: SSE streaming + project CRUD (18 endpoints)
+│   │   ├── experts.py          # Expert Builder + KG-OS (15 endpoints, KGOS routes before dynamic)
 │   │   ├── media.py            # Image edit + video gen
 │   │   ├── interchange.py      # JSON import/export, mode toggle
 │   │   └── kg.py               # KG Studio (33 endpoints, CRUD, search, analytics, RAG)
@@ -47,7 +48,9 @@ multi-ai-agentic-workspace/
 │   │   ├── embedding_service.py # Hybrid search (numpy cosine + BM25 + graph boost)
 │   │   ├── analytics_service.py # NetworkX graph algorithms
 │   │   ├── ingestion_service.py # AI entity extraction from text
-│   │   └── rag_chat_service.py  # RAG chat with streaming + source citations
+│   │   ├── rag_chat_service.py  # RAG chat with streaming + source citations
+│   │   ├── kgos_query_engine.py # KG-OS: 12 query methods, 14 intents, 56 dimensions
+│   │   └── expert_service.py   # Expert CRUD + KG-OS execution pipeline
 │   └── tests/                  # API integration tests
 │
 ├── frontend/                   # React 19 + TypeScript + Vite
@@ -55,9 +58,10 @@ multi-ai-agentic-workspace/
 │   │   ├── App.tsx             # Router + layout shell
 │   │   ├── context/AppContext   # Global state (projects, models, personas)
 │   │   ├── context/StudioContext # Studio state (files, mode, streaming, versions)
-│   │   ├── pages/              # 8 route pages (Studio replaces Builder at /builder)
+│   │   ├── pages/              # 9 route pages (inc. ExpertsPage)
 │   │   ├── components/         # Reusable UI components
 │   │   ├── components/studio/  # 28 Studio components (panels, editors, overlays)
+│   │   ├── components/experts/ # 6 Expert components (Card, List, Builder, Chat, Config, Analytics)
 │   │   ├── themes/             # 5 theme definitions (CSS variable maps)
 │   │   ├── hooks/              # useChat (streaming), useTheme (CSS vars), useToast (global notifications)
 │   │   ├── services/           # API + localStorage + studioApiService
@@ -120,6 +124,21 @@ multi-ai-agentic-workspace/
 | POST | /api/kg/compare | Structural KG comparison |
 | POST | /api/kg/merge | Merge KGs (union/intersection/complement) |
 | POST | /api/kg/databases/{id}/ingest | AI entity extraction from text |
+| GET | /api/experts | List all experts |
+| POST | /api/experts | Create expert |
+| GET | /api/experts/{id} | Get expert |
+| PUT | /api/experts/{id} | Update expert |
+| DELETE | /api/experts/{id} | Delete expert |
+| POST | /api/experts/{id}/duplicate | Duplicate expert |
+| POST | /api/experts/{id}/chat | SSE streaming expert chat (KG-OS retrieval) |
+| GET | /api/experts/{id}/conversations | List conversations |
+| GET | /api/experts/{id}/conversations/{cid} | Get conversation with messages |
+| DELETE | /api/experts/{id}/conversations/{cid} | Delete conversation |
+| POST | /api/experts/kgos/query/{db_id} | Direct KG-OS query (testing/debug) |
+| POST | /api/experts/kgos/impact/{db_id}/{node_id} | Impact analysis |
+| POST | /api/experts/kgos/compose/{db_id} | Composition planning |
+| POST | /api/experts/kgos/similar/{db_id}/{node_id} | Similar nodes |
+| GET | /api/experts/kgos/dimensions | List 56 standard dimensions |
 | GET | /api/health | Health check + mode |
 | GET | /api/models | Available model catalog |
 
@@ -145,6 +164,8 @@ multi-ai-agentic-workspace/
 | /workflows | WorkflowsPage | Visual workflow designer + executor |
 | /kg-studio | KGStudioPage | Graph-RAG KG workspace (10 tabs, 57 DBs, React Flow + d3-force, edge browser, multi-KG search) |
 | /builder | StudioPage | AI Studio: chat→generate→preview, 3 modes, version history |
+| /experts | ExpertsPage | KG-OS Expert Builder: create AI experts backed by KGs, 4-weight scoring, source citations |
+| /integrations | IntegrationsPage | Platform integrations management |
 | /settings | SettingsPage | Mode toggle, themes, export/import |
 
 ## Theme System

@@ -458,9 +458,187 @@ export const getKGEmbeddingQuality = async (dbId: string) => {
   return res.json();
 };
 
+// --- Memory + Conversations ---
+export const listConversations = async (mode?: string, limit = 20) => {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (mode) params.set('mode', mode);
+  const res = await fetch(`${BASE}/memory/conversations?${params}`);
+  return res.json();
+};
+
+export const getConversation = async (id: string) => {
+  const res = await fetch(`${BASE}/memory/conversations/${id}`);
+  return res.json();
+};
+
+export const getConversationMessages = async (id: string, limit = 50, offset = 0) => {
+  const res = await fetch(`${BASE}/memory/conversations/${id}/messages?limit=${limit}&offset=${offset}`);
+  return res.json();
+};
+
+export const deleteConversation = async (id: string) => {
+  const res = await fetch(`${BASE}/memory/conversations/${id}`, { method: 'DELETE' });
+  return res.json();
+};
+
+export const searchMemory = async (query: string, limit = 5) => {
+  const res = await fetch(`${BASE}/memory/search`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, limit }),
+  });
+  return res.json();
+};
+
+export const getMemoryStats = async () => {
+  const res = await fetch(`${BASE}/memory/stats`);
+  return res.json();
+};
+
+// --- Integrations ---
+export const listIntegrations = async () => {
+  const res = await fetch(`${BASE}/integrations`);
+  return res.json();
+};
+
+export const configureIntegration = async (platform: string, config: Record<string, string>, userLabel = '') => {
+  const res = await fetch(`${BASE}/integrations/${platform}/configure`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ config, user_label: userLabel }),
+  });
+  return res.json();
+};
+
+export const testIntegration = async (platform: string) => {
+  const res = await fetch(`${BASE}/integrations/${platform}/test`, { method: 'POST' });
+  return res.json();
+};
+
+export const enableIntegration = async (platform: string) => {
+  const res = await fetch(`${BASE}/integrations/${platform}/enable`, { method: 'POST' });
+  return res.json();
+};
+
+export const disableIntegration = async (platform: string) => {
+  const res = await fetch(`${BASE}/integrations/${platform}/disable`, { method: 'POST' });
+  return res.json();
+};
+
+export const deleteIntegration = async (platform: string) => {
+  const res = await fetch(`${BASE}/integrations/${platform}`, { method: 'DELETE' });
+  return res.json();
+};
+
+export const getIntegrationSetup = async (platform: string) => {
+  const res = await fetch(`${BASE}/integrations/${platform}/setup`);
+  return res.json();
+};
+
 // --- API Key Configuration ---
 export const getKeysStatus = async (): Promise<{ gemini: boolean; anthropic: boolean; mode: string }> => {
   const res = await fetch(`${BASE}/config/keys/status`);
+  return res.json();
+};
+
+// --- Experts ---
+export const listExperts = async () => {
+  const res = await fetch(`${BASE}/experts`);
+  return res.json();
+};
+
+export const createExpert = async (data: any) => {
+  const res = await fetch(`${BASE}/experts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error((await res.json()).detail || 'Failed to create expert');
+  return res.json();
+};
+
+export const getExpert = async (id: string) => {
+  const res = await fetch(`${BASE}/experts/${id}`);
+  if (!res.ok) throw new Error('Expert not found');
+  return res.json();
+};
+
+export const updateExpert = async (id: string, data: any) => {
+  const res = await fetch(`${BASE}/experts/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error((await res.json()).detail || 'Failed to update expert');
+  return res.json();
+};
+
+export const deleteExpert = async (id: string) => {
+  const res = await fetch(`${BASE}/experts/${id}`, { method: 'DELETE' });
+  return res.json();
+};
+
+export const duplicateExpert = async (id: string) => {
+  const res = await fetch(`${BASE}/experts/${id}/duplicate`, { method: 'POST' });
+  return res.json();
+};
+
+export const streamExpertChat = async (
+  expertId: string, query: string, conversationId?: string, history: any[] = []
+): Promise<ReadableStream<Uint8Array>> => {
+  const res = await fetch(`${BASE}/experts/${expertId}/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, conversation_id: conversationId, history }),
+  });
+  if (!res.ok || !res.body) throw new Error('Expert chat stream failed');
+  return res.body;
+};
+
+export const listExpertConversations = async (expertId: string) => {
+  const res = await fetch(`${BASE}/experts/${expertId}/conversations`);
+  return res.json();
+};
+
+export const getExpertConversation = async (expertId: string, conversationId: string) => {
+  const res = await fetch(`${BASE}/experts/${expertId}/conversations/${conversationId}`);
+  return res.json();
+};
+
+export const deleteExpertConversation = async (expertId: string, conversationId: string) => {
+  const res = await fetch(`${BASE}/experts/${expertId}/conversations/${conversationId}`, { method: 'DELETE' });
+  return res.json();
+};
+
+export const kgosQuery = async (dbId: string, query: string, options: any = {}) => {
+  const res = await fetch(`${BASE}/experts/kgos/query/${dbId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, ...options }),
+  });
+  return res.json();
+};
+
+export const kgosImpact = async (dbId: string, nodeId: string, direction = 'forward', maxDepth = 3) => {
+  const res = await fetch(`${BASE}/experts/kgos/impact/${dbId}/${nodeId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ direction, max_depth: maxDepth }),
+  });
+  return res.json();
+};
+
+export const kgosCompose = async (dbId: string, goal: string, maxSteps = 5) => {
+  const res = await fetch(`${BASE}/experts/kgos/compose/${dbId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ goal, max_steps: maxSteps }),
+  });
+  return res.json();
+};
+
+export const kgosSimilar = async (dbId: string, nodeId: string, k = 10) => {
+  const res = await fetch(`${BASE}/experts/kgos/similar/${dbId}/${nodeId}?k=${k}`, { method: 'POST' });
   return res.json();
 };
 

@@ -1,10 +1,7 @@
-"""Coding assistant with tool use — dual model support."""
+"""Coding assistant with tool use — dual model support via unified agentic loop."""
 import json
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
-
-from config import MODE
-from services import gemini_service, claude_service
 
 router = APIRouter()
 
@@ -160,16 +157,6 @@ def _build_coding_system_prompt(projects: list[dict], persona: dict | None, cust
             project_context.append(ctx)
         parts.append("Active Projects:\n" + "\n".join(project_context))
 
-    if persona:
-        if persona.get("baseInstructions"):
-            parts.append(persona["baseInstructions"])
-        for style in persona.get("composedStyles", []):
-            style_name = style.get("name", "")
-            if custom_styles:
-                matched = next((s for s in custom_styles if s["name"] == style_name), None)
-                if matched:
-                    parts.append(matched["instructions"])
-
     return "\n\n".join(parts)
 
 
@@ -185,32 +172,28 @@ async def coding_stream(request: Request):
     provider = body.get("provider", "gemini")
     model = body.get("model")
     thinking_budget = body.get("thinkingBudget")
+    conversation_id = body.get("conversationId")
 
     system_prompt = _build_coding_system_prompt(projects, persona, custom_styles)
 
     async def generate():
+        from services.agentic_loop import agentic_loop
         try:
-            if provider == "claude" and MODE == "standalone":
-                target_model = model or "claude-sonnet-4-6"
-                gen = claude_service.stream_with_tools(
-                    messages=messages,
-                    tools=CLAUDE_TOOL_DEFINITIONS,
-                    model=target_model,
-                    system=system_prompt,
-                )
-            else:
-                target_model = model or "gemini-2.5-flash"
-                gen = gemini_service.stream_with_tools(
-                    messages=messages,
-                    tool_declarations=GEMINI_TOOL_DECLARATIONS,
-                    model=target_model,
-                    system_instruction=system_prompt,
-                    use_web_search=use_web_search,
-                )
-
-            async for chunk in gen:
+            async for chunk in agentic_loop.run(
+                messages=messages,
+                conversation_id=conversation_id,
+                mode="coding",
+                provider=provider,
+                model=model,
+                system_prompt=system_prompt,
+                persona=persona,
+                custom_styles=custom_styles,
+                tools=GEMINI_TOOL_DECLARATIONS,
+                tools_claude=CLAUDE_TOOL_DEFINITIONS,
+                use_web_search=use_web_search,
+                thinking_budget=thinking_budget or 0,
+            ):
                 yield f"data: {json.dumps(chunk)}\n\n"
-
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
             yield f"data: {json.dumps({'type': 'done'})}\n\n"

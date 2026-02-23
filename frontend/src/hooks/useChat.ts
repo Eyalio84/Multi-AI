@@ -22,6 +22,8 @@ export const useChat = (
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [statusText, setStatusText] = useState('');
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [injectionMeta, setInjectionMeta] = useState<{ memories?: boolean; skills?: boolean } | null>(null);
 
   const addMessage = useCallback((author: MessageAuthor, parts: MessagePart[], extra?: Partial<Message>) => {
     const msg: Message = { id: generateUniqueId(), author, parts, provider, ...extra };
@@ -89,6 +91,16 @@ export const useChat = (
       for (const line of lines) {
         try {
           const data = JSON.parse(line.slice(6));
+
+          // Track conversation and injection metadata
+          if (data.type === 'conversation_start') {
+            setConversationId(data.conversation_id);
+            continue;
+          }
+          if (data.type === 'injection_meta') {
+            setInjectionMeta({ memories: data.memories, skills: data.skills });
+            continue;
+          }
 
           if (!currentResponse && data.type !== 'done') {
             currentResponse = { id: generateUniqueId(), author: MessageAuthor.ASSISTANT, parts: [{ text: '' }], provider };
@@ -182,5 +194,5 @@ export const useChat = (
 
   const clearMessages = () => setMessages([]);
 
-  return { messages, isLoading, statusText, sendMessage, clearMessages };
+  return { messages, isLoading, statusText, sendMessage, clearMessages, conversationId, injectionMeta };
 };

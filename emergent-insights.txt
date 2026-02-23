@@ -1,0 +1,66 @@
+# Emergent Insights Log — KG-OS + Expert Builder Implementation
+# "3rd Knowledge" — things that can only be seen during implementation
+#
+# Format: [timestamp] INSIGHT #N: <title>
+# Context: <what was being implemented when the insight emerged>
+# Insight: <the actual insight>
+# Impact: <how it changes/improves the implementation>
+#
+# Started: 2026-02-23
+# ---
+
+[2026-02-23 #1] INSIGHT: embedding_service public methods are unnecessary
+Context: Building kgos_query_engine.py, which the plan said needs 3 new public methods
+  added to embedding_service.py (get_text_scores, get_embedding_scores, get_graph_boost_scores).
+Insight: Python doesn't enforce private methods — kgos_query_engine can call
+  embedding_service._bm25_score(), _fts_search(), _embedding_search(), _graph_boost()
+  directly. Adding public wrapper methods would be pure redundancy. The ONLY consumer
+  of these decomposed scores is the KGOS engine itself.
+Impact: Skipped modifying embedding_service.py entirely. 0 lines changed instead of 20.
+  Cleaner architecture — no API surface bloat. The plan's instinct to "expose" was
+  influenced by a library-design mindset, but these are co-located services in the same
+  process. Direct access is idiomatic Python.
+
+[2026-02-23 #2] INSIGHT: FastAPI route ordering — static before dynamic is critical
+Context: Building experts.py router with both /kgos/* static routes and /{expert_id} dynamic routes.
+Insight: FastAPI matches routes in definition order. If /{expert_id} comes first, requesting
+  /experts/kgos/query/my-db would capture "kgos" as expert_id and return 404. This is a
+  classic RESTful routing trap that only surfaces during implementation — the plan listed
+  endpoints as a flat table and didn't reveal the ordering dependency.
+Impact: Reordered all /kgos/* endpoints BEFORE /{expert_id} routes. Added comment explaining why.
+  This pattern should be documented as a convention for all future routers mixing static
+  and dynamic path segments.
+
+[2026-02-23 #2b] INSIGHT: Intent classifier regex too narrow for "can [noun]" patterns
+Context: Testing classify_intent with "can Claude handle images?" — classified as "explore".
+Insight: The check_capability regex only matched "can it/this/the" — missed proper nouns and
+  other subjects like "can Claude/Gemini/the system handle/support/do". Real users say
+  "can Claude handle X", not "can it handle X". This gap was invisible in the design spec
+  (which tested with template phrases) but obvious when typing real queries.
+Impact: Added broader "can\s+\w+\s+(handle|support|do|process|...)" pattern. Now correctly
+  classifies natural phrasing. Pattern: test with real queries, not template phrases.
+
+[2026-02-23 #3] INSIGHT: Expert execution doesn't need agentic_loop integration
+Context: Plan called for adding mode="expert" to agentic_loop.py (~30 lines).
+Insight: The expert_service.execute() already contains its own complete pipeline:
+  KG-OS retrieval → context assembly → persona injection → LLM streaming → persistence.
+  Routing through the agentic_loop would add an unnecessary indirection layer — the loop's
+  8-stage pipeline (memory recall, skill injection, etc.) would conflict with expert-specific
+  context assembly. Experts ARE their own pipeline.
+Impact: Skipped modifying agentic_loop.py entirely. The expert router calls expert_service
+  directly, keeping the expert pipeline independent. This is actually better architecture:
+  experts don't inherit agentic_loop's Spotify/Calendar tool injection or generic memory
+  recall — they have their own KG-backed context.
+
+[2026-02-23 #4] INSIGHT: Regex \b word boundary breaks inflected forms in intent classifier
+Context: Running 141 edge-case tests — "what depends on the read_file node" classified as
+  "explore" instead of "impact", and "authentication requirements" missed "security".
+Insight: The intent patterns used \b(depend|auth|secur)\b — but \b after a word stem requires
+  the next character to be non-word. "depends" has 's' after "depend", so \bdepend\b fails.
+  Same for "authentication" vs \bauth\b and "security" vs \bsecur\b. The patterns were designed
+  as prefix matchers but wrapped with exact-word boundary anchors. This is a subtle regex trap:
+  \b works for full words but silently breaks on any inflected form (plurals, -ing, -tion, -ity).
+Impact: Changed to \bdepend\w* and \bsecur\w* and \bauth\w* patterns. Also added explicit
+  "what depends/relies" pattern for impact. All 14 intent categories now pass. Rule of thumb:
+  use \w* after stems when you want prefix matching inside \b groups.
+

@@ -374,16 +374,22 @@ async def batch_retype(db_id: str, req: BatchRetypeRequest):
         raise HTTPException(404, str(e))
 
 
-# ── Phase D: RAG Chat ───────────────────────────────────────────────
+# ── Phase D: RAG Chat (via unified agentic loop) ─────────────────────
 @router.post("/databases/{db_id}/chat")
 async def rag_chat(db_id: str, req: ChatRequest):
-    from services.rag_chat_service import rag_chat_service
+    from services.agentic_loop import agentic_loop
     try:
         async def event_stream():
-            async for chunk in rag_chat_service.chat(
-                db_id, req.query, req.history, req.mode, req.limit
+            async for chunk in agentic_loop.run(
+                messages=[],
+                mode="rag",
+                kg_db_id=db_id,
+                rag_query=req.query,
+                rag_history=req.history,
+                rag_limit=req.limit,
+                inject_skills=False,
             ):
-                yield f"data: {chunk}\n\n"
+                yield f"data: {json.dumps(chunk)}\n\n"
             yield "data: [DONE]\n\n"
         return StreamingResponse(event_stream(), media_type="text/event-stream")
     except (FileNotFoundError, ValueError) as e:
