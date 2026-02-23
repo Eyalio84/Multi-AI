@@ -14,78 +14,53 @@ import {
   Position,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import {
+  forceSimulation,
+  forceLink,
+  forceManyBody,
+  forceCenter,
+  forceCollide,
+  SimulationNodeDatum,
+  SimulationLinkDatum,
+} from 'd3-force';
 import { KGNode, KGEdge, KGSubgraph } from '../../types/kg';
 import { NODE_COLORS } from './KGSidebar';
 
-// Force simulation (inline d3-force-like algorithm)
+interface SimNode extends SimulationNodeDatum {
+  id: string;
+}
+
+interface SimLink extends SimulationLinkDatum<SimNode> {
+  source: string;
+  target: string;
+}
+
+// d3-force layout: physics-based node positioning
 function forceLayout(nodes: KGNode[], edges: KGEdge[], width: number, height: number) {
-  const positions: Record<string, { x: number; y: number; vx: number; vy: number }> = {};
-  const idSet = new Set(nodes.map(n => n.id));
+  const nodeIdSet = new Set(nodes.map(n => n.id));
+  const simNodes: SimNode[] = nodes.map(n => ({ id: n.id }));
+  const simLinks: SimLink[] = edges
+    .filter(e => nodeIdSet.has(e.source) && nodeIdSet.has(e.target))
+    .map(e => ({ source: e.source, target: e.target }));
 
-  // Initialize random positions
-  nodes.forEach((n, i) => {
-    const angle = (2 * Math.PI * i) / nodes.length;
-    const radius = Math.min(width, height) * 0.35;
-    positions[n.id] = {
-      x: width / 2 + radius * Math.cos(angle) + (Math.random() - 0.5) * 40,
-      y: height / 2 + radius * Math.sin(angle) + (Math.random() - 0.5) * 40,
-      vx: 0, vy: 0,
+  const simulation = forceSimulation<SimNode>(simNodes)
+    .force('link', forceLink<SimNode, SimLink>(simLinks).id(d => d.id).distance(120))
+    .force('charge', forceManyBody<SimNode>().strength(-400))
+    .force('center', forceCenter(width / 2, height / 2))
+    .force('collide', forceCollide<SimNode>(40))
+    .stop();
+
+  // Run simulation synchronously (300 ticks to settle)
+  for (let i = 0; i < 300; i++) {
+    simulation.tick();
+  }
+
+  const positions: Record<string, { x: number; y: number }> = {};
+  for (const node of simNodes) {
+    positions[node.id] = {
+      x: node.x ?? width / 2,
+      y: node.y ?? height / 2,
     };
-  });
-
-  // Simple force simulation: repulsion + attraction + centering
-  const iterations = 80;
-  const repulsionK = 3000;
-  const attractionK = 0.008;
-  const damping = 0.85;
-
-  for (let iter = 0; iter < iterations; iter++) {
-    const temp = 1 - iter / iterations;
-    // Repulsion between all nodes
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        const a = positions[nodes[i].id];
-        const b = positions[nodes[j].id];
-        const dx = a.x - b.x;
-        const dy = a.y - b.y;
-        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        const force = (repulsionK * temp) / (dist * dist);
-        const fx = (dx / dist) * force;
-        const fy = (dy / dist) * force;
-        a.vx += fx; a.vy += fy;
-        b.vx -= fx; b.vy -= fy;
-      }
-    }
-    // Attraction along edges
-    edges.forEach(e => {
-      if (!positions[e.source] || !positions[e.target]) return;
-      const a = positions[e.source];
-      const b = positions[e.target];
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      const force = dist * attractionK;
-      const fx = (dx / dist) * force;
-      const fy = (dy / dist) * force;
-      a.vx += fx; a.vy += fy;
-      b.vx -= fx; b.vy -= fy;
-    });
-    // Center gravity
-    nodes.forEach(n => {
-      const p = positions[n.id];
-      p.vx += (width / 2 - p.x) * 0.001;
-      p.vy += (height / 2 - p.y) * 0.001;
-    });
-    // Update positions
-    nodes.forEach(n => {
-      const p = positions[n.id];
-      p.vx *= damping;
-      p.vy *= damping;
-      p.x += p.vx;
-      p.y += p.vy;
-      p.x = Math.max(40, Math.min(width - 40, p.x));
-      p.y = Math.max(40, Math.min(height - 40, p.y));
-    });
   }
 
   return positions;
@@ -129,8 +104,8 @@ interface Props {
 }
 
 const KGCanvas: React.FC<Props> = ({ subgraph, selectedNodeId, onNodeClick, loading }) => {
-  const [rfNodes, setRfNodes, onNodesChange] = useNodesState([]);
-  const [rfEdges, setRfEdges, onEdgesChange] = useEdgesState([]);
+  const [rfNodes, setRfNodes, onNodesChange] = useNodesState<Node>([]);
+  const [rfEdges, setRfEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

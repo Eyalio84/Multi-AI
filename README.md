@@ -1,6 +1,6 @@
-# Multi-AI Agentic Workspace
+# Multi-AI Agentic Workspace v1.0.1
 
-A professional agentic workflow orchestrator combining **Gemini** and **Claude** intelligence into a unified web interface. Build real software with 33 NLKE agents, 53 playbooks, visual workflows, and a dual-model coding IDE.
+A professional agentic workflow orchestrator combining **Gemini** and **Claude** intelligence into a unified web interface. Build real software with 33 NLKE agents, 53 playbooks, visual workflows, a dual-model coding IDE, and a full Graph-RAG Knowledge Graph workspace.
 
 ## Features
 
@@ -9,7 +9,7 @@ A professional agentic workflow orchestrator combining **Gemini** and **Claude**
 - **33 NLKE Agents** — Run specialized agents (cost-advisor, code-reviewer, workflow-orchestrator, etc.)
 - **53 Playbooks** — Searchable library of implementation recipes with category filtering
 - **Visual Workflows** — 4 templates, AI-planned custom workflows, SSE execution with progress
-- **KG Studio** — Full Graph-RAG workspace: 57 SQLite KGs, 6 auto-detected schema profiles, React Flow visualization, hybrid semantic search (BM25+embedding+graph), CRUD, AI ingestion, NetworkX analytics, RAG chat with source citations, KG compare/diff/merge, embedding dashboard (10 tabs)
+- **KG Studio** — Full Graph-RAG workspace: 57 SQLite KGs, 6 auto-detected schema profiles, d3-force + React Flow visualization, **live hybrid semantic search** (0.40\*embedding + 0.45\*BM25 + 0.15\*graph via numpy cosine similarity), CRUD, AI ingestion (Gemini + LightRAG), NetworkX analytics (PageRank, communities, centrality), RAG chat with source citations, KG compare/diff/merge, embedding dashboard with PCA projections (10 tabs)
 - **Web App Builder** — 5-step wizard: idea → plan → theme → generate → export/IDE
 - **Workspace Transfer** — JSON import/export between standalone and Claude Code modes
 - **5 Themes** — Default, Deluxe-CRT, Scratch (B&W doodle), Solarized Zen, Sunset Warm — switchable via NavBar or Settings
@@ -99,7 +99,7 @@ multi-ai-agentic-workspace/
 │   │   ├── agent_bridge.py     # NLKE bridge
 │   │   ├── playbook_index.py   # .pb file parser
 │   │   ├── kg_service.py       # KG core: 6 schema profiles, CRUD
-│   │   ├── embedding_service.py # Hybrid search (BM25+embedding+graph)
+│   │   ├── embedding_service.py # Hybrid search (numpy cosine + BM25 + graph boost)
 │   │   ├── analytics_service.py # NetworkX graph algorithms
 │   │   ├── ingestion_service.py # AI entity extraction
 │   │   └── rag_chat_service.py  # RAG chat + source citations
@@ -118,6 +118,8 @@ multi-ai-agentic-workspace/
 │   └── vite.config.ts
 ├── docs/
 │   ├── API-Endpoints.md        # Full API reference
+│   ├── KG-Libraries-Guide.md   # KG library capabilities (NetworkX, Model2Vec, LightRAG, d3-force)
+│   ├── RTX3060-Build-Guide.md  # Desktop build guide (dual-boot, CUDA, local LLMs)
 │   ├── system-atlas.html       # Interactive architecture
 │   └── user-guide.html         # Usage guide
 ├── agents -> NLKE/agents       # 33 agents (symlink)

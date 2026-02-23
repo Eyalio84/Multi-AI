@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>System Atlas — Multi-AI Agentic Workspace</title>
+<title>System Atlas — Multi-AI Agentic Workspace v1.0.1</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; overflow-x: hidden; }
@@ -37,7 +37,7 @@
 
 <div class="header">
   <h1>System Atlas</h1>
-  <p>Interactive architecture map — Multi-AI Agentic Workspace</p>
+  <p>Interactive architecture map — Multi-AI Agentic Workspace v1.0.1</p>
 </div>
 
 <div class="controls">
@@ -92,7 +92,7 @@
     <text x="660" y="72" text-anchor="middle">WorkflowsPage</text>
     <text x="660" y="86" text-anchor="middle" class="subtitle">/workflows</text>
   </g>
-  <g class="node" data-layer="frontend" data-tip="KGStudioPage|Graph-RAG workspace: 57 KGs, 10 tabs, React Flow, hybrid search, analytics, RAG chat|Route: /kg-studio" onclick="showTip(this, event)">
+  <g class="node" data-layer="frontend" data-tip="KGStudioPage|Graph-RAG workspace: 57 KGs, 10 tabs, d3-force + React Flow, live hybrid search (embedding+BM25+graph), NetworkX analytics, RAG chat|Route: /kg-studio" onclick="showTip(this, event)">
     <rect x="740" y="50" width="120" height="50" fill="#1e3a5f" stroke="#3b82f6" />
     <text x="800" y="72" text-anchor="middle">KG Studio</text>
     <text x="800" y="86" text-anchor="middle" class="subtitle">/kg-studio</text>
@@ -208,7 +208,7 @@
     <text x="140" y="552" text-anchor="middle">kg_service.py</text>
     <text x="140" y="566" text-anchor="middle" class="subtitle">6 schema profiles</text>
   </g>
-  <g class="node" data-layer="services" data-tip="embedding_service.py|Multi-strategy search: Gemini API, BM25/FTS5, Model2Vec offline, sqlite-vec|Hybrid formula: 0.40*emb + 0.45*BM25 + 0.15*graph" onclick="showTip(this, event)">
+  <g class="node" data-layer="services" data-tip="embedding_service.py|Live hybrid search: numpy cosine similarity + BM25/FTS5 + graph boost. Query embeddings via Model2Vec (256d) or Gemini API (3072d)|Hybrid formula: 0.40*emb + 0.45*BM25 + 0.15*graph — FULLY OPERATIONAL" onclick="showTip(this, event)">
     <rect x="260" y="530" width="200" height="50" fill="#1a2a3b" stroke="#06b6d4" />
     <text x="360" y="552" text-anchor="middle">embedding_service.py</text>
     <text x="360" y="566" text-anchor="middle" class="subtitle">Hybrid search</text>

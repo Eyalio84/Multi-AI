@@ -1,8 +1,8 @@
-# CLAUDE.md — Multi-AI Agentic Workspace
+# CLAUDE.md — Multi-AI Agentic Workspace v1.0.1
 
 ## What This Is
 
-A professional agentic workflow orchestrator combining Gemini + Claude intelligence. Built as a FastAPI backend + React 19 frontend with dual-model streaming, 33 NLKE agents, 53 playbooks, visual workflow execution, and a full Graph-RAG Knowledge Graph workspace (57 SQLite KGs, 6 schema profiles, hybrid search, analytics, RAG chat).
+A professional agentic workflow orchestrator combining Gemini + Claude intelligence. Built as a FastAPI backend + React 19 frontend with dual-model streaming, 33 NLKE agents, 53 playbooks, visual workflow execution, and a full Graph-RAG Knowledge Graph workspace (57 SQLite KGs, 6 schema profiles, live hybrid search with numpy cosine similarity, d3-force graph visualization, NetworkX analytics, RAG chat).
 
 ## Quick Start
 
@@ -39,7 +39,7 @@ multi-ai-agentic-workspace/
 │   │   ├── agent_bridge.py     # NLKE agent system bridge
 │   │   ├── playbook_index.py   # Playbook file parser + search
 │   │   ├── kg_service.py       # KG core: 6 schema profiles, auto-detect, CRUD
-│   │   ├── embedding_service.py # Multi-strategy search (Gemini, BM25, hybrid)
+│   │   ├── embedding_service.py # Hybrid search (numpy cosine + BM25 + graph boost)
 │   │   ├── analytics_service.py # NetworkX graph algorithms
 │   │   ├── ingestion_service.py # AI entity extraction from text
 │   │   └── rag_chat_service.py  # RAG chat with streaming + source citations
@@ -93,7 +93,7 @@ multi-ai-agentic-workspace/
 | POST | /api/import | Import workspace JSON |
 | GET | /api/kg/databases | List 57 KG databases with stats |
 | GET | /api/kg/databases/{id}/nodes | Paginated nodes (search, filter) |
-| POST | /api/kg/databases/{id}/search | Hybrid semantic search (BM25+embedding+graph) |
+| POST | /api/kg/databases/{id}/search | Hybrid semantic search (0.40*embedding + 0.45*BM25 + 0.15*graph) |
 | POST | /api/kg/databases/{id}/chat | RAG chat with streaming + source citations |
 | GET | /api/kg/databases/{id}/analytics/* | Graph metrics, centrality, communities, paths |
 | POST | /api/kg/compare | Structural KG comparison |
@@ -122,7 +122,7 @@ multi-ai-agentic-workspace/
 | /agents | AgentsPage | 33 NLKE agents + pipeline builder |
 | /playbooks | PlaybooksPage | 53 playbooks search + reader |
 | /workflows | WorkflowsPage | Visual workflow designer + executor |
-| /kg-studio | KGStudioPage | Graph-RAG KG workspace (10 tabs, 57 DBs, React Flow) |
+| /kg-studio | KGStudioPage | Graph-RAG KG workspace (10 tabs, 57 DBs, React Flow + d3-force) |
 | /builder | BuilderPage | 5-step web app generator |
 | /settings | SettingsPage | Mode toggle, themes, export/import |
 

@@ -1,4 +1,4 @@
-# API Endpoints Reference
+# API Endpoints Reference — v1.0.1
 
 Base URL: `http://localhost:8000/api`
 
@@ -348,7 +348,12 @@ Semantic search with multiple modes.
   "limit": 20
 }
 ```
-**Modes:** `fts` (BM25/FTS5), `embedding` (vector), `hybrid` (combined: 0.40*embedding + 0.45*BM25 + 0.15*graph)
+**Modes:** `fts` (BM25/FTS5), `embedding` (numpy cosine similarity), `hybrid` (combined: 0.40\*embedding + 0.45\*BM25 + 0.15\*graph)
+
+**Embedding search strategy (auto-selected):**
+1. Model2Vec (256-dim, offline, ~1ms/query) — used when stored embeddings are 256-dim
+2. Gemini API (3072-dim, requires API key) — used for Gemini-generated embeddings
+3. Model2Vec with pad/truncate — fallback for dimension mismatches
 
 ### POST /api/kg/search/multi
 Cross-KG search across multiple databases.
@@ -453,7 +458,18 @@ Batch delete all nodes of a given type.
 Batch rename a node type.
 
 ### GET /api/kg/databases/{db_id}/embedding-status
-Check embedding availability for a KG.
+Check embedding availability and search strategies for a KG.
+
+**Response:**
+```json
+{
+  "has_embeddings": true,
+  "count": 228,
+  "dimensions": 384,
+  "coverage_pct": 98.3,
+  "strategies_available": ["fts", "numpy_cosine", "model2vec", "gemini"]
+}
+```
 
 ### GET /api/kg/databases/{db_id}/embeddings/projection
 2D t-SNE/PCA projection data for embedding visualization.

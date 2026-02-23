@@ -151,13 +151,13 @@ class EmbeddingService:
         max_b = max(boost.values()) if boost else 1
         return {k: v / max_b for k, v in boost.items()}
 
-    # ── Embedding search via sqlite-vec ─────────────────────────────
+    # ── Embedding search (numpy cosine similarity, sqlite-vec when available) ──
     def _embedding_search(self, db_id: str, query: str, limit: int = 50) -> dict[str, float]:
-        if not _HAS_SQLITE_VEC:
+        if not _HAS_NUMPY:
             return {}
         conn = kg_service._get_conn(db_id)
         tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
-        # Check for embeddings table
+        # Find embeddings table
         emb_table = None
         for t in ["embeddings", "node_embeddings", "vec_embeddings"]:
             if t in tables:
@@ -165,15 +165,105 @@ class EmbeddingService:
                 break
         if not emb_table:
             return {}
-        # Check if it's a vec0 table
+        # Load stored embeddings
         try:
-            row = conn.execute(f"SELECT * FROM {emb_table} LIMIT 1").fetchone()
-            if not row:
-                return {}
+            rows = conn.execute(f"SELECT node_id, embedding FROM {emb_table}").fetchall()
         except sqlite3.OperationalError:
             return {}
-        # TODO: compute query embedding and do KNN search
-        return {}
+        if not rows:
+            return {}
+
+        ids = []
+        vecs = []
+        for r in rows:
+            nid = str(r[0])
+            emb_data = r[1]
+            if isinstance(emb_data, bytes):
+                vecs.append(_deserialize_f32(emb_data))
+                ids.append(nid)
+            elif isinstance(emb_data, str):
+                try:
+                    arr = json.loads(emb_data)
+                    if isinstance(arr, list):
+                        vecs.append(arr)
+                        ids.append(nid)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+        if not vecs:
+            return {}
+
+        # Compute query embedding
+        query_vec = self._get_query_embedding(query, len(vecs[0]))
+        if query_vec is None:
+            return {}
+
+        # Cosine similarity: query vs all stored embeddings
+        mat = np.array(vecs, dtype=np.float32)
+        qvec = np.array(query_vec, dtype=np.float32)
+        # Normalize
+        mat_norms = np.linalg.norm(mat, axis=1)
+        mat_norms[mat_norms == 0] = 1.0
+        q_norm = np.linalg.norm(qvec)
+        if q_norm == 0:
+            return {}
+        similarities = (mat @ qvec) / (mat_norms * q_norm)
+
+        # Top-k
+        top_indices = np.argsort(similarities)[::-1][:limit]
+        result = {}
+        for idx in top_indices:
+            score = float(similarities[idx])
+            if score > 0:
+                result[ids[idx]] = score
+        return result
+
+    def _load_model2vec(self):
+        """Load Model2Vec model with graceful failure."""
+        if self._model2vec_model is not None:
+            return self._model2vec_model
+        if not _HAS_MODEL2VEC:
+            return None
+        try:
+            self._model2vec_model = StaticModel.from_pretrained("minishlab/potion-base-8M")
+            return self._model2vec_model
+        except Exception:
+            return None
+
+    def _get_query_embedding(self, query: str, expected_dims: int) -> list[float] | None:
+        """Generate embedding for a search query, matching the stored embedding dimensions."""
+        # Strategy 1: Model2Vec (fast, offline, 256-dim) — best match for 256-dim stored embeddings
+        if expected_dims == 256:
+            model = self._load_model2vec()
+            if model is not None:
+                vec = model.encode([query])[0]
+                return vec.tolist()
+
+        # Strategy 2: Gemini API (matches whatever Gemini generated)
+        try:
+            from config import GEMINI_API_KEY
+            if GEMINI_API_KEY:
+                from google import genai
+                client = genai.Client(api_key=GEMINI_API_KEY)
+                result = client.models.embed_content(
+                    model="gemini-embedding-001",
+                    contents=[query],
+                )
+                return result.embeddings[0].values
+        except Exception:
+            pass
+
+        # Strategy 3: Model2Vec fallback even if dims don't match (pad/truncate)
+        model = self._load_model2vec()
+        if model is not None:
+            vec = model.encode([query])[0]
+            vec_list = vec.tolist()
+            if len(vec_list) < expected_dims:
+                vec_list.extend([0.0] * (expected_dims - len(vec_list)))
+            elif len(vec_list) > expected_dims:
+                vec_list = vec_list[:expected_dims]
+            return vec_list
+
+        return None
 
     # ── Hybrid search (88.5% recall formula) ────────────────────────
     def search(self, db_id: str, query: str, mode: str = "hybrid",
@@ -208,9 +298,11 @@ class EmbeddingService:
             max_emb = max(emb_scores.values()) if emb_scores else 1
             emb_scores = {k: v / max_emb for k, v in emb_scores.items()}
 
-        # Graph boost from top text results
+        # Graph boost from top text AND embedding results
         top_text_ids = sorted(text_scores, key=text_scores.get, reverse=True)[:10]
-        graph_scores = self._graph_boost(db_id, set(top_text_ids))
+        top_emb_ids = sorted(emb_scores, key=emb_scores.get, reverse=True)[:10] if emb_scores else []
+        boost_seed_ids = set(top_text_ids) | set(top_emb_ids)
+        graph_scores = self._graph_boost(db_id, boost_seed_ids)
 
         # Combine: score = alpha*embedding + beta*text + gamma*graph
         all_ids = set(text_scores) | set(emb_scores) | set(graph_scores)
@@ -289,6 +381,8 @@ class EmbeddingService:
         strategies = ["fts"]
         if _HAS_SQLITE_VEC:
             strategies.append("sqlite_vec")
+        if _HAS_NUMPY:
+            strategies.append("numpy_cosine")
         if _HAS_MODEL2VEC:
             strategies.append("model2vec")
         strategies.append("gemini")
@@ -317,14 +411,13 @@ class EmbeddingService:
             raise ValueError(f"Unknown strategy: {strategy}")
 
     def _generate_model2vec(self, db_id: str, conn, rows, p) -> dict:
-        if not _HAS_MODEL2VEC:
-            raise ImportError("model2vec not installed")
-        if self._model2vec_model is None:
-            self._model2vec_model = StaticModel.from_pretrained("minishlab/potion-base-8M")
+        model = self._load_model2vec()
+        if model is None:
+            raise ImportError("model2vec not available")
 
         texts = [f"{r[1]} {r[2]}" for r in rows]
         ids = [str(r[0]) for r in rows]
-        embeddings = self._model2vec_model.encode(texts)
+        embeddings = model.encode(texts)
 
         # Store in embeddings table
         conn.execute("CREATE TABLE IF NOT EXISTS embeddings (node_id TEXT PRIMARY KEY, embedding BLOB)")
