@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
-from routers import chat, coding, agents, playbooks, workflows, builder, media, interchange, kg, studio, memory, integrations, experts
+from routers import chat, coding, agents, playbooks, workflows, builder, media, interchange, kg, studio, memory, integrations, experts, tools, vox
 
 app = FastAPI(
     title="Multi-AI Agentic Workspace",
@@ -35,6 +35,8 @@ app.include_router(studio.router, prefix="/api")
 app.include_router(memory.router, prefix="/api")
 app.include_router(integrations.router, prefix="/api")
 app.include_router(experts.router, prefix="/api")
+app.include_router(tools.router, prefix="/api")
+app.include_router(vox.router)  # No prefix: WS at /ws/vox, REST at /api/vox/*
 
 
 @app.get("/api/health")

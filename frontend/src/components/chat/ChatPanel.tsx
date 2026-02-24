@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import MessageItem from './MessageItem';
 import LoadingIndicator from './LoadingIndicator';
 import ModelSelector from '../ModelSelector';
@@ -14,6 +15,7 @@ const ChatPanel: React.FC<{ defaultMode?: ChatMode }> = ({ defaultMode = 'chat' 
     aiCreateFile, aiUpdateFile, aiDeleteFile,
   } = useAppContext();
 
+  const navigate = useNavigate();
   const [mode] = useState<ChatMode>(defaultMode);
   const [prompt, setPrompt] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -81,12 +83,78 @@ const ChatPanel: React.FC<{ defaultMode?: ChatMode }> = ({ defaultMode = 'chat' 
         <div className="flex-1 overflow-y-auto p-4">
           <div className="space-y-2">
             {messages.length === 0 && (
-              <div className="text-center mt-20" style={{ color: 'var(--t-muted)' }}>
-                <p className="text-lg font-medium">Multi-AI Agentic Workspace</p>
-                <p className="text-sm mt-2">Chat with Gemini or Claude. Switch models anytime.</p>
-                <p className="text-xs mt-4" style={{ color: 'var(--t-muted)', opacity: 0.6 }}>
-                  Conversations are now persisted with memory extraction
-                </p>
+              <div className="max-w-2xl mx-auto mt-8 px-4">
+                {/* Hero */}
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-medium mb-4" style={{ background: 'var(--t-surface2)', color: 'var(--t-primary)' }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                    {activeProvider === 'claude' ? 'Claude' : 'Gemini'} ready
+                  </div>
+                  <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--t-text)' }}>
+                    What can I help you build?
+                  </h1>
+                  <p className="text-sm mt-2" style={{ color: 'var(--t-muted)' }}>
+                    Dual-model AI with 33 agents, 30 tools, 57 knowledge graphs, and persistent memory.
+                  </p>
+                </div>
+
+                {/* Capability cards */}
+                <div className="grid grid-cols-2 gap-2 mb-6">
+                  {[
+                    { icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4', label: 'Code', desc: 'Write, review & refactor', path: '/coding' },
+                    { icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', label: '33 Agents', desc: 'Autonomous workflows', path: '/agents' },
+                    { icon: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101', label: '57 KGs', desc: 'Graph-RAG search', path: '/kg-studio' },
+                    { icon: 'M11.42 15.17l-5.384 3.18.96-5.593L2.7 8.574l5.61-.814L11.42 2.5l2.507 5.26 5.61.814-4.296 4.183.96 5.593z', label: '30 Tools', desc: 'Cost, code & ML', path: '/tools' },
+                  ].map(card => (
+                    <button
+                      key={card.label}
+                      className="t-btn text-left p-3 rounded-lg border transition-all"
+                      style={{ borderColor: 'var(--t-border)', background: 'var(--t-surface)' }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--t-primary)'}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--t-border)'}
+                      onClick={() => navigate(card.path)}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <svg className="h-4 w-4" style={{ color: 'var(--t-primary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d={card.icon} />
+                        </svg>
+                        <span className="text-xs font-semibold" style={{ color: 'var(--t-text)' }}>{card.label}</span>
+                      </div>
+                      <p className="text-[11px]" style={{ color: 'var(--t-muted)' }}>{card.desc}</p>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Quick prompts */}
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-medium uppercase tracking-wider mb-2" style={{ color: 'var(--t-muted)' }}>Try asking</p>
+                  {[
+                    'Review this code for security issues and performance',
+                    'Build me a REST API with auth and database',
+                    'What tools should I use to reduce my API costs by 90%?',
+                    'Analyze my project architecture and suggest improvements',
+                  ].map(suggestion => (
+                    <button
+                      key={suggestion}
+                      onClick={() => { setPrompt(suggestion); }}
+                      className="t-btn w-full text-left px-3 py-2 rounded-lg border text-xs transition-all"
+                      style={{ borderColor: 'var(--t-border)', color: 'var(--t-text2)', background: 'transparent' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--t-surface)'; e.currentTarget.style.borderColor = 'var(--t-primary)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--t-border)'; }}
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Footer stats */}
+                <div className="flex justify-center gap-4 mt-6 text-[10px]" style={{ color: 'var(--t-muted)', opacity: 0.6 }}>
+                  <span>Memory-enabled</span>
+                  <span>|</span>
+                  <span>53 Playbooks</span>
+                  <span>|</span>
+                  <span>5 Themes</span>
+                </div>
               </div>
             )}
             {messages.map(msg => <MessageItem key={msg.id} message={msg} />)}

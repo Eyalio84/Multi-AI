@@ -40,3 +40,14 @@ npm-debug.log*
 
 # Archives
 *.zip
+
+# SQLite databases (generated at runtime)
+*.db
+*.db-shm
+*.db-wal
+
+# Data directories (large, external)
+docs/KGS/
+docs/flags/
+docs/kg/
+docs/tools/

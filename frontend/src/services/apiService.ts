@@ -642,6 +642,61 @@ export const kgosSimilar = async (dbId: string, nodeId: string, k = 10) => {
   return res.json();
 };
 
+// --- Tools Playground ---
+export const listTools = async () => {
+  const res = await fetch(`${BASE}/tools`);
+  return res.json();
+};
+
+export const getToolDetail = async (id: string) => {
+  const res = await fetch(`${BASE}/tools/${id}`);
+  return res.json();
+};
+
+export const runTool = async (id: string, params: Record<string, any>) => {
+  const res = await fetch(`${BASE}/tools/${id}/run`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ params }),
+  });
+  return res.json();
+};
+
+export const runToolStream = async (id: string, params: Record<string, any>): Promise<ReadableStream<Uint8Array>> => {
+  const res = await fetch(`${BASE}/tools/${id}/run/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ params }),
+  });
+  if (!res.ok || !res.body) throw new Error('Tool stream failed');
+  return res.body;
+};
+
+// --- VOX Voice ---
+export const getVoxStatus = async () => {
+  const res = await fetch(`${BASE}/vox/status`);
+  return res.json();
+};
+
+export const getVoxVoices = async () => {
+  const res = await fetch(`${BASE}/vox/voices`);
+  return res.json();
+};
+
+export const getVoxFunctions = async () => {
+  const res = await fetch(`${BASE}/vox/functions`);
+  return res.json();
+};
+
+export const runVoxFunction = async (fnName: string, args: Record<string, any> = {}) => {
+  const res = await fetch(`${BASE}/vox/function/${fnName}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ args }),
+  });
+  return res.json();
+};
+
 export const setApiKeys = async (geminiKey?: string, anthropicKey?: string) => {
   const body: Record<string, string> = {};
   if (geminiKey) body.gemini_key = geminiKey;

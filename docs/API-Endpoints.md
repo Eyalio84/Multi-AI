@@ -1,4 +1,4 @@
-# API Endpoints Reference — v2.0.0
+# API Endpoints Reference — v2.2.0
 
 Base URL: `http://localhost:8000/api`
 
@@ -612,6 +612,176 @@ Generate embeddings for all nodes in a KG.
 
 ### GET /api/kg/databases/{db_id}/embeddings/quality
 Embedding quality metrics: coverage, similarity distribution.
+
+---
+
+## Tools Playground
+
+### GET /api/tools
+List all registered tools grouped by category.
+
+**Response:**
+```json
+{
+  "categories": ["Code Quality", "Frontend", "Backend", ...],
+  "tools": {
+    "Code Quality": [{ "id": "code_review_generator", "name": "Code Review Generator", "category": "Code Quality", "description": "...", "param_count": 3 }],
+    ...
+  },
+  "total": 58
+}
+```
+
+### GET /api/tools/{tool_id}
+Get full tool definition with parameters.
+
+### POST /api/tools/{tool_id}/run
+Execute a tool with parameters.
+
+**Request:**
+```json
+{
+  "params": {
+    "code": "def hello(): pass",
+    "language": "python"
+  }
+}
+```
+
+**Response:** `{ "success": true, "result": {...}, "tool_id": "...", "execution_time": 0.05 }`
+
+### POST /api/tools/{tool_id}/run/stream
+Execute a tool with SSE streaming output.
+
+**Categories (11):** Code Quality, Cost Optimization, Agent Intelligence, Knowledge Graph, Generators, Reasoning, Dev Tools, Frontend, Backend, Full-Stack, Orchestration
+
+---
+
+## Expert Builder (KG-OS)
+
+### GET /api/experts
+List all experts.
+
+### POST /api/experts
+Create an expert backed by a KG.
+
+**Request:**
+```json
+{
+  "name": "Security Expert",
+  "description": "Cybersecurity advisor",
+  "kg_database_id": "security-kg",
+  "personality": "precise, technical",
+  "scoring_weights": { "embedding": 0.35, "text": 0.40, "graph": 0.15, "intent": 0.10 }
+}
+```
+
+### GET /api/experts/{id}
+Get expert configuration.
+
+### PUT /api/experts/{id}
+Update expert.
+
+### DELETE /api/experts/{id}
+Delete expert and conversations.
+
+### POST /api/experts/{id}/duplicate
+Duplicate an expert.
+
+### POST /api/experts/{id}/chat
+SSE streaming expert chat with KG-OS retrieval and source citations.
+
+**Request:** `{ "query": "How do I secure API endpoints?", "conversation_id": "optional-uuid" }`
+
+**SSE Events:**
+```
+data: {"type": "token", "content": "To secure API endpoints..."}
+data: {"type": "sources", "nodes": [{"id": "...", "name": "...", "score": 0.95}]}
+data: {"type": "done"}
+```
+
+### GET /api/experts/{id}/conversations
+List conversations for an expert.
+
+### GET /api/experts/{id}/conversations/{cid}
+Get conversation with messages.
+
+### DELETE /api/experts/{id}/conversations/{cid}
+Delete a conversation.
+
+### POST /api/experts/kgos/query/{db_id}
+Direct KG-OS query (testing/debug).
+
+### POST /api/experts/kgos/impact/{db_id}/{node_id}
+Impact analysis for a node.
+
+### POST /api/experts/kgos/compose/{db_id}
+Composition planning.
+
+### POST /api/experts/kgos/similar/{db_id}/{node_id}
+Find similar nodes.
+
+### GET /api/experts/kgos/dimensions
+List 56 standard semantic dimensions.
+
+---
+
+## VOX Voice Agent
+
+### GET /api/vox/status
+Check VOX availability (Gemini/Claude configured, active sessions).
+
+### GET /api/vox/voices
+List available Gemini Live API voices (Puck, Charon, Kore, Fenrir, Aoede, Leda, Orus, Zephyr).
+
+### GET /api/vox/functions
+List all 17 workspace function declarations available to VOX.
+
+### POST /api/vox/function/{fn_name}
+Execute a workspace function server-side.
+
+**Request:** `{ "args": { "tool_id": "security_scanner", "params": { "code": "..." } } }`
+
+### WebSocket /ws/vox
+Bidirectional WebSocket for VOX voice sessions.
+
+**Client → Server Messages:**
+```json
+{"type": "start", "mode": "gemini", "voice": "Puck", "model": "gemini-2.5-flash-exp-native-audio-thinking-dialog"}
+{"type": "audio", "data": "<base64-pcm-16khz>"}
+{"type": "text", "text": "Navigate to the tools page"}
+{"type": "browser_function_result", "name": "navigate_page", "result": {"success": true}}
+{"type": "end"}
+```
+
+**Server → Client Messages:**
+```json
+{"type": "setup_complete", "sessionId": "abc123", "mode": "gemini"}
+{"type": "audio", "data": "<base64-pcm-24khz>"}
+{"type": "text", "text": "I'll navigate you to the tools page."}
+{"type": "function_call", "name": "navigate_page", "args": {"path": "/tools"}, "server_handled": false}
+{"type": "function_result", "name": "list_tools", "result": {"success": true, "tools": [...]}}
+{"type": "turn_complete", "turn": 1}
+{"type": "transcript", "role": "user", "text": "Navigate to tools"}
+{"type": "go_away", "session_token": "...", "message": "Session reconnecting..."}
+{"type": "error", "message": "..."}
+```
+
+**17 Functions:** navigate_page, get_current_page, get_workspace_state, switch_model, switch_theme, run_tool, list_tools, query_kg, list_kgs, run_agent, list_agents, read_page_content, generate_react_component, generate_fastapi_endpoint, scan_code_security, analyze_code_complexity, generate_tests
+
+---
+
+## MCP Server
+
+Standalone MCP server exposing all 58+ workspace tools as individual MCP tools.
+
+```bash
+python3 backend/mcp_server.py           # Run on stdio (JSON-RPC)
+python3 backend/mcp_server.py --list    # Print tool table
+python3 backend/mcp_server.py --json    # Dump tool schemas as JSON
+```
+
+**Supported MCP Methods:** `initialize`, `tools/list`, `tools/call`, `ping`
 
 ---
 

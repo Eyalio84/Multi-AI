@@ -5,3 +5,5 @@ export * from './kg';
 export * from './studio';
 export * from './memory';
 export * from './expert';
+export * from './tools';
+export * from './vox';

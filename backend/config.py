@@ -1,6 +1,11 @@
 """Configuration for the Multi-AI Agentic Workspace."""
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load .env from backend/ or project root — keys persist across restarts
+load_dotenv(Path(__file__).parent / ".env")
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 # --- Mode Detection ---
 # "standalone" = both APIs, "claude-code" = Gemini only
@@ -30,6 +35,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 AGENTS_DIR = PROJECT_ROOT / "agents"
 PLAYBOOKS_DIR = PROJECT_ROOT / "docs" / "playbooks-v2"
 KGS_DIR = Path(os.getenv("KGS_DIR", str(PROJECT_ROOT / "docs" / "KGS")))
+TOOLS_DIR = PROJECT_ROOT.parent / "tools"
 
 # --- Model Catalog ---
 MODELS = {
@@ -104,6 +110,12 @@ MODELS = {
 
 DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 DEFAULT_CLAUDE_MODEL = "claude-sonnet-4-6"
+
+# --- VOX Voice Configuration ---
+VOX_AUDIO_SAMPLE_RATE_IN = 16000   # PCM capture rate from mic
+VOX_AUDIO_SAMPLE_RATE_OUT = 24000  # Playback rate for Gemini audio
+VOX_DEFAULT_VOICE = "Puck"         # Gemini Live API voice
+VOX_DEFAULT_MODEL = "gemini-2.5-flash-exp-native-audio-thinking-dialog"  # Live API model
 
 # --- Integration Credentials (all optional, configured via UI) ---
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")

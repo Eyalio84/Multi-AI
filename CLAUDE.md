@@ -1,8 +1,8 @@
-# CLAUDE.md — Multi-AI Agentic Workspace v2.1.0
+# CLAUDE.md — Multi-AI Agentic Workspace v2.2.0
 
 ## What This Is
 
-A professional agentic workflow orchestrator combining Gemini + Claude intelligence. Built as a FastAPI backend + React 19 frontend with dual-model streaming, 33 NLKE agents, 53 playbooks, visual workflow execution, a full Graph-RAG Knowledge Graph workspace (57 SQLite KGs, 6 schema profiles, live hybrid search with numpy cosine similarity, d3-force graph visualization, NetworkX analytics, RAG chat, edge browser with edit/delete, multi-KG cross-search), an **AI-powered Studio** for generating full-stack React apps with live Sandpack preview, 3 editing modes, SQLite project persistence, and version history, and a **KG-OS Expert Builder** for creating AI experts backed by structured knowledge graphs with intent-driven retrieval, a 4-weight scoring formula, and 56 semantic dimensions.
+A professional agentic workflow orchestrator combining Gemini + Claude intelligence. Built as a FastAPI backend + React 19 frontend with dual-model streaming, 33 NLKE agents, 53 playbooks, **58+ Python tools (11 categories)**, visual workflow execution, a full Graph-RAG Knowledge Graph workspace (57 SQLite KGs, 6 schema profiles, live hybrid search with numpy cosine similarity, d3-force graph visualization, NetworkX analytics, RAG chat, edge browser with edit/delete, multi-KG cross-search), an **AI-powered Studio** for generating full-stack React apps with live Sandpack preview, 3 editing modes, SQLite project persistence, and version history, a **KG-OS Expert Builder** for creating AI experts backed by structured knowledge graphs with intent-driven retrieval, a 4-weight scoring formula, and 56 semantic dimensions, a **VOX voice agent** (Gemini Live API + Claude tool_use, 17 function declarations), and a standalone **MCP server** exposing all tools via JSON-RPC.
 
 ## Quick Start
 
@@ -22,7 +22,7 @@ multi-ai-agentic-workspace/
 ├── backend/                    # FastAPI (Python)
 │   ├── main.py                 # App entry, CORS, router mounting
 │   ├── config.py               # API keys, model catalog, paths
-│   ├── routers/                # 11 API routers
+│   ├── routers/                # 15 API routers
 │   │   ├── chat.py             # POST /api/chat/stream (SSE, dual-model)
 │   │   ├── coding.py           # POST /api/coding/stream (tool use)
 │   │   ├── agents.py           # NLKE agent CRUD + execution
@@ -31,12 +31,14 @@ multi-ai-agentic-workspace/
 │   │   ├── builder.py          # Legacy web app plan + generate
 │   │   ├── studio.py           # Studio: SSE streaming + project CRUD (18 endpoints)
 │   │   ├── experts.py          # Expert Builder + KG-OS (15 endpoints, KGOS routes before dynamic)
+│   │   ├── tools.py            # Tools playground (list, get, run, stream)
+│   │   ├── vox.py              # VOX voice agent (WebSocket + REST, 17 functions, Claude tool_use)
 │   │   ├── media.py            # Image edit + video gen
 │   │   ├── interchange.py      # JSON import/export, mode toggle
 │   │   └── kg.py               # KG Studio (33 endpoints, CRUD, search, analytics, RAG)
-│   ├── services/               # Business logic
+│   ├── services/               # Business logic (19 services)
 │   │   ├── gemini_service.py   # google-genai SDK wrapper (lazy init)
-│   │   ├── claude_service.py   # anthropic SDK wrapper
+│   │   ├── claude_service.py   # anthropic SDK wrapper (streaming + tool_use)
 │   │   ├── model_router.py     # Intelligent model selection
 │   │   ├── agent_bridge.py     # NLKE agent system bridge
 │   │   ├── playbook_index.py   # Playbook file parser + search
@@ -44,13 +46,16 @@ multi-ai-agentic-workspace/
 │   │   ├── openapi_extractor.py # FastAPI code → OpenAPI spec (AST + regex)
 │   │   ├── type_generator.py   # OpenAPI → TypeScript interfaces
 │   │   ├── mock_server_manager.py # Node.js mock server process lifecycle
+│   │   ├── tools_service.py    # 58+ tool registry, dynamic import + execution
+│   │   ├── vox_service.py      # VOX sessions (Gemini Live API + Claude text pipeline)
+│   │   ├── expert_service.py   # Expert CRUD + KG-OS execution pipeline
+│   │   ├── kgos_query_engine.py # KG-OS: 12 query methods, 14 intents, 56 dimensions
 │   │   ├── kg_service.py       # KG core: 6 schema profiles, auto-detect, CRUD
 │   │   ├── embedding_service.py # Hybrid search (numpy cosine + BM25 + graph boost)
 │   │   ├── analytics_service.py # NetworkX graph algorithms
 │   │   ├── ingestion_service.py # AI entity extraction from text
-│   │   ├── rag_chat_service.py  # RAG chat with streaming + source citations
-│   │   ├── kgos_query_engine.py # KG-OS: 12 query methods, 14 intents, 56 dimensions
-│   │   └── expert_service.py   # Expert CRUD + KG-OS execution pipeline
+│   │   └── rag_chat_service.py  # RAG chat with streaming + source citations
+│   ├── mcp_server.py           # MCP server: 58+ tools via JSON-RPC stdio
 │   └── tests/                  # API integration tests
 │
 ├── frontend/                   # React 19 + TypeScript + Vite
@@ -58,14 +63,16 @@ multi-ai-agentic-workspace/
 │   │   ├── App.tsx             # Router + layout shell
 │   │   ├── context/AppContext   # Global state (projects, models, personas)
 │   │   ├── context/StudioContext # Studio state (files, mode, streaming, versions)
-│   │   ├── pages/              # 9 route pages (inc. ExpertsPage)
+│   │   ├── context/VoxContext   # VOX voice agent state
+│   │   ├── pages/              # 11 route pages (inc. ExpertsPage, ToolsPage, VoxPage)
 │   │   ├── components/         # Reusable UI components
 │   │   ├── components/studio/  # 28 Studio components (panels, editors, overlays)
 │   │   ├── components/experts/ # 6 Expert components (Card, List, Builder, Chat, Config, Analytics)
+│   │   ├── components/VoxOverlay.tsx # Floating VOX pill + transcript
 │   │   ├── themes/             # 5 theme definitions (CSS variable maps)
-│   │   ├── hooks/              # useChat (streaming), useTheme (CSS vars), useToast (global notifications)
+│   │   ├── hooks/              # useChat, useTheme, useToast, useVox
 │   │   ├── services/           # API + localStorage + studioApiService
-│   │   └── types/              # TypeScript interfaces (inc. studio.ts)
+│   │   └── types/              # TypeScript interfaces (studio, tools, vox, expert)
 │   └── package.json
 │
 ├── agents -> NLKE/agents       # Symlink to 33 NLKE agents
@@ -139,6 +146,14 @@ multi-ai-agentic-workspace/
 | POST | /api/experts/kgos/compose/{db_id} | Composition planning |
 | POST | /api/experts/kgos/similar/{db_id}/{node_id} | Similar nodes |
 | GET | /api/experts/kgos/dimensions | List 56 standard dimensions |
+| GET | /api/tools | List 58+ tools (11 categories) |
+| GET | /api/tools/{id} | Get tool definition + params |
+| POST | /api/tools/{id}/run | Execute a tool |
+| GET | /api/vox/status | VOX availability + active sessions |
+| GET | /api/vox/voices | List Gemini Live API voices |
+| GET | /api/vox/functions | List 17 VOX function declarations |
+| POST | /api/vox/function/{name} | Execute a workspace function |
+| WS | /ws/vox | VOX bidirectional voice WebSocket |
 | GET | /api/health | Health check + mode |
 | GET | /api/models | Available model catalog |
 
@@ -165,6 +180,8 @@ multi-ai-agentic-workspace/
 | /kg-studio | KGStudioPage | Graph-RAG KG workspace (10 tabs, 57 DBs, React Flow + d3-force, edge browser, multi-KG search) |
 | /builder | StudioPage | AI Studio: chat→generate→preview, 3 modes, version history |
 | /experts | ExpertsPage | KG-OS Expert Builder: create AI experts backed by KGs, 4-weight scoring, source citations |
+| /tools | ToolsPage | 58+ Python tools playground (11 categories, dynamic param form, output panel) |
+| /vox | VoxPage | VOX voice control center: mode/voice/model selectors, transcript, function log |
 | /integrations | IntegrationsPage | Platform integrations management |
 | /settings | SettingsPage | Mode toggle, themes, export/import |
 
