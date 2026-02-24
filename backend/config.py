@@ -115,7 +115,7 @@ DEFAULT_CLAUDE_MODEL = "claude-sonnet-4-6"
 VOX_AUDIO_SAMPLE_RATE_IN = 16000   # PCM capture rate from mic
 VOX_AUDIO_SAMPLE_RATE_OUT = 24000  # Playback rate for Gemini audio
 VOX_DEFAULT_VOICE = "Puck"         # Gemini Live API voice
-VOX_DEFAULT_MODEL = "gemini-2.5-flash-exp-native-audio-thinking-dialog"  # Live API model
+VOX_DEFAULT_MODEL = "gemini-2.0-flash-live-001"  # Stable Live API model
 
 # --- Integration Credentials (all optional, configured via UI) ---
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")

@@ -15,6 +15,14 @@ const VOICES: VoxVoice[] = [
   { id: 'Leda', name: 'Leda', gender: 'Female', style: 'Youthful' },
   { id: 'Orus', name: 'Orus', gender: 'Male', style: 'Decisive' },
   { id: 'Zephyr', name: 'Zephyr', gender: 'Male', style: 'Calm' },
+  { id: 'Sage', name: 'Sage', gender: 'Non-binary', style: 'Wise' },
+  { id: 'Vale', name: 'Vale', gender: 'Non-binary', style: 'Gentle' },
+  { id: 'Solaria', name: 'Solaria', gender: 'Female', style: 'Bright' },
+  { id: 'River', name: 'River', gender: 'Non-binary', style: 'Smooth' },
+  { id: 'Ember', name: 'Ember', gender: 'Female', style: 'Passionate' },
+  { id: 'Breeze', name: 'Breeze', gender: 'Female', style: 'Airy' },
+  { id: 'Cove', name: 'Cove', gender: 'Male', style: 'Deep' },
+  { id: 'Orbit', name: 'Orbit', gender: 'Male', style: 'Futuristic' },
 ];
 
 const VoxOverlay: React.FC = () => {

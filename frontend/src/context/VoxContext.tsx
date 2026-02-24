@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useVox } from '../hooks/useVox';
 import type { VoxState, VoxConfig, VoxMode } from '../types/vox';
+import type { Tour } from '../components/VoxTourOverlay';
 
 interface VoxContextType {
   state: VoxState;
@@ -12,6 +13,8 @@ interface VoxContextType {
   isAvailable: boolean;
   on: (event: string, fn: (data: any) => void) => void;
   off: (event: string, fn: (data: any) => void) => void;
+  activeTour: Tour | null;
+  clearTour: () => void;
 }
 
 const VoxContext = createContext<VoxContextType | undefined>(undefined);

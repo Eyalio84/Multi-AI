@@ -1,8 +1,8 @@
-# CLAUDE.md — Multi-AI Agentic Workspace v2.2.0
+# CLAUDE.md — Multi-AI Agentic Workspace v2.3.0
 
 ## What This Is
 
-A professional agentic workflow orchestrator combining Gemini + Claude intelligence. Built as a FastAPI backend + React 19 frontend with dual-model streaming, 33 NLKE agents, 53 playbooks, **58+ Python tools (11 categories)**, visual workflow execution, a full Graph-RAG Knowledge Graph workspace (57 SQLite KGs, 6 schema profiles, live hybrid search with numpy cosine similarity, d3-force graph visualization, NetworkX analytics, RAG chat, edge browser with edit/delete, multi-KG cross-search), an **AI-powered Studio** for generating full-stack React apps with live Sandpack preview, 3 editing modes, SQLite project persistence, and version history, a **KG-OS Expert Builder** for creating AI experts backed by structured knowledge graphs with intent-driven retrieval, a 4-weight scoring formula, and 56 semantic dimensions, a **VOX voice agent** (Gemini Live API + Claude tool_use, 17 function declarations), and a standalone **MCP server** exposing all tools via JSON-RPC.
+A professional agentic workflow orchestrator combining Gemini + Claude intelligence. Built as a FastAPI backend + React 19 frontend with dual-model streaming, 33 NLKE agents, 53 playbooks, **58+ Python tools (11 categories)**, visual workflow execution, a full Graph-RAG Knowledge Graph workspace (57 SQLite KGs, 6 schema profiles, live hybrid search with numpy cosine similarity, d3-force graph visualization, NetworkX analytics, RAG chat, edge browser with edit/delete, multi-KG cross-search), an **AI-powered Studio** for generating full-stack React apps with live Sandpack preview, 3 editing modes, SQLite project persistence, and version history, a **KG-OS Expert Builder** for creating AI experts backed by structured knowledge graphs with intent-driven retrieval, a 4-weight scoring formula, and 56 semantic dimensions, a **VOX voice agent** (Gemini Live API + Claude tool_use, **34 function declarations**, 16 voices, Google Search grounding, awareness layer, guided tours, voice macros, thermal monitoring, auto-reconnect), and a standalone **MCP server** exposing all tools via JSON-RPC.
 
 ## Quick Start
 
@@ -32,11 +32,13 @@ multi-ai-agentic-workspace/
 │   │   ├── studio.py           # Studio: SSE streaming + project CRUD (18 endpoints)
 │   │   ├── experts.py          # Expert Builder + KG-OS (15 endpoints, KGOS routes before dynamic)
 │   │   ├── tools.py            # Tools playground (list, get, run, stream)
-│   │   ├── vox.py              # VOX voice agent (WebSocket + REST, 17 functions, Claude tool_use)
+│   │   ├── vox.py              # VOX voice agent (WebSocket + REST, 34 functions, Claude tool_use)
 │   │   ├── media.py            # Image edit + video gen
 │   │   ├── interchange.py      # JSON import/export, mode toggle
 │   │   └── kg.py               # KG Studio (33 endpoints, CRUD, search, analytics, RAG)
-│   ├── services/               # Business logic (19 services)
+│   ├── data/                   # Static data
+│   │   └── vox_tours.json      # 11 guided tour definitions
+│   ├── services/               # Business logic (22 services)
 │   │   ├── gemini_service.py   # google-genai SDK wrapper (lazy init)
 │   │   ├── claude_service.py   # anthropic SDK wrapper (streaming + tool_use)
 │   │   ├── model_router.py     # Intelligent model selection
@@ -47,7 +49,10 @@ multi-ai-agentic-workspace/
 │   │   ├── type_generator.py   # OpenAPI → TypeScript interfaces
 │   │   ├── mock_server_manager.py # Node.js mock server process lifecycle
 │   │   ├── tools_service.py    # 58+ tool registry, dynamic import + execution
-│   │   ├── vox_service.py      # VOX sessions (Gemini Live API + Claude text pipeline)
+│   │   ├── vox_service.py      # VOX sessions (Gemini Live API + Claude, 34 functions, 16 voices)
+│   │   ├── vox_awareness.py    # Workspace awareness (SQLite: page visits, errors, context)
+│   │   ├── vox_macros.py       # Voice macro CRUD + pipe-chaining execution
+│   │   ├── vox_thermal.py      # Device thermal monitoring (Termux battery API)
 │   │   ├── expert_service.py   # Expert CRUD + KG-OS execution pipeline
 │   │   ├── kgos_query_engine.py # KG-OS: 12 query methods, 14 intents, 56 dimensions
 │   │   ├── kg_service.py       # KG core: 6 schema profiles, auto-detect, CRUD
@@ -69,6 +74,7 @@ multi-ai-agentic-workspace/
 │   │   ├── components/studio/  # 28 Studio components (panels, editors, overlays)
 │   │   ├── components/experts/ # 6 Expert components (Card, List, Builder, Chat, Config, Analytics)
 │   │   ├── components/VoxOverlay.tsx # Floating VOX pill + transcript
+│   │   ├── components/VoxTourOverlay.tsx # Guided tour spotlight + navigation
 │   │   ├── themes/             # 5 theme definitions (CSS variable maps)
 │   │   ├── hooks/              # useChat, useTheme, useToast, useVox
 │   │   ├── services/           # API + localStorage + studioApiService
@@ -150,9 +156,18 @@ multi-ai-agentic-workspace/
 | GET | /api/tools/{id} | Get tool definition + params |
 | POST | /api/tools/{id}/run | Execute a tool |
 | GET | /api/vox/status | VOX availability + active sessions |
-| GET | /api/vox/voices | List Gemini Live API voices |
-| GET | /api/vox/functions | List 17 VOX function declarations |
+| GET | /api/vox/voices | List 16 Gemini Live API voices |
+| GET | /api/vox/functions | List 34 VOX function declarations |
 | POST | /api/vox/function/{name} | Execute a workspace function |
+| POST | /api/vox/awareness | Log page visit / error / context |
+| GET | /api/vox/awareness | Get current awareness context |
+| GET | /api/vox/tours | List 11 available guided tours |
+| GET | /api/vox/tours/{page} | Get tour steps for a page |
+| GET | /api/vox/macros | List saved voice macros |
+| POST | /api/vox/macros | Create a voice macro |
+| DELETE | /api/vox/macros/{id} | Delete a voice macro |
+| POST | /api/vox/macros/{id}/run | Execute a voice macro |
+| GET | /api/vox/thermal | Device temperature + battery status |
 | WS | /ws/vox | VOX bidirectional voice WebSocket |
 | GET | /api/health | Health check + mode |
 | GET | /api/models | Available model catalog |
@@ -181,7 +196,7 @@ multi-ai-agentic-workspace/
 | /builder | StudioPage | AI Studio: chat→generate→preview, 3 modes, version history |
 | /experts | ExpertsPage | KG-OS Expert Builder: create AI experts backed by KGs, 4-weight scoring, source citations |
 | /tools | ToolsPage | 58+ Python tools playground (11 categories, dynamic param form, output panel) |
-| /vox | VoxPage | VOX voice control center: mode/voice/model selectors, transcript, function log |
+| /vox | VoxPage | VOX voice control center: 16 voices, 34 functions, macros panel, transcript, function log |
 | /integrations | IntegrationsPage | Platform integrations management |
 | /settings | SettingsPage | Mode toggle, themes, export/import |
 

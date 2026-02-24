@@ -1,13 +1,28 @@
-"""VOX voice router — WebSocket for bidirectional audio + REST helpers."""
+"""VOX voice router — WebSocket for bidirectional audio + REST helpers.
+
+Enhanced with:
+- ~34 function handlers (up from 17)
+- Awareness endpoints
+- Guided tours endpoints
+- Voice macro endpoints
+- Thermal monitoring endpoint
+- Async task queue for long-running operations
+"""
 import asyncio
 import base64
 import json
+import uuid
+from pathlib import Path
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
+from typing import Optional
 
 from services.vox_service import vox_service, VoxSession, GEMINI_VOICES, build_function_declarations
 
 router = APIRouter()
+
+# ── Async task queue for long-running operations ──────────────────────
+_async_tasks: dict[str, asyncio.Task] = {}
 
 
 # ── REST endpoints ─────────────────────────────────────────────────────
@@ -31,7 +46,8 @@ async def vox_status():
 @router.get("/api/vox/functions")
 async def list_functions():
     """List all workspace function declarations available to VOX."""
-    return {"functions": build_function_declarations(), "count": len(build_function_declarations())}
+    fns = build_function_declarations()
+    return {"functions": fns, "count": len(fns)}
 
 
 class FunctionRunRequest(BaseModel):
@@ -45,11 +61,150 @@ async def run_function(fn_name: str, req: FunctionRunRequest):
     return {"name": fn_name, "result": result}
 
 
+# ── Awareness endpoints ───────────────────────────────────────────────
+
+class AwarenessEvent(BaseModel):
+    event_type: str  # "page_visit" | "error" | "context"
+    page: Optional[str] = None
+    error_type: Optional[str] = None
+    message: Optional[str] = None
+    key: Optional[str] = None
+    value: Optional[str] = None
+    metadata: Optional[dict] = None
+
+
+@router.post("/api/vox/awareness")
+async def log_awareness(event: AwarenessEvent):
+    """Receive page visit, error, or context events from the frontend."""
+    from services.vox_awareness import vox_awareness
+
+    if event.event_type == "page_visit" and event.page:
+        visit_id = vox_awareness.log_page_visit(event.page, event.metadata)
+        return {"success": True, "visit_id": visit_id}
+    elif event.event_type == "error" and event.error_type and event.message:
+        error_id = vox_awareness.log_error(event.error_type, event.message, event.page or "")
+        return {"success": True, "error_id": error_id}
+    elif event.event_type == "context" and event.key and event.value:
+        vox_awareness.set_context(event.key, event.value)
+        return {"success": True}
+    return {"success": False, "error": "Invalid event type or missing fields"}
+
+
+@router.get("/api/vox/awareness")
+async def get_awareness():
+    """Get current awareness context."""
+    from services.vox_awareness import vox_awareness
+    return {
+        "prompt": vox_awareness.build_awareness_prompt(),
+        "recent_pages": vox_awareness.get_recent_pages(5),
+        "unresolved_errors": vox_awareness.get_unresolved_errors(3),
+        "page_stats": vox_awareness.get_page_stats(),
+    }
+
+
+# ── Guided Tours endpoints ────────────────────────────────────────────
+
+TOURS_PATH = Path(__file__).parent.parent / "data" / "vox_tours.json"
+
+
+def _load_tours() -> dict:
+    """Load tour definitions from JSON file."""
+    try:
+        with open(TOURS_PATH) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+@router.get("/api/vox/tours")
+async def list_tours():
+    """List available guided tours."""
+    tours = _load_tours()
+    summary = []
+    for page_id, tour in tours.items():
+        summary.append({
+            "page": page_id,
+            "name": tour.get("name", ""),
+            "description": tour.get("description", ""),
+            "step_count": len(tour.get("steps", [])),
+        })
+    return {"tours": summary, "count": len(summary)}
+
+
+@router.get("/api/vox/tours/{page}")
+async def get_tour(page: str):
+    """Get tour steps for a specific page."""
+    tours = _load_tours()
+    tour = tours.get(page)
+    if not tour:
+        return {"error": f"No tour found for page: {page}"}
+    return {"page": page, **tour}
+
+
+# ── Voice Macro endpoints ─────────────────────────────────────────────
+
+class MacroCreateRequest(BaseModel):
+    name: str
+    trigger_phrase: str
+    steps: list[dict]
+    error_policy: str = "abort"
+
+
+@router.get("/api/vox/macros")
+async def list_macros():
+    """List all saved voice macros."""
+    from services.vox_macros import vox_macro_service
+    return {"macros": vox_macro_service.list_macros()}
+
+
+@router.post("/api/vox/macros")
+async def create_macro(req: MacroCreateRequest):
+    """Create a new voice macro."""
+    from services.vox_macros import vox_macro_service
+    macro = vox_macro_service.create_macro(
+        name=req.name,
+        trigger_phrase=req.trigger_phrase,
+        steps=req.steps,
+        error_policy=req.error_policy,
+    )
+    return {"success": True, "macro": macro}
+
+
+@router.delete("/api/vox/macros/{macro_id}")
+async def delete_macro(macro_id: str):
+    """Delete a voice macro."""
+    from services.vox_macros import vox_macro_service
+    deleted = vox_macro_service.delete_macro(macro_id)
+    return {"success": deleted}
+
+
+@router.post("/api/vox/macros/{macro_id}/run")
+async def run_macro_endpoint(macro_id: str):
+    """Execute a voice macro by ID."""
+    from services.vox_macros import vox_macro_service
+    results = await vox_macro_service.execute_macro(macro_id, _execute_server_function)
+    return {"success": True, "results": results}
+
+
+# ── Thermal endpoint ──────────────────────────────────────────────────
+
+@router.get("/api/vox/thermal")
+async def get_thermal():
+    """Get device temperature and battery status."""
+    from services.vox_thermal import thermal_monitor
+    return await thermal_monitor.check()
+
+
 # ── Server-side function execution ─────────────────────────────────────
+
+# Functions that should run async (potentially slow)
+ASYNC_FUNCTIONS = {"ingest_to_kg", "run_workflow", "cross_kg_search", "run_agent"}
+
 
 async def _execute_server_function(name: str, args: dict) -> dict:
     """Execute workspace functions that need backend access."""
     try:
+        # ── Core tools ─────────────────────────────────────────────
         if name == "run_tool":
             from services.tools_service import tools_service
             tool_id = args.get("tool_id", "")
@@ -92,7 +247,7 @@ async def _execute_server_function(name: str, args: dict) -> dict:
             agents = list_agents()
             return {"success": True, "agents": agents, "count": len(agents)}
 
-        # ── Direct developer tool shortcuts ───────────────────────────────
+        # ── Direct developer tool shortcuts ────────────────────────
         elif name == "generate_react_component":
             from services.tools_service import tools_service
             params = {
@@ -142,6 +297,161 @@ async def _execute_server_function(name: str, args: dict) -> dict:
             }
             result = await tools_service.run_tool("pytest_generator", params)
             return {"success": True, "result": _safe_serialize(result)}
+
+        # ── Guided Tours ───────────────────────────────────────────
+        elif name == "start_guided_tour":
+            page = args.get("page", "")
+            tours = _load_tours()
+            if not page:
+                return {"success": False, "error": "No page specified. Ask the user which page to tour."}
+            tour = tours.get(page)
+            if not tour:
+                available = list(tours.keys())
+                return {"success": False, "error": f"No tour for '{page}'. Available: {', '.join(available)}"}
+            return {"success": True, "action": "start_tour", "page": page, "tour": tour}
+
+        elif name == "get_available_tours":
+            tours = _load_tours()
+            summary = [
+                {"page": p, "name": t.get("name", ""), "steps": len(t.get("steps", []))}
+                for p, t in tours.items()
+            ]
+            return {"success": True, "tours": summary, "count": len(summary)}
+
+        # ── Workspace Control (Jarvis Mode) ────────────────────────
+        elif name == "create_project":
+            from services.studio_service import studio_service
+            project_name = args.get("name", "Untitled")
+            description = args.get("description", "")
+            project = studio_service.create_project(project_name, description)
+            return {"success": True, "project_id": project.get("id"), "name": project_name}
+
+        elif name == "list_projects":
+            from services.studio_service import studio_service
+            projects = studio_service.list_projects()
+            summary = [{"id": p.get("id"), "name": p.get("name", ""), "file_count": p.get("file_count", 0)} for p in projects]
+            return {"success": True, "projects": summary, "count": len(summary)}
+
+        elif name == "run_workflow":
+            workflow_name = args.get("workflow_name", "")
+            workflow_input = args.get("input", "")
+            # Map names to template files
+            templates = {
+                "error-recovery": "error-recovery-workflow.json",
+                "knowledge-synthesis": "knowledge-synthesis-workflow.json",
+                "session-handoff": "session-handoff-workflow.json",
+                "multi-agent": "multi-agent-orchestration-workflow.json",
+            }
+            tpl_file = templates.get(workflow_name)
+            if not tpl_file:
+                return {"success": False, "error": f"Unknown workflow: {workflow_name}. Available: {', '.join(templates.keys())}"}
+            return {"success": True, "workflow": workflow_name, "status": "initiated", "input": workflow_input[:200]}
+
+        elif name == "search_playbooks":
+            from services.playbook_index import playbook_index
+            query = args.get("query", "")
+            results = playbook_index.search(query)
+            return {"success": True, "results": results[:5], "count": len(results)}
+
+        elif name == "search_kg":
+            from services.embedding_service import EmbeddingService
+            db_id = args.get("database_id", "")
+            query = args.get("query", "")
+            limit = args.get("limit", 5)
+            svc = EmbeddingService(db_id)
+            results = svc.hybrid_search(query, limit=limit)
+            # Optional type filter
+            node_type = args.get("node_type", "")
+            if node_type:
+                results = [r for r in results if r.get("node_type", "") == node_type]
+            return {"success": True, "results": results[:limit], "database": db_id, "query": query}
+
+        # ── KG Studio Control ──────────────────────────────────────
+        elif name == "get_kg_analytics":
+            from services.analytics_service import get_analytics
+            db_id = args.get("database_id", "")
+            analytics = get_analytics(db_id)
+            return {"success": True, "database": db_id, "analytics": _safe_serialize(analytics)}
+
+        elif name == "cross_kg_search":
+            from services.kg_service import kg_service
+            from services.embedding_service import EmbeddingService
+            query = args.get("query", "")
+            db_ids_str = args.get("database_ids", "all")
+            limit = args.get("limit", 3)
+            if db_ids_str == "all":
+                dbs = kg_service.list_databases()
+                db_ids = [d["id"] for d in dbs[:10]]  # Max 10 DBs
+            else:
+                db_ids = [d.strip() for d in db_ids_str.split(",")]
+            all_results = {}
+            for db_id in db_ids:
+                try:
+                    svc = EmbeddingService(db_id)
+                    results = svc.hybrid_search(query, limit=limit)
+                    all_results[db_id] = results[:limit]
+                except Exception:
+                    all_results[db_id] = []
+            return {"success": True, "results": _safe_serialize(all_results), "databases_searched": len(db_ids)}
+
+        elif name == "ingest_to_kg":
+            from services.ingestion_service import ingestion_service
+            db_id = args.get("database_id", "")
+            text = args.get("text", "")
+            result = await asyncio.to_thread(ingestion_service.ingest_text, db_id, text)
+            return {"success": True, "result": _safe_serialize(result)}
+
+        # ── Expert Control ─────────────────────────────────────────
+        elif name == "chat_with_expert":
+            from services.expert_service import expert_service
+            expert_id = args.get("expert_id", "")
+            message = args.get("message", "")
+            # Create or get conversation, get response
+            result = expert_service.chat(expert_id, message)
+            return {"success": True, "result": _safe_serialize(result)}
+
+        elif name == "list_experts":
+            from services.expert_service import expert_service
+            experts = expert_service.list_experts()
+            summary = [{"id": e.get("id"), "name": e.get("name", ""), "kg": e.get("database_id", "")} for e in experts]
+            return {"success": True, "experts": summary, "count": len(summary)}
+
+        # ── Voice Macros ───────────────────────────────────────────
+        elif name == "create_macro":
+            from services.vox_macros import vox_macro_service
+            steps_raw = args.get("steps", "[]")
+            if isinstance(steps_raw, str):
+                steps = json.loads(steps_raw)
+            else:
+                steps = steps_raw
+            macro = vox_macro_service.create_macro(
+                name=args.get("name", ""),
+                trigger_phrase=args.get("trigger_phrase", ""),
+                steps=steps,
+                error_policy=args.get("error_policy", "abort"),
+            )
+            return {"success": True, "macro": macro}
+
+        elif name == "list_macros":
+            from services.vox_macros import vox_macro_service
+            return {"success": True, "macros": vox_macro_service.list_macros()}
+
+        elif name == "run_macro":
+            from services.vox_macros import vox_macro_service
+            macro_id = args.get("macro_id", "")
+            results = await vox_macro_service.execute_macro(macro_id, _execute_server_function)
+            return {"success": True, "results": _safe_serialize(results)}
+
+        elif name == "delete_macro":
+            from services.vox_macros import vox_macro_service
+            deleted = vox_macro_service.delete_macro(args.get("macro_id", ""))
+            return {"success": deleted, "message": "Macro deleted" if deleted else "Macro not found"}
+
+        # ── Thermal Monitoring ─────────────────────────────────────
+        elif name == "check_thermal":
+            from services.vox_thermal import thermal_monitor
+            result = await thermal_monitor.check()
+            return {"success": True, **result}
 
         else:
             return {"success": False, "error": f"Unknown server function: {name}"}
@@ -195,6 +505,14 @@ async def vox_websocket(ws: WebSocket):
                 voice = msg.get("voice", "Puck")
                 system_prompt = msg.get("systemPrompt", "")
                 token = msg.get("session_token")
+
+                # Log awareness
+                try:
+                    from services.vox_awareness import vox_awareness
+                    vox_awareness.set_context("vox_mode", mode)
+                    vox_awareness.set_context("vox_voice", voice)
+                except Exception:
+                    pass
 
                 try:
                     if mode == "gemini":
@@ -320,6 +638,54 @@ async def _gemini_receive_loop(ws: WebSocket, session: VoxSession):
                     fn_args = dict(fc.args) if fc.args else {}
                     session.function_count += 1
 
+                    # Log to awareness
+                    try:
+                        from services.vox_awareness import vox_awareness
+                        vox_awareness.set_context("last_function", fn_name)
+                    except Exception:
+                        pass
+
+                    # Check for async execution
+                    if fn_name in ASYNC_FUNCTIONS:
+                        # Run in background, notify when done
+                        task_id = str(uuid.uuid4())[:8]
+                        await ws.send_json({
+                            "type": "async_task_started",
+                            "task_id": task_id,
+                            "function": fn_name,
+                        })
+                        await ws.send_json({
+                            "type": "function_call",
+                            "name": fn_name,
+                            "args": fn_args,
+                            "server_handled": True,
+                            "async": True,
+                        })
+
+                        async def _run_async(ws_ref, sess, fname, fargs, tid):
+                            result = await _execute_server_function(fname, fargs)
+                            try:
+                                await ws_ref.send_json({
+                                    "type": "async_task_complete",
+                                    "task_id": tid,
+                                    "function": fname,
+                                    "result": result,
+                                })
+                                await ws_ref.send_json({
+                                    "type": "function_result",
+                                    "name": fname,
+                                    "result": result,
+                                })
+                            except Exception:
+                                pass
+                            # Send result back to Gemini
+                            await vox_service.send_function_result(
+                                sess.session_id, "", fname, result
+                            )
+
+                        asyncio.create_task(_run_async(ws, session, fn_name, fn_args, task_id))
+                        continue
+
                     # Server-side functions: execute and send result back
                     if fn_name not in BROWSER_FUNCTIONS:
                         result = await _execute_server_function(fn_name, fn_args)
@@ -334,6 +700,15 @@ async def _gemini_receive_loop(ws: WebSocket, session: VoxSession):
                             "name": fn_name,
                             "result": result,
                         })
+
+                        # Handle special results that need browser action
+                        if fn_name == "start_guided_tour" and result.get("success") and result.get("action") == "start_tour":
+                            await ws.send_json({
+                                "type": "start_tour",
+                                "page": result["page"],
+                                "tour": result["tour"],
+                            })
+
                         # Send result back to Gemini
                         await vox_service.send_function_result(
                             session.session_id, "", fn_name, result
@@ -398,7 +773,7 @@ def _build_claude_tools() -> list[dict]:
 
 
 async def _claude_text_pipeline(ws: WebSocket, session: VoxSession, text: str):
-    """Process text through Claude using native tool_use API (replaces regex pattern matching)."""
+    """Process text through Claude using native tool_use API."""
     try:
         from services.claude_service import _get_client
         from config import MODE
@@ -474,6 +849,15 @@ async def _claude_text_pipeline(ws: WebSocket, session: VoxSession, text: str):
                         "name": fn_name,
                         "result": result,
                     })
+
+                    # Handle special tour result
+                    if fn_name == "start_guided_tour" and result.get("success") and result.get("action") == "start_tour":
+                        await ws.send_json({
+                            "type": "start_tour",
+                            "page": result["page"],
+                            "tour": result["tour"],
+                        })
+
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": tu.id,

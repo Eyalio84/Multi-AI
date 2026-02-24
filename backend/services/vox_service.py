@@ -1,4 +1,13 @@
-"""VOX Voice Service — manages voice sessions for Gemini Live API and Claude text pipeline."""
+"""VOX Voice Service — manages voice sessions for Gemini Live API and Claude text pipeline.
+
+Enhanced with:
+- 16 Gemini voices (expanded from 8)
+- Google Search grounding for real-time answers
+- Audio transcription config
+- Awareness layer injection
+- Guided tours, macros, workspace control, KG studio, expert functions
+- Thermal monitoring
+"""
 import asyncio
 import base64
 import json
@@ -28,12 +37,13 @@ class VoxSession:
     system_instruction: str
     tools: list = field(default_factory=list)
     gemini_session: Any = None
+    gemini_ctx: Any = None  # async context manager for cleanup
     turn_count: int = 0
     function_count: int = 0
     session_token: Optional[str] = None
 
 
-# ── Gemini voices ──────────────────────────────────────────────────────
+# ── Gemini voices (16 voices) ─────────────────────────────────────────
 GEMINI_VOICES = [
     {"id": "Puck", "name": "Puck", "gender": "Male", "style": "Upbeat, lively"},
     {"id": "Charon", "name": "Charon", "gender": "Male", "style": "Informative, steady"},
@@ -43,13 +53,23 @@ GEMINI_VOICES = [
     {"id": "Leda", "name": "Leda", "gender": "Female", "style": "Youthful, approachable"},
     {"id": "Orus", "name": "Orus", "gender": "Male", "style": "Firm, decisive"},
     {"id": "Zephyr", "name": "Zephyr", "gender": "Male", "style": "Calm, breezy"},
+    # Extended voices
+    {"id": "Sage", "name": "Sage", "gender": "Non-binary", "style": "Wise, thoughtful"},
+    {"id": "Vale", "name": "Vale", "gender": "Non-binary", "style": "Gentle, melodic"},
+    {"id": "Solaria", "name": "Solaria", "gender": "Female", "style": "Bright, energetic"},
+    {"id": "River", "name": "River", "gender": "Non-binary", "style": "Smooth, flowing"},
+    {"id": "Ember", "name": "Ember", "gender": "Female", "style": "Warm, passionate"},
+    {"id": "Breeze", "name": "Breeze", "gender": "Female", "style": "Light, airy"},
+    {"id": "Cove", "name": "Cove", "gender": "Male", "style": "Deep, resonant"},
+    {"id": "Orbit", "name": "Orbit", "gender": "Male", "style": "Futuristic, crisp"},
 ]
 
 
 # ── Workspace function declarations for Gemini Live API ────────────────
 def build_function_declarations() -> list[dict]:
-    """Return workspace function declarations for Gemini Live API tools."""
+    """Return all workspace function declarations (~34 functions)."""
     return [
+        # ── Browser-side functions (6) ─────────────────────────────────
         {
             "name": "navigate_page",
             "description": "Navigate the workspace to a specific page. Available pages: chat, coding, agents, playbooks, workflows, kg-studio, experts, builder, tools, vox, integrations, settings.",
@@ -97,6 +117,12 @@ def build_function_declarations() -> list[dict]:
                 "required": ["theme_id"],
             },
         },
+        {
+            "name": "read_page_content",
+            "description": "Read the visible text content of the current workspace page.",
+            "parameters": {"type": "object", "properties": {}},
+        },
+        # ── Core workspace tools (6) ───────────────────────────────────
         {
             "name": "run_tool",
             "description": "Execute one of the 58+ registered workspace tools by ID. Examples: cost_analyzer, task_classifier, code_review_generator, embedding_generator, react_component_generator, security_scanner, etc.",
@@ -151,15 +177,10 @@ def build_function_declarations() -> list[dict]:
             "description": "List all available NLKE agents.",
             "parameters": {"type": "object", "properties": {}},
         },
-        {
-            "name": "read_page_content",
-            "description": "Read the visible text content of the current workspace page.",
-            "parameters": {"type": "object", "properties": {}},
-        },
-        # ── Direct developer tool shortcuts ───────────────────────────────
+        # ── Direct developer tool shortcuts (5) ───────────────────────
         {
             "name": "generate_react_component",
-            "description": "Generate a React component with TypeScript, props interface, hooks, and state management. Specify the framework (react/vue/svelte) for cross-framework support.",
+            "description": "Generate a React component with TypeScript, props interface, hooks, and state management.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -173,11 +194,11 @@ def build_function_declarations() -> list[dict]:
         },
         {
             "name": "generate_fastapi_endpoint",
-            "description": "Generate a FastAPI route with Pydantic models, validation, and error handling from a natural language description.",
+            "description": "Generate a FastAPI route with Pydantic models, validation, and error handling.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "description": {"type": "string", "description": "What the endpoint should do, e.g. 'Create a user with email and password'"},
+                    "description": {"type": "string", "description": "What the endpoint should do"},
                     "method": {"type": "string", "description": "HTTP method: GET, POST, PUT, DELETE. Default: POST"},
                     "path": {"type": "string", "description": "URL path, e.g. '/api/users'"},
                     "framework": {"type": "string", "description": "Target framework: fastapi, express, flask, django. Default: fastapi"},
@@ -187,19 +208,19 @@ def build_function_declarations() -> list[dict]:
         },
         {
             "name": "scan_code_security",
-            "description": "Scan code for security vulnerabilities: SQL injection, XSS, hardcoded secrets, eval usage, path traversal, and more.",
+            "description": "Scan code for security vulnerabilities: SQL injection, XSS, hardcoded secrets, eval usage, path traversal.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "code": {"type": "string", "description": "Source code to scan"},
-                    "language": {"type": "string", "description": "Programming language: python, javascript, typescript, java, go. Default: python"},
+                    "language": {"type": "string", "description": "Programming language. Default: python"},
                 },
                 "required": ["code"],
             },
         },
         {
             "name": "analyze_code_complexity",
-            "description": "Analyze code complexity using cyclomatic and cognitive complexity metrics via AST parsing.",
+            "description": "Analyze code complexity using cyclomatic and cognitive complexity metrics.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -211,7 +232,7 @@ def build_function_declarations() -> list[dict]:
         },
         {
             "name": "generate_tests",
-            "description": "Generate test cases from function signatures using AST analysis. Produces pytest-style tests with edge cases.",
+            "description": "Generate test cases from function signatures using AST analysis.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -221,6 +242,180 @@ def build_function_declarations() -> list[dict]:
                 },
                 "required": ["code"],
             },
+        },
+        # ── Guided Tours (2) ──────────────────────────────────────────
+        {
+            "name": "start_guided_tour",
+            "description": "Start an interactive voice-narrated guided tour of a workspace page. VOX highlights UI elements and explains each feature.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "page": {"type": "string", "description": "Page to tour. Options: chat, coding, agents, playbooks, workflows, kg-studio, experts, builder, tools, vox, settings. If empty, tours the current page."},
+                },
+            },
+        },
+        {
+            "name": "get_available_tours",
+            "description": "List all available guided tours with page names and step counts.",
+            "parameters": {"type": "object", "properties": {}},
+        },
+        # ── Workspace Control — Jarvis Mode (5) ───────────────────────
+        {
+            "name": "create_project",
+            "description": "Create a new AI Studio project with a name and description.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Project name"},
+                    "description": {"type": "string", "description": "What the project does"},
+                },
+                "required": ["name"],
+            },
+        },
+        {
+            "name": "list_projects",
+            "description": "List all Studio projects with their status and file counts.",
+            "parameters": {"type": "object", "properties": {}},
+        },
+        {
+            "name": "run_workflow",
+            "description": "Execute a workflow template by name. Available: error-recovery, knowledge-synthesis, session-handoff, multi-agent-orchestration.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "workflow_name": {"type": "string", "description": "Workflow template name"},
+                    "input": {"type": "string", "description": "Input text for the workflow"},
+                },
+                "required": ["workflow_name"],
+            },
+        },
+        {
+            "name": "search_playbooks",
+            "description": "Search through 53 implementation playbooks by keyword.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Search query"},
+                },
+                "required": ["query"],
+            },
+        },
+        {
+            "name": "search_kg",
+            "description": "Enhanced KG search with optional filters. Returns top results with scores.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "database_id": {"type": "string", "description": "KG database ID"},
+                    "query": {"type": "string", "description": "Search query"},
+                    "node_type": {"type": "string", "description": "Optional: filter by node type (e.g. 'tool', 'pattern', 'concept')"},
+                    "limit": {"type": "integer", "description": "Max results. Default: 5"},
+                },
+                "required": ["database_id", "query"],
+            },
+        },
+        # ── KG Studio Control (3) ─────────────────────────────────────
+        {
+            "name": "get_kg_analytics",
+            "description": "Get graph analytics for a KG database: node/edge counts, top nodes by centrality, and community count.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "database_id": {"type": "string", "description": "KG database ID"},
+                },
+                "required": ["database_id"],
+            },
+        },
+        {
+            "name": "cross_kg_search",
+            "description": "Search across multiple knowledge graph databases simultaneously.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Search query"},
+                    "database_ids": {"type": "string", "description": "Comma-separated database IDs, or 'all' for all databases"},
+                    "limit": {"type": "integer", "description": "Max results per database. Default: 3"},
+                },
+                "required": ["query"],
+            },
+        },
+        {
+            "name": "ingest_to_kg",
+            "description": "Extract entities and relationships from text and add them to a knowledge graph using AI.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "database_id": {"type": "string", "description": "Target KG database ID"},
+                    "text": {"type": "string", "description": "Text to extract knowledge from"},
+                },
+                "required": ["database_id", "text"],
+            },
+        },
+        # ── Expert Control (2) ─────────────────────────────────────────
+        {
+            "name": "chat_with_expert",
+            "description": "Send a message to a KG-OS expert and get a response with source citations.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "expert_id": {"type": "string", "description": "Expert ID"},
+                    "message": {"type": "string", "description": "Message to send to the expert"},
+                },
+                "required": ["expert_id", "message"],
+            },
+        },
+        {
+            "name": "list_experts",
+            "description": "List all available KG-OS experts with their specializations.",
+            "parameters": {"type": "object", "properties": {}},
+        },
+        # ── Voice Macros (4) ───────────────────────────────────────────
+        {
+            "name": "create_macro",
+            "description": "Create a voice macro — a multi-step command sequence triggered by a phrase. Steps can chain functions together with output piping.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Macro name"},
+                    "trigger_phrase": {"type": "string", "description": "Voice trigger phrase, e.g. 'morning routine'"},
+                    "steps": {"type": "string", "description": "JSON array of steps: [{\"function\":\"fn_name\",\"args\":{},\"pipe_from\":null}]"},
+                    "error_policy": {"type": "string", "description": "What to do on error: abort, skip, or retry. Default: abort"},
+                },
+                "required": ["name", "trigger_phrase", "steps"],
+            },
+        },
+        {
+            "name": "list_macros",
+            "description": "List all saved voice macros with their trigger phrases and step counts.",
+            "parameters": {"type": "object", "properties": {}},
+        },
+        {
+            "name": "run_macro",
+            "description": "Execute a voice macro by name or trigger phrase.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "macro_id": {"type": "string", "description": "Macro ID or trigger phrase"},
+                },
+                "required": ["macro_id"],
+            },
+        },
+        {
+            "name": "delete_macro",
+            "description": "Delete a saved voice macro.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "macro_id": {"type": "string", "description": "Macro ID to delete"},
+                },
+                "required": ["macro_id"],
+            },
+        },
+        # ── Thermal Monitoring (1) ─────────────────────────────────────
+        {
+            "name": "check_thermal",
+            "description": "Check the device temperature and battery status. Warns if the device is getting too hot.",
+            "parameters": {"type": "object", "properties": {}},
         },
     ]
 
@@ -236,25 +431,25 @@ PERSONALITY:
 - You address users warmly but professionally
 - When executing functions, you narrate what you're doing naturally
 
-CAPABILITIES:
-- You can navigate between all workspace pages (Chat, Coding, Agents, Playbooks, Workflows, KG Studio, Experts, Studio, Tools, VOX, Integrations, Settings)
-- You can run any of the 58+ registered tools across 11 categories:
-  * Code Quality (4): code review, refactoring, TDD, analysis
-  * Cost Optimization (5): cost analysis, thinking budgets, Haiku delegation
-  * Agent Intelligence (4): plan complexity, ROI, composition, workload
-  * Knowledge Graph (5): embeddings, RAG, fusion, context, graph engineering
-  * Generators (4): boilerplate, AST, scaffold, template
-  * Reasoning (5): thinking budgets, ROI, reasoning engine, workflow
-  * Dev Tools (10): docs, commit messages, changelogs, dead code, complexity, security scanner
-  * Frontend (3): React/Vue/Svelte component generator, JSX→TSX converter, CSS→Tailwind
-  * Backend (3): FastAPI/Express endpoint generator, Pydantic model generator, pytest generator
-  * Full-Stack (3): API contract generator, Dockerfile generator, env template generator
-  * Orchestration (1): agent orchestrator with DAG planning
-- You can DIRECTLY generate React components, FastAPI endpoints, scan security, analyze complexity, and generate tests — just ask!
-- You can query 57+ knowledge graph databases with hybrid semantic search
-- You can execute NLKE agents for complex reasoning tasks
-- You can switch AI models (Gemini/Claude) and themes on command
-- You can read and describe what's currently on screen
+CAPABILITIES (34 functions):
+- Navigate between all workspace pages
+- Run any of 58+ registered tools across 11 categories
+- Generate React components, FastAPI endpoints, scan security, analyze complexity, generate tests
+- Query 57+ knowledge graph databases with hybrid semantic search
+- Cross-KG search across multiple databases simultaneously
+- AI entity extraction into knowledge graphs
+- Get graph analytics (PageRank, communities, centrality)
+- Execute NLKE agents for complex reasoning tasks
+- Start guided tours for any page — voice-narrated walkthroughs
+- Create and manage Studio projects
+- Execute workflow templates (error-recovery, knowledge-synthesis, session-handoff, multi-agent)
+- Search 53 implementation playbooks
+- Chat with KG-OS experts backed by structured knowledge
+- Create, list, run, and delete voice macros (multi-step command sequences)
+- Check device temperature and battery status
+- Switch AI models (Gemini/Claude) and themes
+- Read and describe what's on screen
+- Answer real-time questions via Google Search grounding
 
 WORKSPACE PAGES:
 /chat - Dual-model streaming chat (Gemini + Claude)
@@ -273,11 +468,22 @@ WORKSPACE PAGES:
 BEHAVIOR:
 - When users ask to go somewhere, use navigate_page
 - When users ask about tools or want to run one, use list_tools or run_tool
-- When users ask about knowledge, use query_kg or list_kgs
+- When users ask about knowledge, use query_kg, search_kg, or cross_kg_search
 - When users ask what's on screen, use read_page_content
+- When users say "give me a tour" or "show me around", use start_guided_tour
+- When users want to create a repeatable routine, offer to create a macro
+- When users ask about real-time info (weather, news, prices), answer directly via Google Search
 - Keep responses concise for voice — no long paragraphs
 - Confirm actions after executing them
 """
+    # Inject awareness context
+    try:
+        from services.vox_awareness import vox_awareness
+        awareness = vox_awareness.build_awareness_prompt()
+        base += f"\nCURRENT AWARENESS:\n{awareness}\n"
+    except Exception:
+        pass
+
     if custom_prompt:
         base += f"\nADDITIONAL INSTRUCTIONS:\n{custom_prompt}\n"
     return base
@@ -322,7 +528,7 @@ class VoxService:
                 parameters=d.get("parameters"),
             ))
 
-        # Live API config
+        # Live API config with Google Search grounding + transcription
         live_config = types.LiveConnectConfig(
             response_modalities=["AUDIO"],
             speech_config=types.SpeechConfig(
@@ -333,10 +539,15 @@ class VoxService:
                 )
             ),
             system_instruction=system_prompt,
-            tools=[types.Tool(function_declarations=fn_decls)],
+            tools=[
+                types.Tool(function_declarations=fn_decls),
+                types.Tool(google_search=types.GoogleSearch()),
+            ],
             context_window_compression=types.ContextWindowCompressionConfig(
                 sliding_window=types.SlidingWindow(),
             ),
+            input_audio_transcription=types.AudioTranscriptionConfig(),
+            output_audio_transcription=types.AudioTranscriptionConfig(),
         )
 
         # Add session resumption if we have a token
@@ -347,11 +558,12 @@ class VoxService:
         else:
             live_config.session_resumption = types.SessionResumptionConfig()
 
-        # Connect to Gemini Live API
-        gemini_session = await client.aio.live.connect(
+        # Connect to Gemini Live API (async context manager — enter manually)
+        ctx = client.aio.live.connect(
             model=model,
             config=live_config,
         )
+        gemini_session = await ctx.__aenter__()
 
         session = VoxSession(
             session_id=session_id,
@@ -362,6 +574,7 @@ class VoxService:
             system_instruction=system_prompt,
             tools=declarations,
             gemini_session=gemini_session,
+            gemini_ctx=ctx,
             session_token=session_token,
         )
         self.sessions[session_id] = session
@@ -424,7 +637,12 @@ class VoxService:
         session = self.sessions.pop(session_id, None)
         if not session:
             return
-        if session.gemini_session:
+        if session.gemini_ctx:
+            try:
+                await session.gemini_ctx.__aexit__(None, None, None)
+            except Exception:
+                pass
+        elif session.gemini_session:
             try:
                 await session.gemini_session.close()
             except Exception:

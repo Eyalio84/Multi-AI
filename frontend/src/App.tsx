@@ -1,7 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useAppContext } from './context/AppContext';
-import { VoxProvider } from './context/VoxContext';
+import { VoxProvider, useVoxContext } from './context/VoxContext';
 import NavBar from './components/NavBar';
 import ChatPage from './pages/ChatPage';
 import CodingPage from './pages/CodingPage';
@@ -16,7 +16,15 @@ import ExpertsPage from './pages/ExpertsPage';
 import ToolsPage from './pages/ToolsPage';
 import VoxPage from './pages/VoxPage';
 import VoxOverlay from './components/VoxOverlay';
+import VoxTourOverlay from './components/VoxTourOverlay';
 import ToastContainer from './components/ToastContainer';
+
+/** Bridge component that connects VoxTourOverlay to VoxContext */
+const VoxTourBridge: React.FC = () => {
+  const { activeTour, clearTour } = useVoxContext();
+  if (!activeTour) return null;
+  return <VoxTourOverlay tour={activeTour} onComplete={clearTour} />;
+};
 
 const AppContent: React.FC = () => {
   const { globalError, setGlobalError } = useAppContext();
@@ -54,6 +62,7 @@ const AppContent: React.FC = () => {
         )}
 
         <VoxOverlay />
+        <VoxTourBridge />
         <ToastContainer />
       </div>
     </VoxProvider>

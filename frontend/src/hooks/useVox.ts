@@ -3,13 +3,20 @@
  *
  * Ported from AI-LAB's useVox.js (Vue 3 composable).
  * Handles WebSocket audio streaming to Gemini Live API,
- * browser STT/TTS for Claude mode, and workspace function execution.
+ * browser STT/TTS for Claude mode, workspace function execution,
+ * auto-reconnect with exponential backoff, awareness reporting,
+ * guided tour triggers, and async task tracking.
  */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { VoxState, VoxConfig, VoxTranscriptEntry, VoxFunctionEntry, VoxMode } from '../types/vox';
+import type { Tour } from '../components/VoxTourOverlay';
 
+const API_BASE = `${window.location.protocol}//${window.location.hostname}:8000`;
 const WS_BASE = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname}:8000`;
+
+const MAX_RECONNECT_ATTEMPTS = 3;
+const RECONNECT_BASE_DELAY = 500;
 
 const initialState: VoxState = {
   connected: false,
@@ -33,6 +40,7 @@ export function useVox() {
     ...initialState,
     voice: localStorage.getItem('voxVoice') || 'Puck',
   }));
+  const [activeTour, setActiveTour] = useState<Tour | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -48,9 +56,29 @@ export function useVox() {
   const listenersRef = useRef<Record<string, VoxEventCallback[]>>({});
   const stateRef = useRef(state);
   const sessionTokenRef = useRef<string | null>(null);
+  const reconnectAttemptsRef = useRef<number>(0);
+  const reconnectConfigRef = useRef<{ mode: VoxMode; config?: Partial<VoxConfig> } | null>(null);
 
   // Keep stateRef synced
   useEffect(() => { stateRef.current = state; }, [state]);
+
+  // ── Awareness: report page visits ───────────────────────────────────
+  const prevPageRef = useRef(location.pathname);
+  useEffect(() => {
+    if (location.pathname !== prevPageRef.current) {
+      prevPageRef.current = location.pathname;
+      // Report page visit to backend awareness
+      fetch(`${API_BASE}/api/vox/awareness`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_type: 'page_visit',
+          page: location.pathname,
+          metadata: { timestamp: Date.now() },
+        }),
+      }).catch(() => { /* best effort */ });
+    }
+  }, [location.pathname]);
 
   // ── Event system ──────────────────────────────────────────────────
   const emit = useCallback((event: string, data: any) => {
@@ -311,6 +339,7 @@ export function useVox() {
           reconnecting: false,
           error: null,
         }));
+        reconnectAttemptsRef.current = 0;
         addTranscript('system', msg.resumed ? 'Session resumed! Mic active.' : 'Connected! Mic active.');
         // Start mic for Gemini, speech recognition for Claude
         if (stateRef.current.mode === 'gemini') {
@@ -368,14 +397,47 @@ export function useVox() {
 
       case 'function_result':
         updateFunctionLog(msg.name, msg.result, msg.result?.success ? 'success' : 'error');
-        addTranscript('system', `${msg.name} → ${msg.result?.success ? 'OK' : 'Error'}`);
+        addTranscript('system', `${msg.name} -> ${msg.result?.success ? 'OK' : 'Error'}`);
         break;
 
+      // ── Guided Tour trigger ───────────────────────────────────
+      case 'start_tour': {
+        const tour = msg.tour as Tour;
+        if (tour) {
+          setActiveTour(tour);
+          // Navigate to tour page if needed
+          if (msg.page) {
+            const pagePaths: Record<string, string> = {
+              chat: '/chat', coding: '/coding', agents: '/agents',
+              playbooks: '/playbooks', workflows: '/workflows',
+              'kg-studio': '/kg-studio', experts: '/experts',
+              builder: '/builder', tools: '/tools', vox: '/vox',
+              settings: '/settings',
+            };
+            const path = pagePaths[msg.page] || `/${msg.page}`;
+            navigate(path);
+          }
+          addTranscript('system', `Starting guided tour: ${tour.name}`);
+        }
+        break;
+      }
+
+      // ── Async task tracking ───────────────────────────────────
+      case 'async_task_started':
+        addTranscript('system', `Async task started: ${msg.function} [${msg.task_id}]`);
+        emit('async_task_started', msg);
+        break;
+
+      case 'async_task_complete':
+        addTranscript('system', `Async task complete: ${msg.function} [${msg.task_id}]`);
+        emit('async_task_complete', msg);
+        break;
+
+      // ── Go Away (reconnect) ───────────────────────────────────
       case 'go_away':
         sessionTokenRef.current = msg.session_token || null;
         addTranscript('system', 'Reconnecting...');
         setState(prev => ({ ...prev, reconnecting: true }));
-        // Will auto-reconnect
         break;
 
       case 'error':
@@ -384,13 +446,75 @@ export function useVox() {
         emit('error', { message: msg.message });
         break;
     }
-  }, [addTranscript, addFunctionLog, updateFunctionLog, emit, playAudioChunk, speakText, startMic, startSpeechRecognition, executeBrowserFunction]);
+  }, [addTranscript, addFunctionLog, updateFunctionLog, emit, playAudioChunk, speakText, startMic, startSpeechRecognition, executeBrowserFunction, navigate]);
+
+  // ── Auto-reconnect logic ──────────────────────────────────────────
+  const attemptReconnect = useCallback(() => {
+    if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+      addTranscript('system', 'Max reconnect attempts reached. Please reconnect manually.');
+      setState(prev => ({ ...prev, reconnecting: false, connected: false }));
+      return;
+    }
+
+    const attempt = reconnectAttemptsRef.current;
+    const delay = RECONNECT_BASE_DELAY * Math.pow(2, attempt);
+    reconnectAttemptsRef.current = attempt + 1;
+
+    addTranscript('system', `Reconnecting in ${delay}ms (attempt ${attempt + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
+
+    setTimeout(() => {
+      const cfg = reconnectConfigRef.current;
+      if (cfg) {
+        // Re-connect with the same config, passing session token
+        const mode = cfg.mode;
+        const config = cfg.config || {};
+        const voice = config.voice || stateRef.current.voice;
+        const model = config.model || '';
+        const systemPrompt = config.systemPrompt || '';
+
+        setState(prev => ({ ...prev, mode, voice: voice || prev.voice, error: null }));
+
+        try {
+          const ws = new WebSocket(`${WS_BASE}/ws/vox`);
+          wsRef.current = ws;
+
+          ws.onopen = () => {
+            const initMsg: any = { type: 'start', mode, voice, model, systemPrompt };
+            if (sessionTokenRef.current && mode === 'gemini') {
+              initMsg.session_token = sessionTokenRef.current;
+            }
+            ws.send(JSON.stringify(initMsg));
+          };
+
+          ws.onmessage = (event) => handleMessage(event.data);
+          ws.onerror = () => { setState(prev => ({ ...prev, error: 'Reconnection error' })); };
+
+          ws.onclose = () => {
+            const s = stateRef.current;
+            if (s.reconnecting) {
+              attemptReconnect();
+            } else {
+              setState(prev => ({ ...prev, connected: false }));
+              stopMic();
+              stopSpeechRecognition();
+            }
+          };
+        } catch (err: any) {
+          setState(prev => ({ ...prev, error: err.message }));
+        }
+      }
+    }, delay);
+  }, [addTranscript, handleMessage, stopMic, stopSpeechRecognition]);
 
   // ── Connect ───────────────────────────────────────────────────────
   const connect = useCallback((mode: VoxMode, config?: Partial<VoxConfig>) => {
     const voice = config?.voice || state.voice;
     const model = config?.model || '';
     const systemPrompt = config?.systemPrompt || '';
+
+    // Save config for potential reconnects
+    reconnectConfigRef.current = { mode, config };
+    reconnectAttemptsRef.current = 0;
 
     setState(prev => ({ ...prev, mode, voice, error: null, transcript: [], functionLog: [], turnCount: 0, functionCount: 0 }));
 
@@ -413,22 +537,25 @@ export function useVox() {
       };
 
       ws.onclose = () => {
-        setState(prev => {
-          if (prev.connected && !prev.reconnecting) {
-            return { ...prev, connected: false };
-          }
-          return { ...prev, connected: false };
-        });
-        stopMic();
-        stopSpeechRecognition();
+        const s = stateRef.current;
+        if (s.reconnecting) {
+          // Trigger auto-reconnect
+          attemptReconnect();
+        } else {
+          setState(prev => ({ ...prev, connected: false }));
+          stopMic();
+          stopSpeechRecognition();
+        }
       };
     } catch (err: any) {
       setState(prev => ({ ...prev, error: err.message }));
     }
-  }, [state.voice, handleMessage, stopMic, stopSpeechRecognition]);
+  }, [state.voice, handleMessage, stopMic, stopSpeechRecognition, attemptReconnect]);
 
   // ── Disconnect ────────────────────────────────────────────────────
   const disconnect = useCallback(() => {
+    reconnectConfigRef.current = null;
+    reconnectAttemptsRef.current = 0;
     stopMic();
     stopSpeechRecognition();
     if (wsRef.current) {
@@ -449,7 +576,9 @@ export function useVox() {
       listening: false,
       speaking: false,
       mode: null,
+      reconnecting: false,
     }));
+    setActiveTour(null);
     emit('disconnected', {});
   }, [stopMic, stopSpeechRecognition, emit]);
 
@@ -475,6 +604,11 @@ export function useVox() {
   const setVoice = useCallback((v: string) => {
     setState(prev => ({ ...prev, voice: v }));
     localStorage.setItem('voxVoice', v);
+  }, []);
+
+  // ── Tour controls ─────────────────────────────────────────────────
+  const clearTour = useCallback(() => {
+    setActiveTour(null);
   }, []);
 
   // ── Cleanup on unmount ────────────────────────────────────────────
@@ -507,5 +641,7 @@ export function useVox() {
     setVoice,
     on,
     off,
+    activeTour,
+    clearTour,
   };
 }

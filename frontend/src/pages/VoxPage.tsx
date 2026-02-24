@@ -1,6 +1,6 @@
 /**
  * VoxPage — Full dedicated page for VOX Control Center.
- * Controls + conversation transcript + function execution log.
+ * Controls + conversation transcript + function execution log + macros section.
  */
 import React, { useState, useRef, useEffect } from 'react';
 import { useVoxContext } from '../context/VoxContext';
@@ -15,13 +15,29 @@ const VOICES: VoxVoice[] = [
   { id: 'Leda', name: 'Leda', gender: 'Female', style: 'Youthful, approachable' },
   { id: 'Orus', name: 'Orus', gender: 'Male', style: 'Firm, decisive' },
   { id: 'Zephyr', name: 'Zephyr', gender: 'Male', style: 'Calm, breezy' },
+  { id: 'Sage', name: 'Sage', gender: 'Non-binary', style: 'Wise, thoughtful' },
+  { id: 'Vale', name: 'Vale', gender: 'Non-binary', style: 'Gentle, melodic' },
+  { id: 'Solaria', name: 'Solaria', gender: 'Female', style: 'Bright, energetic' },
+  { id: 'River', name: 'River', gender: 'Non-binary', style: 'Smooth, flowing' },
+  { id: 'Ember', name: 'Ember', gender: 'Female', style: 'Warm, passionate' },
+  { id: 'Breeze', name: 'Breeze', gender: 'Female', style: 'Light, airy' },
+  { id: 'Cove', name: 'Cove', gender: 'Male', style: 'Deep, resonant' },
+  { id: 'Orbit', name: 'Orbit', gender: 'Male', style: 'Futuristic, crisp' },
 ];
 
 const GEMINI_MODELS = [
-  'gemini-2.5-flash-exp-native-audio-thinking-dialog',
+  'gemini-2.0-flash-live-001',
+  'gemini-2.5-flash-preview-native-audio-dialog',
   'gemini-2.5-flash',
   'gemini-2.5-pro',
 ];
+
+interface MacroSummary {
+  id: string;
+  name: string;
+  trigger_phrase: string;
+  step_count: number;
+}
 
 const VoxPage: React.FC = () => {
   const { state, connect, disconnect, toggleMic, sendText, setVoice, isAvailable } = useVoxContext();
@@ -29,6 +45,8 @@ const VoxPage: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState(GEMINI_MODELS[0]);
   const [systemPrompt, setSystemPrompt] = useState('');
   const [textInput, setTextInput] = useState('');
+  const [macros, setMacros] = useState<MacroSummary[]>([]);
+  const [showMacros, setShowMacros] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,6 +54,14 @@ const VoxPage: React.FC = () => {
       transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
     }
   }, [state.transcript]);
+
+  // Load macros
+  useEffect(() => {
+    fetch('/api/vox/macros')
+      .then(r => r.json())
+      .then(data => setMacros(data.macros || []))
+      .catch(() => {});
+  }, []);
 
   const handleConnect = () => {
     connect(selectedMode, {
@@ -51,6 +77,23 @@ const VoxPage: React.FC = () => {
       sendText(textInput.trim());
       setTextInput('');
     }
+  };
+
+  const handleRunMacro = async (macroId: string) => {
+    try {
+      const res = await fetch(`/api/vox/macros/${macroId}/run`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        // Results will appear in function log via WS
+      }
+    } catch (_) {}
+  };
+
+  const handleDeleteMacro = async (macroId: string) => {
+    try {
+      await fetch(`/api/vox/macros/${macroId}`, { method: 'DELETE' });
+      setMacros(prev => prev.filter(m => m.id !== macroId));
+    } catch (_) {}
   };
 
   return (
@@ -70,12 +113,26 @@ const VoxPage: React.FC = () => {
               Connected — {state.mode === 'gemini' ? 'Gemini Live' : 'Claude'}
             </span>
           )}
+          {state.reconnecting && (
+            <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24' }}>
+              Reconnecting...
+            </span>
+          )}
         </div>
-        {!isAvailable && (
-          <span className="text-xs px-2 py-1 rounded" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>
-            No API keys configured
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {!isAvailable && (
+            <span className="text-xs px-2 py-1 rounded" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>
+              No API keys configured
+            </span>
+          )}
+          <button
+            onClick={() => setShowMacros(!showMacros)}
+            className="text-xs px-2 py-1 rounded"
+            style={{ background: 'var(--t-surface2)', color: 'var(--t-muted)' }}
+          >
+            Macros ({macros.length})
+          </button>
+        </div>
       </div>
 
       {/* Main content */}
@@ -120,8 +177,8 @@ const VoxPage: React.FC = () => {
           {/* Voice selector (Gemini only) */}
           {selectedMode === 'gemini' && (
             <div>
-              <label className="text-xs font-semibold block mb-2" style={{ color: 'var(--t-muted)' }}>VOICE</label>
-              <div className="space-y-1">
+              <label className="text-xs font-semibold block mb-2" style={{ color: 'var(--t-muted)' }}>VOICE ({VOICES.length})</label>
+              <div className="space-y-1 max-h-48 overflow-y-auto">
                 {VOICES.map(v => (
                   <button
                     key={v.id}
@@ -250,6 +307,43 @@ const VoxPage: React.FC = () => {
 
         {/* Right: Transcript + Function Log */}
         <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Macro panel (collapsible) */}
+          {showMacros && (
+            <div className="border-b p-3 space-y-2" style={{ borderColor: 'var(--t-border)', background: 'var(--t-surface2)' }}>
+              <h3 className="text-xs font-semibold" style={{ color: 'var(--t-muted)' }}>VOICE MACROS</h3>
+              {macros.length === 0 ? (
+                <p className="text-xs" style={{ color: 'var(--t-muted)' }}>No macros saved. Ask VOX to "create a macro" by voice.</p>
+              ) : (
+                <div className="space-y-1">
+                  {macros.map(m => (
+                    <div key={m.id} className="flex items-center justify-between px-2 py-1.5 rounded text-xs" style={{ background: 'var(--t-bg)' }}>
+                      <div>
+                        <span className="font-semibold" style={{ color: 'var(--t-text)' }}>{m.name}</span>
+                        <span className="ml-2" style={{ color: 'var(--t-muted)' }}>"{m.trigger_phrase}" ({m.step_count} steps)</span>
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => handleRunMacro(m.id)}
+                          className="px-2 py-0.5 rounded text-xs"
+                          style={{ background: 'var(--t-primary)', color: '#fff' }}
+                        >
+                          Run
+                        </button>
+                        <button
+                          onClick={() => handleDeleteMacro(m.id)}
+                          className="px-2 py-0.5 rounded text-xs"
+                          style={{ background: '#ef4444', color: '#fff' }}
+                        >
+                          Del
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Conversation transcript */}
           <div className="flex-1 overflow-y-auto" ref={transcriptRef}>
             <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--t-border)' }}>
@@ -267,7 +361,7 @@ const VoxPage: React.FC = () => {
                       : 'Connect to VOX to start a voice conversation'}
                   </p>
                   <p className="text-xs mt-2" style={{ color: 'var(--t-muted)' }}>
-                    VOX can navigate pages, run tools, query knowledge graphs, and control the workspace — all by voice.
+                    VOX has 34 functions: navigate pages, run tools, query KGs, guided tours, voice macros, and more — all by voice.
                   </p>
                 </div>
               )}
@@ -338,7 +432,7 @@ const VoxPage: React.FC = () => {
                     <span style={{
                       color: f.status === 'success' ? '#22c55e' : f.status === 'error' ? '#ef4444' : '#f59e0b',
                     }}>
-                      {f.status === 'success' ? '✓' : f.status === 'error' ? '✗' : '◌'}
+                      {f.status === 'success' ? 'OK' : f.status === 'error' ? 'ERR' : '...'}
                     </span>
                     <span className="font-mono">{f.name}</span>
                     <span style={{ color: 'var(--t-muted)' }}>

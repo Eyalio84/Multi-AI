@@ -1,4 +1,4 @@
-# Multi-AI Agentic Workspace v2.2.0
+# Multi-AI Agentic Workspace v2.3.0
 
 A professional agentic workflow orchestrator combining **Gemini** and **Claude** intelligence into a unified web interface. Build real software with 33 NLKE agents, 53 playbooks, 58+ Python tools, visual workflows, a dual-model coding IDE, a full Graph-RAG Knowledge Graph workspace, an **AI-powered Studio**, **VOX voice agent**, **KG-OS Expert Builder**, and a standalone **MCP server**.
 
@@ -13,7 +13,7 @@ A professional agentic workflow orchestrator combining **Gemini** and **Claude**
 - **Studio** — AI-powered full-stack React app generator: describe in chat → live Sandpack preview → 3 modes (Chat/Code/Visual) → SQLite project persistence with version history → ZIP export. 28 components, mobile-responsive with bottom tab bar
 - **KG-OS Expert Builder** — Create AI experts backed by structured knowledge graphs with intent-driven retrieval, 4-weight scoring formula (0.35\*embedding + 0.40\*text + 0.15\*graph + 0.10\*intent), 56 semantic dimensions, SSE streaming with source citations
 - **58+ Python Tools** — 11 categories (Code Quality, Cost Optimization, Agent Intelligence, Knowledge Graph, Generators, Reasoning, Dev Tools, Frontend, Backend, Full-Stack, Orchestration) — all pure Python, $0 cost, no external deps
-- **VOX Voice Agent** — Voice-powered master agent via Gemini Live API (native audio) + Claude (browser STT/TTS). Navigate pages, run tools, query KGs, execute agents, switch models/themes — all by voice. 17 function declarations, session resumption
+- **VOX Voice Agent** — Voice-powered workspace intelligence via Gemini Live API (native audio) + Claude (browser STT/TTS). **34 function declarations**, 16 voices, Google Search grounding for real-time answers, workspace awareness layer, voice-narrated guided tours (11 pages), voice macros with pipe chaining, full Jarvis-mode workspace control (create projects, search KGs/playbooks, run workflows, chat with experts), auto-reconnect with exponential backoff, async task queue, thermal monitoring
 - **MCP Server** — Standalone MCP server (`python3 backend/mcp_server.py`) exposing all 58+ workspace tools as individual MCP tools via JSON-RPC over stdio
 - **Workspace Transfer** — JSON import/export between standalone and Claude Code modes
 - **5 Themes** — Default, Deluxe-CRT, Scratch (B&W doodle), Solarized Zen, Sunset Warm — switchable via NavBar or Settings

@@ -1,0 +1,248 @@
+{
+  "chat": {
+    "name": "Chat Page Tour",
+    "description": "Learn how to use the dual-model streaming chat",
+    "steps": [
+      {
+        "target": ".chat-input, textarea, input[placeholder*='message']",
+        "speech": "This is the message input. Type your questions here and press Enter or click Send. You can ask anything from coding questions to creative writing.",
+        "position": "top",
+        "highlight": true
+      },
+      {
+        "target": "select, .provider-selector, [class*='provider']",
+        "speech": "Use the provider selector to switch between Gemini and Claude mid-conversation. Each model has different strengths — Gemini handles large contexts while Claude excels at reasoning.",
+        "position": "bottom",
+        "highlight": true
+      },
+      {
+        "target": "[class*='model'], select[class*='model']",
+        "speech": "Choose from multiple model variants. Flash models are faster and cheaper, while Pro and Opus models deliver higher quality responses.",
+        "position": "bottom",
+        "highlight": true
+      }
+    ]
+  },
+  "coding": {
+    "name": "Coding Page Tour",
+    "description": "Explore the AI-powered IDE",
+    "steps": [
+      {
+        "target": ".file-explorer, [class*='file-tree'], [class*='sidebar']",
+        "speech": "The file explorer shows your project structure. Click any file to open it in the editor. You can create, rename, and delete files here.",
+        "position": "right",
+        "highlight": true
+      },
+      {
+        "target": ".editor, [class*='editor'], [class*='code']",
+        "speech": "The code editor supports syntax highlighting for many languages. Write your code here and use the AI to help with refactoring, debugging, and generating new code.",
+        "position": "top",
+        "highlight": true
+      },
+      {
+        "target": "textarea, [class*='prompt']",
+        "speech": "Use the AI prompt area to describe what you want to build or fix. The AI can generate entire files, refactor existing code, or explain complex logic.",
+        "position": "top",
+        "highlight": true
+      }
+    ]
+  },
+  "agents": {
+    "name": "Agents Page Tour",
+    "description": "Discover the 33 NLKE agents",
+    "steps": [
+      {
+        "target": "[class*='search'], input[placeholder*='search']",
+        "speech": "Search through 33 specialized NLKE agents. Each agent is designed for specific tasks like cost analysis, knowledge curation, or adaptive reasoning.",
+        "position": "bottom",
+        "highlight": true
+      },
+      {
+        "target": "[class*='agent-card'], [class*='card']:first-child",
+        "speech": "Each agent card shows its name, description, and capabilities. Click an agent to see its details and run it with custom input.",
+        "position": "right",
+        "highlight": true
+      },
+      {
+        "target": "[class*='pipeline'], [class*='builder']",
+        "speech": "The pipeline builder lets you chain multiple agents together into automated workflows. Connect agents in sequence for complex multi-step tasks.",
+        "position": "top",
+        "highlight": true
+      }
+    ]
+  },
+  "playbooks": {
+    "name": "Playbooks Page Tour",
+    "description": "Browse 53 implementation playbooks",
+    "steps": [
+      {
+        "target": "input[placeholder*='search'], [class*='search']",
+        "speech": "Search through 53 implementation playbooks covering everything from cost optimization to oracle construction. Each playbook is a step-by-step recipe.",
+        "position": "bottom",
+        "highlight": true
+      },
+      {
+        "target": "[class*='playbook'], [class*='card']:first-child, [class*='list'] > *:first-child",
+        "speech": "Click any playbook to read its full content. Playbooks include code examples, decision trees, and real-world benchmarks.",
+        "position": "right",
+        "highlight": true
+      }
+    ]
+  },
+  "workflows": {
+    "name": "Workflows Page Tour",
+    "description": "Design and execute visual workflows",
+    "steps": [
+      {
+        "target": "[class*='template'], [class*='card']:first-child",
+        "speech": "Start from a workflow template or build from scratch. Templates include error recovery, knowledge synthesis, session handoff, and multi-agent orchestration.",
+        "position": "right",
+        "highlight": true
+      },
+      {
+        "target": "[class*='canvas'], [class*='designer'], [class*='flow']",
+        "speech": "The visual workflow designer lets you drag and connect steps. Each step can call tools, agents, or AI models. Execute the workflow and watch results flow through the pipeline.",
+        "position": "top",
+        "highlight": true
+      }
+    ]
+  },
+  "kg-studio": {
+    "name": "KG Studio Tour",
+    "description": "Explore the Graph-RAG knowledge workspace",
+    "steps": [
+      {
+        "target": "[class*='database'], [class*='sidebar'], [class*='db-list']",
+        "speech": "Choose from 57 knowledge graph databases. Each contains structured knowledge about different topics — from AI models to coding tools to NLKE methodology.",
+        "position": "right",
+        "highlight": true
+      },
+      {
+        "target": "[class*='search'], input[placeholder*='search']",
+        "speech": "Use hybrid semantic search combining embeddings, BM25 keywords, and graph structure. This achieves 88.5 percent recall — much better than any single method alone.",
+        "position": "bottom",
+        "highlight": true
+      },
+      {
+        "target": "[class*='graph'], canvas, svg, [class*='force']",
+        "speech": "The interactive graph visualization shows nodes and edges. Drag to rearrange, click nodes for details, and zoom to explore clusters. Use the analytics tab for PageRank, centrality, and community detection.",
+        "position": "top",
+        "highlight": true
+      },
+      {
+        "target": "[class*='chat'], [class*='rag']",
+        "speech": "RAG Chat lets you have conversations grounded in knowledge graph data. The AI cites specific nodes and edges as sources for its answers.",
+        "position": "left",
+        "highlight": true
+      }
+    ]
+  },
+  "experts": {
+    "name": "Experts Page Tour",
+    "description": "Build AI experts backed by knowledge graphs",
+    "steps": [
+      {
+        "target": "[class*='create'], button[class*='new']",
+        "speech": "Create a new expert by selecting a knowledge graph, defining its persona, and configuring its behavior. Experts combine structured knowledge with natural conversation.",
+        "position": "bottom",
+        "highlight": true
+      },
+      {
+        "target": "[class*='expert-card'], [class*='card']:first-child",
+        "speech": "Each expert card shows its name, knowledge graph, and specialization. Click to chat with an expert or configure its settings. Experts use a 4-weight scoring formula for retrieval.",
+        "position": "right",
+        "highlight": true
+      }
+    ]
+  },
+  "builder": {
+    "name": "Studio Tour",
+    "description": "Generate full-stack React apps with AI",
+    "steps": [
+      {
+        "target": "[class*='chat'], textarea, [class*='prompt']",
+        "speech": "Describe the app you want to build in plain English. The AI generates a complete React application with components, styling, and logic.",
+        "position": "top",
+        "highlight": true
+      },
+      {
+        "target": "[class*='file'], [class*='explorer']",
+        "speech": "The file panel shows all generated files. Click to view and edit any file. Use the refine mode to improve specific components.",
+        "position": "right",
+        "highlight": true
+      },
+      {
+        "target": "[class*='preview'], [class*='sandpack'], iframe",
+        "speech": "The live preview shows your generated app running in real-time. Changes update instantly thanks to Sandpack's hot module replacement.",
+        "position": "left",
+        "highlight": true
+      }
+    ]
+  },
+  "tools": {
+    "name": "Tools Page Tour",
+    "description": "Explore 58+ Python tools across 11 categories",
+    "steps": [
+      {
+        "target": "[class*='category'], [class*='filter'], [class*='sidebar']",
+        "speech": "Browse tools by category: Code Quality, Cost Optimization, Agent Intelligence, Knowledge Graph, Generators, Reasoning, Dev Tools, Frontend, Backend, Full-Stack, and Orchestration.",
+        "position": "right",
+        "highlight": true
+      },
+      {
+        "target": "[class*='tool-card'], [class*='card']:first-child, [class*='params']",
+        "speech": "Select a tool to see its parameters. Fill in the input form and click Run to execute. All tools are pure Python with zero external API costs.",
+        "position": "top",
+        "highlight": true
+      },
+      {
+        "target": "[class*='output'], [class*='result']",
+        "speech": "Results appear in the output panel. You can copy results, try different parameters, or chain tools together for more complex analyses.",
+        "position": "top",
+        "highlight": true
+      }
+    ]
+  },
+  "vox": {
+    "name": "VOX Tour",
+    "description": "Master the VOX voice control center",
+    "steps": [
+      {
+        "target": "[class*='mode'], button:first-child",
+        "speech": "Choose between Gemini and Claude voice modes. Gemini provides native audio streaming via the Live API. Claude uses browser speech recognition and synthesis.",
+        "position": "bottom",
+        "highlight": true
+      },
+      {
+        "target": "[class*='voice'], [class*='Voice']",
+        "speech": "Pick from 16 Gemini voices, each with a unique personality. From Puck's lively energy to Zephyr's calm breeze, find the voice that suits you best.",
+        "position": "right",
+        "highlight": true
+      },
+      {
+        "target": "button[class*='connect'], button:not([disabled])",
+        "speech": "Click Connect to start a voice session. Once connected, just start speaking. VOX can navigate pages, run tools, query knowledge graphs, and control the entire workspace by voice.",
+        "position": "top",
+        "highlight": true
+      }
+    ]
+  },
+  "settings": {
+    "name": "Settings Tour",
+    "description": "Configure your workspace",
+    "steps": [
+      {
+        "target": "[class*='key'], input[type='password'], [class*='api']",
+        "speech": "Configure your API keys here. You need a Gemini API key for Gemini features and an Anthropic API key for Claude features. Keys are stored locally.",
+        "position": "bottom",
+        "highlight": true
+      },
+      {
+        "target": "[class*='theme'], [class*='Theme']",
+        "speech": "Choose from 5 visual themes: Default, Deluxe CRT with scanlines, Scratch with hand-drawn style, Solarized Zen, and Sunset Warm.",
+        "position": "bottom",
+        "highlight": true
+      }
+    ]
+  }
+}
