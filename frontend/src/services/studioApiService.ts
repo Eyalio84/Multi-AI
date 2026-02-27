@@ -1,5 +1,8 @@
 /** Studio API service — all /api/studio/* fetch calls */
-import type { StudioProjectSummary, StudioProject, StudioVersion, StudioMockServerStatus, StudioApiSpec } from '../types/studio';
+import type {
+  StudioProjectSummary, StudioProject, StudioVersion, StudioMockServerStatus, StudioApiSpec,
+  StudioVisualConfig, StudioPipelineConfig,
+} from '../types/studio';
 
 const BASE = '/api/studio';
 
@@ -71,15 +74,49 @@ export const streamStudio = async (
   provider: 'gemini' | 'claude' | 'openai',
   model: string,
   mode: 'generate' | 'refine',
+  visualConfig?: StudioVisualConfig | null,
 ): Promise<ReadableStream<Uint8Array>> => {
+  const body: Record<string, any> = {
+    project_id: projectId, prompt, files, chat_history: chatHistory, provider, model, mode,
+  };
+  if (visualConfig) body.visual_config = visualConfig;
   const response = await fetch(`${BASE}/stream`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ project_id: projectId, prompt, files, chat_history: chatHistory, provider, model, mode }),
+    body: JSON.stringify(body),
   });
   if (!response.ok || !response.body) {
     const err = await response.json().catch(() => ({ message: 'Studio stream failed' }));
     throw new Error(err.message || err.detail || 'Failed to get studio response');
+  }
+  return response.body;
+};
+
+// --- Orchestration Streaming ---
+export const streamOrchestrate = async (
+  projectId: string | null,
+  prompt: string,
+  files: Record<string, { path: string; content: string }>,
+  chatHistory: any[],
+  pipelineConfig: StudioPipelineConfig,
+  mode: 'generate' | 'refine',
+): Promise<ReadableStream<Uint8Array>> => {
+  const response = await fetch(`${BASE}/orchestrate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      project_id: projectId, prompt, files, chat_history: chatHistory,
+      pipeline_config: {
+        strategy: pipelineConfig.strategy,
+        stages: pipelineConfig.stages,
+        visual_config: pipelineConfig.visualConfig,
+      },
+      mode,
+    }),
+  });
+  if (!response.ok || !response.body) {
+    const err = await response.json().catch(() => ({ message: 'Orchestration failed' }));
+    throw new Error(err.message || err.detail || 'Failed to start orchestration');
   }
   return response.body;
 };

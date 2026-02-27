@@ -4,7 +4,9 @@ import type {
   StudioMode, StudioFile, StudioProject, StudioMessage, StudioFileChange,
   StudioVersion, StudioApiSpec, StudioMockServerStatus, StudioSelection,
   StudioEditorTab, StudioProjectSummary,
+  StudioVisualConfig, StudioPipelineConfig, StudioOrchestrationEvent,
 } from '../types/studio';
+import { DEFAULT_PIPELINE_CONFIG } from '../types/studio';
 import * as studioApi from '../services/studioApiService';
 import { generateUniqueId } from '../utils/common';
 
@@ -71,6 +73,11 @@ interface StudioContextType {
   model: string;
   setProvider: (p: 'gemini' | 'claude' | 'openai') => void;
   setModel: (m: string) => void;
+
+  // Pipeline orchestration
+  pipelineConfig: StudioPipelineConfig;
+  setPipelineConfig: React.Dispatch<React.SetStateAction<StudioPipelineConfig>>;
+  orchestrationStages: StudioOrchestrationEvent[];
 }
 
 const StudioContext = createContext<StudioContextType | undefined>(undefined);
@@ -114,6 +121,10 @@ export const StudioProvider: React.FC<{ children: ReactNode; initialProvider: 'g
   // Provider/model
   const [provider, setProvider] = useState<'gemini' | 'claude' | 'openai'>(initialProvider);
   const [model, setModel] = useState(initialModel);
+
+  // Pipeline orchestration
+  const [pipelineConfig, setPipelineConfig] = useState<StudioPipelineConfig>({ ...DEFAULT_PIPELINE_CONFIG });
+  const [orchestrationStages, setOrchestrationStages] = useState<StudioOrchestrationEvent[]>([]);
 
   // --- File operations ---
   const updateFile = useCallback((path: string, content: string) => {
@@ -181,16 +192,20 @@ export const StudioProvider: React.FC<{ children: ReactNode; initialProvider: 'g
         role: m.role,
         content: m.content,
       }));
+      const studioMode = isFirstMessage ? 'generate' as const : 'refine' as const;
 
-      const stream = await studioApi.streamStudio(
-        project?.id || null,
-        prompt,
-        files,
-        chatHistory,
-        provider,
-        model,
-        isFirstMessage ? 'generate' : 'refine',
-      );
+      // Route through orchestrate endpoint for multi-model strategies
+      const useOrchestration = pipelineConfig.strategy !== 'single' && pipelineConfig.stages.length > 0;
+      setOrchestrationStages([]);
+
+      const stream = useOrchestration
+        ? await studioApi.streamOrchestrate(
+            project?.id || null, prompt, files, chatHistory, pipelineConfig, studioMode,
+          )
+        : await studioApi.streamStudio(
+            project?.id || null, prompt, files, chatHistory, provider, model, studioMode,
+            pipelineConfig.visualConfig,
+          );
 
       const reader = stream.getReader();
       const decoder = new TextDecoder();
@@ -249,6 +264,38 @@ export const StudioProvider: React.FC<{ children: ReactNode; initialProvider: 'g
                 if (collectedApiSpec) setApiSpec(collectedApiSpec);
                 break;
 
+              case 'orchestration_stage':
+              case 'advisor_suggestion':
+              case 'critic_feedback':
+              case 'orchestration_ping':
+              case 'orchestration_cost':
+                setOrchestrationStages(prev => [...prev, data as StudioOrchestrationEvent]);
+                // Show advisor/critic content in streaming text
+                if (data.type === 'advisor_suggestion' || data.type === 'critic_feedback') {
+                  accText += `\n\n**[${data.type === 'advisor_suggestion' ? 'Advisor' : 'Critic'}]:** ${data.content || ''}\n`;
+                  setStreamingText(accText);
+                }
+                break;
+
+              case 'studio_image': {
+                // Replace placeholder URL in all files with the generated image
+                const imgUrl = data.imageUrl || data.image_url;
+                const placeholder = data.originalPlaceholder || data.original_placeholder;
+                if (imgUrl && placeholder) {
+                  setFiles(prev => {
+                    const updated = { ...prev };
+                    for (const [p, f] of Object.entries(updated)) {
+                      if (f.content.includes(placeholder)) {
+                        updated[p] = { ...f, content: f.content.replaceAll(placeholder, imgUrl) };
+                      }
+                    }
+                    return updated;
+                  });
+                }
+                setOrchestrationStages(prev => [...prev, data as StudioOrchestrationEvent]);
+                break;
+              }
+
               case 'error':
                 accText += `\n\nError: ${data.content}`;
                 setStreamingText(accText);
@@ -292,7 +339,7 @@ export const StudioProvider: React.FC<{ children: ReactNode; initialProvider: 'g
       setStreamingPlan('');
       setStreamingThinking('');
     }
-  }, [isStreaming, files, messages, project, provider, model]);
+  }, [isStreaming, files, messages, project, provider, model, pipelineConfig]);
 
   const clearChat = useCallback(() => {
     setMessages([]);
@@ -457,6 +504,7 @@ export const StudioProvider: React.FC<{ children: ReactNode; initialProvider: 'g
     openTabs, activeTab, openFile, closeTab, setActiveTab,
     selectedElement, setSelectedElement,
     provider, model, setProvider, setModel,
+    pipelineConfig, setPipelineConfig, orchestrationStages,
   };
 
   return <StudioContext.Provider value={value}>{children}</StudioContext.Provider>;

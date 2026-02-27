@@ -1,4 +1,5 @@
-"""Knowledge Graph API router — browse, search, CRUD, analytics, RAG, merge."""
+"""Knowledge Graph API router — browse, search, CRUD, analytics, RAG, merge, capability builder."""
+import json
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -39,9 +40,10 @@ class SearchRequest(BaseModel):
     query: str
     mode: str = "hybrid"  # fts | embedding | hybrid
     limit: int = 20
-    alpha: float = 0.40
-    beta: float = 0.45
-    gamma: float = 0.15
+    alpha: float | None = None   # None = intent-adaptive
+    beta: float | None = None
+    gamma: float | None = None
+    intent: str | None = None    # Override auto-classification
 
 class MultiSearchRequest(BaseModel):
     query: str
@@ -156,7 +158,8 @@ async def search_kg(db_id: str, req: SearchRequest):
     from services.embedding_service import embedding_service
     try:
         return embedding_service.search(db_id, req.query, req.mode,
-                                        req.limit, req.alpha, req.beta, req.gamma)
+                                        req.limit, req.alpha, req.beta, req.gamma,
+                                        req.intent)
     except (FileNotFoundError, ValueError) as e:
         raise HTTPException(404, str(e))
     except Exception as e:
@@ -198,8 +201,11 @@ async def create_database(req: CreateDBRequest):
 @router.post("/databases/{db_id}/nodes")
 async def create_node(db_id: str, req: CreateNodeRequest):
     from services.kg_service import kg_service
+    from services.embedding_service import embedding_service
     try:
-        return kg_service.create_node(db_id, req.name, req.type, req.properties)
+        result = kg_service.create_node(db_id, req.name, req.type, req.properties)
+        embedding_service.invalidate_cache(db_id)
+        return result
     except (FileNotFoundError, ValueError) as e:
         raise HTTPException(404, str(e))
 
@@ -207,10 +213,12 @@ async def create_node(db_id: str, req: CreateNodeRequest):
 @router.put("/databases/{db_id}/nodes/{node_id}")
 async def update_node(db_id: str, node_id: str, req: UpdateNodeRequest):
     from services.kg_service import kg_service
+    from services.embedding_service import embedding_service
     try:
         result = kg_service.update_node(db_id, node_id, req.name, req.type, req.properties)
         if not result:
             raise HTTPException(404, "Node not found")
+        embedding_service.invalidate_cache(db_id)
         return result
     except (FileNotFoundError, ValueError) as e:
         raise HTTPException(404, str(e))
@@ -219,9 +227,11 @@ async def update_node(db_id: str, node_id: str, req: UpdateNodeRequest):
 @router.delete("/databases/{db_id}/nodes/{node_id}")
 async def delete_node(db_id: str, node_id: str):
     from services.kg_service import kg_service
+    from services.embedding_service import embedding_service
     try:
         if not kg_service.delete_node(db_id, node_id):
             raise HTTPException(404, "Node not found")
+        embedding_service.invalidate_cache(db_id)
         return {"deleted": True}
     except (FileNotFoundError, ValueError) as e:
         raise HTTPException(404, str(e))
@@ -230,8 +240,11 @@ async def delete_node(db_id: str, node_id: str):
 @router.post("/databases/{db_id}/edges")
 async def create_edge(db_id: str, req: CreateEdgeRequest):
     from services.kg_service import kg_service
+    from services.embedding_service import embedding_service
     try:
-        return kg_service.create_edge(db_id, req.source, req.target, req.type, req.properties)
+        result = kg_service.create_edge(db_id, req.source, req.target, req.type, req.properties)
+        embedding_service.invalidate_cache(db_id)
+        return result
     except (FileNotFoundError, ValueError) as e:
         raise HTTPException(404, str(e))
 
@@ -239,10 +252,12 @@ async def create_edge(db_id: str, req: CreateEdgeRequest):
 @router.put("/databases/{db_id}/edges/{edge_id}")
 async def update_edge(db_id: str, edge_id: str, req: UpdateEdgeRequest):
     from services.kg_service import kg_service
+    from services.embedding_service import embedding_service
     try:
         result = kg_service.update_edge(db_id, edge_id, req.type, req.properties)
         if not result:
             raise HTTPException(404, "Edge not found")
+        embedding_service.invalidate_cache(db_id)
         return result
     except (FileNotFoundError, ValueError) as e:
         raise HTTPException(404, str(e))
@@ -251,9 +266,11 @@ async def update_edge(db_id: str, edge_id: str, req: UpdateEdgeRequest):
 @router.delete("/databases/{db_id}/edges/{edge_id}")
 async def delete_edge(db_id: str, edge_id: str):
     from services.kg_service import kg_service
+    from services.embedding_service import embedding_service
     try:
         if not kg_service.delete_edge(db_id, edge_id):
             raise HTTPException(404, "Edge not found")
+        embedding_service.invalidate_cache(db_id)
         return {"deleted": True}
     except (FileNotFoundError, ValueError) as e:
         raise HTTPException(404, str(e))
@@ -262,8 +279,11 @@ async def delete_edge(db_id: str, edge_id: str):
 @router.post("/databases/{db_id}/bulk")
 async def bulk_create(db_id: str, req: BulkCreateRequest):
     from services.kg_service import kg_service
+    from services.embedding_service import embedding_service
     try:
-        return kg_service.bulk_create(db_id, req.nodes, req.edges)
+        result = kg_service.bulk_create(db_id, req.nodes, req.edges)
+        embedding_service.invalidate_cache(db_id)
+        return result
     except (FileNotFoundError, ValueError) as e:
         raise HTTPException(404, str(e))
 
@@ -271,8 +291,11 @@ async def bulk_create(db_id: str, req: BulkCreateRequest):
 @router.post("/databases/{db_id}/ingest")
 async def ingest_text(db_id: str, req: IngestRequest):
     from services.ingestion_service import ingestion_service
+    from services.embedding_service import embedding_service
     try:
-        return await ingestion_service.ingest(db_id, req.text, req.method, req.source)
+        result = await ingestion_service.ingest(db_id, req.text, req.method, req.source)
+        embedding_service.invalidate_cache(db_id)
+        return result
     except (FileNotFoundError, ValueError) as e:
         raise HTTPException(400, str(e))
     except Exception as e:
@@ -424,3 +447,57 @@ async def embedding_quality(db_id: str):
         return embedding_service.get_quality_metrics(db_id)
     except (FileNotFoundError, ValueError) as e:
         raise HTTPException(404, str(e))
+
+
+# ── Phase E: Capability KG Builder ─────────────────────────────────
+class CapabilityBuildRequest(BaseModel):
+    include_notebooks: bool = False  # AI extraction costs ~$0.50 per provider
+
+
+@router.post("/capabilities/build/{provider}")
+async def build_capability_kg(provider: str, req: CapabilityBuildRequest):
+    """Build a cross-provider capability KG from documentation sources."""
+    from services.capability_kg_builder import capability_kg_builder
+    try:
+        result = await capability_kg_builder.build(provider, req.include_notebooks)
+        return result
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+@router.get("/capabilities/status/{provider}")
+async def capability_build_status(provider: str):
+    """Get build progress for a provider."""
+    from services.capability_kg_builder import capability_kg_builder
+    return capability_kg_builder.get_status(provider)
+
+
+@router.post("/capabilities/bridge")
+async def build_cross_provider_bridges():
+    """Create cross-provider capability bridges after all KGs are built."""
+    from services.capability_kg_builder import build_cross_provider_bridges as bridge_fn
+    try:
+        result = await bridge_fn()
+        return result
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+@router.post("/capabilities/unify")
+async def build_unified_kg():
+    """Merge all 3 provider KGs into a single tri-united-capabilities.db with bridge edges."""
+    from services.capability_kg_builder import capability_kg_builder
+    try:
+        result = await capability_kg_builder.build_unified_kg()
+        return result
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+@router.get("/capabilities/unify/status")
+async def unified_build_status():
+    """Get unified KG build progress."""
+    from services.capability_kg_builder import capability_kg_builder
+    return capability_kg_builder.get_status("unified")

@@ -111,3 +111,68 @@ export interface StudioProjectSummary {
   fileCount: number;
   versionCount: number;
 }
+
+// ── Pipeline Orchestration Types ──────────────────────────────────
+
+export type StudioPipelineStrategy =
+  | 'single'
+  | 'advisor_builder'
+  | 'builder_critic'
+  | 'ping_pong'
+  | 'chain';
+
+export interface StudioPipelineStage {
+  role: 'builder' | 'advisor' | 'critic' | 'image';
+  provider: 'gemini' | 'claude' | 'openai';
+  model: string;
+}
+
+export interface StudioVisualConfig {
+  typography: 'system' | 'editorial' | 'playful' | 'minimal' | 'bold';
+  theme: 'auto' | 'light' | 'dark' | 'colorful';
+  motion: 'none' | 'subtle' | 'rich';
+  background: 'flat' | 'gradient' | 'pattern' | 'glass';
+  stateManagement: 'context' | 'zustand' | 'redux';
+  stylingParadigm: 'tailwind' | 'css-modules' | 'styled' | 'inline';
+  antiSlop: boolean;
+  selfReflection: boolean;
+}
+
+export interface StudioPipelineConfig {
+  strategy: StudioPipelineStrategy;
+  stages: StudioPipelineStage[];
+  visualConfig: StudioVisualConfig;
+}
+
+export interface StudioOrchestrationEvent {
+  type: 'orchestration_stage' | 'advisor_suggestion' | 'critic_feedback' | 'orchestration_ping' | 'orchestration_cost' | 'studio_image';
+  stage?: number;
+  role?: string;
+  provider?: string;
+  model?: string;
+  status?: string;
+  content?: string;
+  improvements?: string[];
+  imageUrl?: string;
+  originalPlaceholder?: string;
+  estimated_usd?: number;
+  tokens_used?: number;
+  duration_ms?: number;
+}
+
+export const DEFAULT_VISUAL_CONFIG: StudioVisualConfig = {
+  typography: 'system',
+  theme: 'auto',
+  motion: 'subtle',
+  background: 'flat',
+  stateManagement: 'context',
+  stylingParadigm: 'inline',
+  antiSlop: false,
+  selfReflection: false,
+};
+
+export const DEFAULT_PIPELINE_CONFIG: StudioPipelineConfig = {
+  strategy: 'single',
+  stages: [],
+  visualConfig: { ...DEFAULT_VISUAL_CONFIG },
+};
