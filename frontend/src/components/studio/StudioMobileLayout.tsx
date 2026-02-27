@@ -6,8 +6,9 @@ import StudioPreviewPanel from './StudioPreviewPanel';
 import StudioCodeEditor from './StudioCodeEditor';
 import StudioFilesPanel from './StudioFilesPanel';
 import StudioVisualMode from './StudioVisualMode';
+import StudioPipelineConfig from './StudioPipelineConfig';
 
-type MobileTab = 'chat' | 'preview' | 'code' | 'visual' | 'files';
+type MobileTab = 'chat' | 'preview' | 'code' | 'visual' | 'files' | 'pipeline';
 
 interface TabDef {
   id: MobileTab;
@@ -41,12 +42,17 @@ const TABS: TabDef[] = [
     label: 'Files',
     icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z',
   },
+  {
+    id: 'pipeline',
+    label: 'Pipeline',
+    icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z',
+  },
 ];
 
 const StudioMobileLayout: React.FC = () => {
   const { mode, setMode, isStreaming, files } = useStudio();
   // Map the global mode to a mobile tab, with extra tabs for preview/files
-  const [subTab, setSubTab] = useState<'preview' | 'files' | null>(null);
+  const [subTab, setSubTab] = useState<'preview' | 'files' | 'pipeline' | null>(null);
 
   const fileCount = Object.keys(files).length;
 
@@ -54,7 +60,7 @@ const StudioMobileLayout: React.FC = () => {
   const activeTab: MobileTab = subTab || mode;
 
   const handleTabChange = (tab: MobileTab) => {
-    if (tab === 'preview' || tab === 'files') {
+    if (tab === 'preview' || tab === 'files' || tab === 'pipeline') {
       // These are mobile-only sub-tabs, not global modes
       setSubTab(tab);
     } else {
@@ -73,6 +79,7 @@ const StudioMobileLayout: React.FC = () => {
         {activeTab === 'code' && <StudioCodeEditor />}
         {activeTab === 'visual' && <StudioVisualMode />}
         {activeTab === 'files' && <StudioFilesPanel />}
+        {activeTab === 'pipeline' && <StudioPipelineConfig />}
       </div>
 
       {/* Bottom tab bar */}

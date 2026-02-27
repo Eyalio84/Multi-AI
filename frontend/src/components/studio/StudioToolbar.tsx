@@ -82,7 +82,7 @@ const StudioToolbar: React.FC = () => {
       <div className="flex items-center gap-2">
         {/* Model badge */}
         <span className="text-xs px-2 py-0.5 rounded hidden sm:inline" style={{ background: 'var(--t-surface2)', color: 'var(--t-muted)' }}>
-          {activeProvider === 'claude' ? 'Claude' : 'Gemini'} / {activeModel.split('-').slice(-2).join('-')}
+          {activeProvider === 'claude' ? 'Claude' : activeProvider === 'openai' ? 'OpenAI' : 'Gemini'} / {activeModel.split('-').slice(-2).join('-')}
         </span>
 
         {/* Save button */}

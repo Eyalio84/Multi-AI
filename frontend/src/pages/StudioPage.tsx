@@ -16,8 +16,9 @@ import StudioExportDialog from '../components/studio/StudioExportDialog';
 import StudioVersionHistory from '../components/studio/StudioVersionHistory';
 import StudioProjectSettings from '../components/studio/StudioProjectSettings';
 import StudioApiPanel from '../components/studio/StudioApiPanel';
+import StudioPipelineConfig from '../components/studio/StudioPipelineConfig';
 
-type OverlayPanel = null | 'export' | 'versions' | 'settings' | 'api';
+type OverlayPanel = null | 'export' | 'versions' | 'settings' | 'api' | 'pipeline';
 
 const StudioContent: React.FC = () => {
   const { mode, project, loadProjectList, apiSpec } = useStudio();
@@ -129,6 +130,7 @@ const StudioContent: React.FC = () => {
               {overlay === 'versions' && 'Version History'}
               {overlay === 'settings' && 'Project Settings'}
               {overlay === 'api' && 'API Contracts'}
+              {overlay === 'pipeline' && 'Pipeline Config'}
             </span>
             <button
               onClick={() => setOverlay(null)}
@@ -147,6 +149,7 @@ const StudioContent: React.FC = () => {
             {overlay === 'versions' && <StudioVersionHistory />}
             {overlay === 'settings' && <StudioProjectSettings />}
             {overlay === 'api' && <StudioApiPanel />}
+            {overlay === 'pipeline' && <StudioPipelineConfig />}
           </div>
         </div>
       </div>
@@ -175,6 +178,13 @@ const StudioContent: React.FC = () => {
           style={{ color: 'var(--t-muted)' }}
         >
           Settings
+        </button>
+        <button
+          onClick={() => setOverlay('pipeline')}
+          className="text-xs px-2 py-0.5 rounded transition-colors hover:opacity-80"
+          style={{ color: 'var(--t-accent1)' }}
+        >
+          Pipeline
         </button>
         {apiSpec && (
           <button
