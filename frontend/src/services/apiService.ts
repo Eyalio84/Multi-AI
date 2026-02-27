@@ -192,7 +192,10 @@ export const generateImageSDK = async (
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt, model, aspect_ratio: aspectRatio, num_images: numImages }),
   });
-  if (!res.ok) throw new Error((await res.json()).message || 'Image generation failed');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: 'Image generation failed' }));
+    throw new Error(err.message || 'Image generation failed');
+  }
   return res.json();
 };
 

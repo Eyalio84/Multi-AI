@@ -11,7 +11,7 @@ const AssistantMessage: React.FC<Props> = ({ message, onUseImage }) => {
   const textContent = message.parts.map(p => p.text).filter(Boolean).join('\n');
 
   return (
-    <div className="t-card p-3 rounded-2xl max-w-lg lg:max-w-2xl xl:max-w-4xl break-words rounded-bl-none" style={{ background: 'var(--t-surface2)', color: 'var(--t-text)' }}>
+    <div className="t-card p-3 rounded-2xl max-w-[85vw] lg:max-w-2xl xl:max-w-4xl break-words rounded-bl-none overflow-hidden" style={{ background: 'var(--t-surface2)', color: 'var(--t-text)', overflowWrap: 'anywhere' }}>
       {/* Thinking block */}
       {message.thinkingContent && (
         <details className="mb-2 text-xs">

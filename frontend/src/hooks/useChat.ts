@@ -73,6 +73,42 @@ export const useChat = (
     }
   }, [aiFileOperations]);
 
+  const processAgentStream = useCallback(async (stream: ReadableStream<Uint8Array>) => {
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
+    let currentResponse: Message | null = null;
+    let accText = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
+
+      for (const line of lines) {
+        try {
+          const data = JSON.parse(line.slice(6));
+          if (data.type === 'conversation_start' || data.type === 'injection_meta' || data.type === 'done') continue;
+
+          if (!currentResponse) {
+            currentResponse = { id: generateUniqueId(), author: MessageAuthor.ASSISTANT, parts: [{ text: '' }], provider: 'claude' };
+            setMessages(prev => [...prev, currentResponse!]);
+          }
+
+          if (data.type === 'token' && currentResponse) {
+            accText += data.content;
+            currentResponse.parts = [{ text: accText }];
+            setMessages(prev => prev.map(m => m.id === currentResponse!.id ? { ...currentResponse! } : m));
+          } else if (data.type === 'error' && currentResponse) {
+            accText += `\n\nError: ${data.content}`;
+            currentResponse.parts = [{ text: accText }];
+            setMessages(prev => prev.map(m => m.id === currentResponse!.id ? { ...currentResponse! } : m));
+          }
+        } catch {}
+      }
+    }
+  }, []);
+
   const processSSEStream = useCallback(async (stream: ReadableStream<Uint8Array>, existingMessages: Message[], currentMode: ChatMode) => {
     const reader = stream.getReader();
     const decoder = new TextDecoder();
@@ -219,11 +255,12 @@ export const useChat = (
 
       case 'agent':
         if (!arg) { addMessage(MessageAuthor.SYSTEM, [{ text: 'Usage: /agent <prompt>' }]); return true; }
-        addMessage(MessageAuthor.USER, [{ text: prompt }]);
-        setStatusText('Running agent...');
+        const agentMsg = addMessage(MessageAuthor.USER, [{ text: prompt }]);
+        setStatusText('Running Claude agent...');
         try {
-          const stream = await apiService.streamAgentSDK(arg);
-          await processSSEStream(stream, messages, 'chat');
+          const agentHistory = [...messages, agentMsg];
+          const stream = await apiService.streamChat(agentHistory, 'claude', 'claude-sonnet-4-6', persona, customStyles, false, 0);
+          await processAgentStream(stream);
         } catch (e: any) {
           addMessage(MessageAuthor.SYSTEM, [{ text: `Agent error: ${e.message}` }]);
         }
