@@ -32,7 +32,7 @@ const AppContent: React.FC = () => {
 
   return (
     <VoxProvider>
-      <div className="flex flex-col h-screen font-sans overflow-hidden" style={{ background: 'var(--t-bg)', color: 'var(--t-text)', fontFamily: 'var(--t-font)' }}>
+      <div className="flex flex-col h-screen font-sans overflow-hidden max-w-[100vw]" style={{ background: 'var(--t-bg)', color: 'var(--t-text)', fontFamily: 'var(--t-font)' }}>
         <NavBar />
         <div className="flex-1 overflow-hidden">
           <Routes>

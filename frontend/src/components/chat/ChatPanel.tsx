@@ -54,7 +54,7 @@ const ChatPanel: React.FC<{ defaultMode?: ChatMode }> = ({ defaultMode = 'chat' 
   };
 
   return (
-    <main className="flex-1 flex h-full" style={{ background: 'var(--t-bg)' }}>
+    <main className="flex-1 flex h-full overflow-hidden" style={{ background: 'var(--t-bg)' }}>
       <ConversationSidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
@@ -62,7 +62,7 @@ const ChatPanel: React.FC<{ defaultMode?: ChatMode }> = ({ defaultMode = 'chat' 
       />
 
       <div className="flex-1 flex flex-col h-full relative">
-        <div className="p-2 border-b flex items-center gap-2" style={{ borderColor: 'var(--t-border)' }}>
+        <div className="p-2 border-b flex flex-wrap items-center gap-2 overflow-hidden" style={{ borderColor: 'var(--t-border)' }}>
           <ModelSelector />
           {injectionMeta && (
             <div className="flex items-center gap-1">
@@ -80,7 +80,7 @@ const ChatPanel: React.FC<{ defaultMode?: ChatMode }> = ({ defaultMode = 'chat' 
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4">
           <div className="space-y-2">
             {messages.length === 0 && (
               <div className="max-w-2xl mx-auto mt-8 px-4">
@@ -88,7 +88,7 @@ const ChatPanel: React.FC<{ defaultMode?: ChatMode }> = ({ defaultMode = 'chat' 
                 <div className="text-center mb-8">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-medium mb-4" style={{ background: 'var(--t-surface2)', color: 'var(--t-primary)' }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-                    {activeProvider === 'claude' ? 'Claude' : 'Gemini'} ready
+                    {activeProvider === 'claude' ? 'Claude' : activeProvider === 'openai' ? 'OpenAI' : 'Gemini'} ready
                   </div>
                   <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--t-text)' }}>
                     What can I help you build?

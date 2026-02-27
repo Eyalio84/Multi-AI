@@ -31,7 +31,7 @@ const MessageItem: React.FC<Props> = ({ message, onUseImage }) => {
   return (
     <div className={`flex items-start gap-3 my-3 ${isUser ? 'flex-row-reverse' : ''}`}>
       <AuthorIcon author={message.author} provider={message.provider} />
-      <div className={`flex flex-col w-full ${isUser ? 'items-end' : 'items-start'}`}>
+      <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`} style={{ maxWidth: 'calc(100% - 44px)' }}>
         {message.author === MessageAuthor.USER && <UserMessage message={message} />}
         {message.author === MessageAuthor.ASSISTANT && <AssistantMessage message={message} onUseImage={onUseImage} />}
         {message.author === MessageAuthor.TOOL && <ToolMessage message={message} />}

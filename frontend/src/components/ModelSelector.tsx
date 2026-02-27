@@ -90,30 +90,76 @@ const ModelSelector: React.FC = () => {
   const [reasoningEffort, setReasoningEffort] = useState<'low' | 'medium' | 'high'>('medium');
 
   return (
-    <div className="t-card flex flex-col sm:flex-row items-start sm:items-center gap-2 p-2 rounded-lg" style={{ background: 'var(--t-surface)' }}>
-      {/* Provider filter */}
-      <div className="flex rounded-md overflow-hidden border" style={{ borderColor: 'var(--t-border)' }}>
-        {(['all', 'gemini', 'claude', 'openai'] as ProviderFilter[]).map(f => (
-          <button
-            key={f}
-            onClick={() => setProviderFilter(f)}
-            disabled={f === 'claude' && workspaceMode === 'claude-code'}
-            className={`t-btn px-3 py-1 text-xs font-medium transition-colors ${f === 'claude' && workspaceMode === 'claude-code' ? 'opacity-50 cursor-not-allowed' : ''}`}
-            style={{
-              background: providerFilter === f ? 'var(--t-primary)' : 'var(--t-surface2)',
-              color: providerFilter === f ? 'var(--t-text)' : 'var(--t-muted)',
-            }}
-          >
-            {f === 'all' ? 'All' : f === 'gemini' ? 'Gemini' : f === 'openai' ? 'OpenAI' : 'Claude'}
-          </button>
-        ))}
+    <div className="t-card flex flex-col gap-2 p-2 rounded-lg w-full" style={{ background: 'var(--t-surface)' }}>
+      {/* Row 1: Provider filter + optional controls */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex rounded-md overflow-hidden border flex-shrink-0" style={{ borderColor: 'var(--t-border)' }}>
+          {(['all', 'gemini', 'claude', 'openai'] as ProviderFilter[]).map(f => (
+            <button
+              key={f}
+              onClick={() => setProviderFilter(f)}
+              disabled={f === 'claude' && workspaceMode === 'claude-code'}
+              className={`t-btn px-3 py-1 text-xs font-medium transition-colors ${f === 'claude' && workspaceMode === 'claude-code' ? 'opacity-50 cursor-not-allowed' : ''}`}
+              style={{
+                background: providerFilter === f ? 'var(--t-primary)' : 'var(--t-surface2)',
+                color: providerFilter === f ? 'var(--t-text)' : 'var(--t-muted)',
+              }}
+            >
+              {f === 'all' ? 'All' : f === 'gemini' ? 'Gemini' : f === 'openai' ? 'OpenAI' : 'Claude'}
+            </button>
+          ))}
+        </div>
+
+        {/* Thinking toggle (Claude only) */}
+        {activeProvider === 'claude' && (
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-1 text-xs cursor-pointer" style={{ color: 'var(--t-muted)' }}>
+              <input
+                type="checkbox"
+                checked={thinkingEnabled}
+                onChange={e => setThinkingEnabled(e.target.checked)}
+                className="rounded"
+              />
+              Think
+            </label>
+            {thinkingEnabled && (
+              <input
+                type="range"
+                min={1024}
+                max={32768}
+                step={1024}
+                value={thinkingBudget}
+                onChange={e => setThinkingBudget(Number(e.target.value))}
+                className="w-20"
+                title={`${(thinkingBudget / 1024).toFixed(0)}K tokens`}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Reasoning effort (OpenAI o-series only) */}
+        {isReasoningModel && (
+          <div className="flex items-center gap-2">
+            <label className="text-xs" style={{ color: 'var(--t-muted)' }}>Effort</label>
+            <select
+              value={reasoningEffort}
+              onChange={e => setReasoningEffort(e.target.value as 'low' | 'medium' | 'high')}
+              className="text-xs rounded px-2 py-1 border"
+              style={{ background: 'var(--t-surface2)', color: 'var(--t-text)', borderColor: 'var(--t-border)' }}
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+        )}
       </div>
 
-      {/* Grouped model select */}
+      {/* Row 2: Model select — always full width */}
       <select
         value={activeModel}
         onChange={e => handleModelChange(e.target.value)}
-        className="text-xs rounded px-2 py-1 border min-w-[180px]"
+        className="text-xs rounded px-2 py-1 border w-full"
         style={{ background: 'var(--t-surface2)', color: 'var(--t-text)', borderColor: 'var(--t-border)' }}
       >
         {Array.from(grouped.entries()).map(([cat, items]) => (
@@ -131,50 +177,6 @@ const ModelSelector: React.FC = () => {
           </optgroup>
         ))}
       </select>
-
-      {/* Thinking toggle (Claude only) */}
-      {activeProvider === 'claude' && (
-        <div className="flex items-center gap-2">
-          <label className="flex items-center gap-1 text-xs cursor-pointer" style={{ color: 'var(--t-muted)' }}>
-            <input
-              type="checkbox"
-              checked={thinkingEnabled}
-              onChange={e => setThinkingEnabled(e.target.checked)}
-              className="rounded"
-            />
-            Think
-          </label>
-          {thinkingEnabled && (
-            <input
-              type="range"
-              min={1024}
-              max={32768}
-              step={1024}
-              value={thinkingBudget}
-              onChange={e => setThinkingBudget(Number(e.target.value))}
-              className="w-20"
-              title={`${(thinkingBudget / 1024).toFixed(0)}K tokens`}
-            />
-          )}
-        </div>
-      )}
-
-      {/* Reasoning effort (OpenAI o-series only) */}
-      {isReasoningModel && (
-        <div className="flex items-center gap-2">
-          <label className="text-xs" style={{ color: 'var(--t-muted)' }}>Effort</label>
-          <select
-            value={reasoningEffort}
-            onChange={e => setReasoningEffort(e.target.value as 'low' | 'medium' | 'high')}
-            className="text-xs rounded px-2 py-1 border"
-            style={{ background: 'var(--t-surface2)', color: 'var(--t-text)', borderColor: 'var(--t-border)' }}
-          >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-        </div>
-      )}
     </div>
   );
 };

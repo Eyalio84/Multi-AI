@@ -95,6 +95,7 @@ class AgenticLoop:
             memory_section=memory_section,
             skill_section=skill_section,
             mode=mode,
+            provider=provider,
         )
 
         # Emit metadata about injections (frontend can show indicators)
@@ -193,8 +194,18 @@ class AgenticLoop:
         memory_section: str,
         skill_section: str,
         mode: str,
+        provider: str = "gemini",
     ) -> str | None:
         parts = []
+
+        # Provider identity — prevents models from adopting wrong identity
+        # when conversation history contains another model's self-identification
+        _identity = {
+            "gemini": "You are a helpful AI assistant powered by Google Gemini.",
+            "claude": "You are Claude, an AI assistant by Anthropic.",
+            "openai": "You are a helpful AI assistant powered by OpenAI.",
+        }
+        parts.append(_identity.get(provider, _identity["gemini"]))
 
         # Base system prompt (if provided)
         if base_prompt:

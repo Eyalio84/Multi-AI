@@ -152,11 +152,9 @@ async def stream_with_tools(
     for t in tools:
         openai_tools.append({
             "type": "function",
-            "function": {
-                "name": t["name"],
-                "description": t.get("description", ""),
-                "parameters": t.get("parameters", t.get("input_schema", {})),
-            },
+            "name": t["name"],
+            "description": t.get("description", ""),
+            "parameters": t.get("parameters", t.get("input_schema", {})),
         })
 
     kwargs = {
