@@ -11,6 +11,7 @@ export interface MessagePart {
   text?: string;
   imageUrl?: string;
   videoUrl?: string;
+  audioUrl?: string;
   sourceImageUrl?: string;
 }
 

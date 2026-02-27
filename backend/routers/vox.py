@@ -1,11 +1,12 @@
 """VOX voice router — WebSocket for bidirectional audio + REST helpers.
 
 Enhanced with:
-- ~34 function handlers (up from 17)
+- ~35 function handlers (up from 17)
 - Awareness endpoints
 - Guided tours endpoints
 - Voice macro endpoints
 - Thermal monitoring endpoint
+- Feature interview endpoints (10-question MVP builder)
 - Async task queue for long-running operations
 """
 import asyncio
@@ -14,6 +15,7 @@ import json
 import uuid
 from pathlib import Path
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
 
@@ -23,6 +25,16 @@ router = APIRouter()
 
 # ── Async task queue for long-running operations ──────────────────────
 _async_tasks: dict[str, asyncio.Task] = {}
+
+ASYNC_TASK_TIMEOUT = 300  # 5 minutes
+
+
+async def _run_with_timeout(coro, timeout=ASYNC_TASK_TIMEOUT):
+    """Run a coroutine with a timeout. Returns result or error dict."""
+    try:
+        return await asyncio.wait_for(coro, timeout=timeout)
+    except asyncio.TimeoutError:
+        return {"success": False, "error": f"Task timed out after {timeout}s"}
 
 
 # ── REST endpoints ─────────────────────────────────────────────────────
@@ -193,6 +205,144 @@ async def get_thermal():
     """Get device temperature and battery status."""
     from services.vox_thermal import thermal_monitor
     return await thermal_monitor.check()
+
+
+# ── Feature Interview endpoints ───────────────────────────────────────
+
+INTERVIEW_PATH = Path(__file__).parent.parent / "data" / "vox_interview.json"
+
+
+def _load_interview() -> dict:
+    """Load the interview definition from JSON file."""
+    try:
+        with open(INTERVIEW_PATH) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+@router.get("/api/vox/interview")
+async def get_interview():
+    """Return the 10-question feature interview definition."""
+    interview = _load_interview()
+    if not interview:
+        return {"error": "Interview definition not found"}
+    return interview
+
+
+class InterviewGenerateRequest(BaseModel):
+    answers: dict
+    provider: str = "gemini"
+    model: Optional[str] = None
+    project_id: Optional[str] = None
+
+
+@router.post("/api/vox/interview/generate")
+async def interview_generate(req: InterviewGenerateRequest):
+    """Accept interview answers, build a prompt from the template, and stream a React MVP via Studio."""
+    from config import MODE, ANTHROPIC_API_KEY
+    from services import gemini_service, claude_service
+
+    interview = _load_interview()
+    if not interview:
+        return {"error": "Interview definition not found"}
+
+    template = interview.get("prompt_template", "")
+    questions = interview.get("questions", [])
+
+    # Build answer lookup keyed by question key
+    answer_map: dict[str, str] = {}
+    for q in questions:
+        key = q.get("key", f"q{q['id']}")
+        raw = req.answers.get(str(q["id"]), req.answers.get(key, ""))
+
+        # For single_choice questions, resolve the label from the option id
+        if q["type"] == "single_choice" and raw and q.get("options"):
+            matched = next((o for o in q["options"] if o["id"] == raw), None)
+            if matched:
+                raw = f"{matched['label']} — {matched.get('description', '')}"
+
+        answer_map[key] = str(raw) if raw else "not specified"
+
+    # Fill the prompt template
+    prompt = template
+    for key, value in answer_map.items():
+        prompt = prompt.replace(f"{{{key}}}", value)
+
+    # Import the Studio system prompt for consistent file marker format
+    from routers.studio import GENERATE_SYSTEM_PROMPT, _parse_file_markers
+
+    messages = [{"author": "user", "parts": [{"text": prompt}]}]
+
+    async def stream():
+        accumulated = ""
+        emitted_files: set[str] = set()
+        emitted_deps: dict[str, str] = {}
+        plan_emitted = False
+
+        # Choose provider
+        if req.provider == "claude" and MODE == "standalone" and ANTHROPIC_API_KEY:
+            target_model = req.model or "claude-sonnet-4-6"
+            ai_stream = claude_service.stream_chat(
+                messages=messages,
+                model=target_model,
+                system=GENERATE_SYSTEM_PROMPT,
+                max_tokens=16384,
+                temperature=0.7,
+            )
+        else:
+            target_model = req.model or "gemini-2.5-flash"
+            ai_stream = gemini_service.stream_chat(
+                messages=messages,
+                model=target_model,
+                system_instruction=GENERATE_SYSTEM_PROMPT,
+                temperature=0.7,
+            )
+
+        async for chunk in ai_stream:
+            if chunk.get("type") == "token":
+                token_text = chunk["content"]
+                accumulated += token_text
+
+                yield f"data: {json.dumps({'type': 'token', 'content': token_text})}\n\n"
+
+                plan_text, parsed_files, parsed_deps, _ = _parse_file_markers(accumulated)
+
+                if not plan_emitted and plan_text and parsed_files:
+                    yield f"data: {json.dumps({'type': 'studio_plan', 'content': plan_text})}\n\n"
+                    plan_emitted = True
+
+                for path, content in parsed_files.items():
+                    if path not in emitted_files:
+                        emitted_files.add(path)
+                        yield f"data: {json.dumps({'type': 'studio_file', 'path': path, 'content': content})}\n\n"
+
+                for pkg, ver in parsed_deps.items():
+                    if pkg not in emitted_deps:
+                        emitted_deps[pkg] = ver
+                        yield f"data: {json.dumps({'type': 'studio_dep', 'package': pkg, 'version': ver})}\n\n"
+
+        # Final parse of any remaining file blocks
+        _, final_files, final_deps, _ = _parse_file_markers(accumulated)
+        for path, content in final_files.items():
+            if path not in emitted_files:
+                emitted_files.add(path)
+                yield f"data: {json.dumps({'type': 'studio_file', 'path': path, 'content': content})}\n\n"
+
+        all_files = {p: final_files.get(p, "") for p in emitted_files}
+        all_deps = {**emitted_deps, **final_deps}
+
+        # Save to Studio project if project_id provided
+        if req.project_id:
+            try:
+                from services.studio_service import studio_service
+                studio_service.update_project_files(req.project_id, all_files, all_deps)
+            except Exception:
+                pass
+
+        yield f"data: {json.dumps({'type': 'complete', 'files': all_files, 'deps': all_deps})}\n\n"
+
+    return StreamingResponse(stream(), media_type="text/event-stream")
 
 
 # ── Server-side function execution ─────────────────────────────────────
@@ -453,6 +603,37 @@ async def _execute_server_function(name: str, args: dict) -> dict:
             result = await thermal_monitor.check()
             return {"success": True, **result}
 
+        # ── Feature Interview ─────────────────────────────────────
+        elif name == "start_feature_interview":
+            interview = _load_interview()
+            if not interview:
+                return {"success": False, "error": "Interview definition not found"}
+            domain = args.get("domain", "")
+            questions = interview.get("questions", [])
+            # If domain pre-selected, mark Q1 as answered
+            first_question = questions[0] if questions else {}
+            if domain and first_question.get("options"):
+                matched = next(
+                    (o for o in first_question["options"] if o["id"] == domain),
+                    None,
+                )
+                if matched:
+                    return {
+                        "success": True,
+                        "action": "start_interview",
+                        "total_questions": len(questions),
+                        "pre_selected_domain": matched["label"],
+                        "next_question": questions[1] if len(questions) > 1 else None,
+                        "message": f"Great choice! You selected {matched['label']}. Let me walk you through 9 more questions to shape your MVP.",
+                    }
+            return {
+                "success": True,
+                "action": "start_interview",
+                "total_questions": len(questions),
+                "first_question": first_question,
+                "message": "Let's build something! I'll ask you 10 quick questions to understand what you need, then generate a working React MVP. First up: what kind of app do you want to build?",
+            }
+
         else:
             return {"success": False, "error": f"Unknown server function: {name}"}
 
@@ -583,10 +764,11 @@ async def vox_websocket(ws: WebSocket):
             elif msg_type == "browser_function_result" and session_id:
                 fn_name = msg.get("name", "")
                 fn_result = msg.get("result", {})
+                fn_cid = msg.get("fn_call_id", "")
                 session = vox_service.get_session(session_id)
                 if session and session.mode == "gemini":
                     await vox_service.send_function_result(
-                        session_id, "", fn_name, fn_result
+                        session_id, fn_cid, fn_name, fn_result
                     )
 
             # ── End session ────────────────────────────────────────────
@@ -636,6 +818,7 @@ async def _gemini_receive_loop(ws: WebSocket, session: VoxSession):
                 for fc in response.tool_call.function_calls:
                     fn_name = fc.name
                     fn_args = dict(fc.args) if fc.args else {}
+                    fn_call_id = getattr(fc, 'id', None) or ""
                     session.function_count += 1
 
                     # Log to awareness
@@ -662,8 +845,8 @@ async def _gemini_receive_loop(ws: WebSocket, session: VoxSession):
                             "async": True,
                         })
 
-                        async def _run_async(ws_ref, sess, fname, fargs, tid):
-                            result = await _execute_server_function(fname, fargs)
+                        async def _run_async(ws_ref, sess, fname, fargs, tid, fcid):
+                            result = await _run_with_timeout(_execute_server_function(fname, fargs))
                             try:
                                 await ws_ref.send_json({
                                     "type": "async_task_complete",
@@ -680,10 +863,10 @@ async def _gemini_receive_loop(ws: WebSocket, session: VoxSession):
                                 pass
                             # Send result back to Gemini
                             await vox_service.send_function_result(
-                                sess.session_id, "", fname, result
+                                sess.session_id, fcid, fname, result
                             )
 
-                        asyncio.create_task(_run_async(ws, session, fn_name, fn_args, task_id))
+                        asyncio.create_task(_run_async(ws, session, fn_name, fn_args, task_id, fn_call_id))
                         continue
 
                     # Server-side functions: execute and send result back
@@ -711,7 +894,7 @@ async def _gemini_receive_loop(ws: WebSocket, session: VoxSession):
 
                         # Send result back to Gemini
                         await vox_service.send_function_result(
-                            session.session_id, "", fn_name, result
+                            session.session_id, fn_call_id, fn_name, result
                         )
                     else:
                         # Browser-side: forward to client for execution
@@ -719,6 +902,7 @@ async def _gemini_receive_loop(ws: WebSocket, session: VoxSession):
                             "type": "function_call",
                             "name": fn_name,
                             "args": fn_args,
+                            "fn_call_id": fn_call_id,
                             "server_handled": False,
                         })
 

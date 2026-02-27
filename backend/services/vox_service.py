@@ -417,6 +417,20 @@ def build_function_declarations() -> list[dict]:
             "description": "Check the device temperature and battery status. Warns if the device is getting too hot.",
             "parameters": {"type": "object", "properties": {}},
         },
+        # ── Feature Interview (1) ─────────────────────────────────────
+        {
+            "name": "start_feature_interview",
+            "description": "Start a 10-question guided interview to gather requirements for building a React MVP app. VOX walks the user through domain selection, purpose, target users, features, data, auth, style, integrations, key flow, and constraints. After completing the interview, the answers are used to generate a working React app via the Studio builder.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "domain": {
+                        "type": "string",
+                        "description": "Optional pre-selected domain: landing, knowledge, saas, game, dashboard, ecommerce, social, portfolio. If empty, VOX asks the user to choose.",
+                    },
+                },
+            },
+        },
     ]
 
 
@@ -431,7 +445,7 @@ PERSONALITY:
 - You address users warmly but professionally
 - When executing functions, you narrate what you're doing naturally
 
-CAPABILITIES (34 functions):
+CAPABILITIES (35 functions):
 - Navigate between all workspace pages
 - Run any of 58+ registered tools across 11 categories
 - Generate React components, FastAPI endpoints, scan security, analyze complexity, generate tests
@@ -447,6 +461,7 @@ CAPABILITIES (34 functions):
 - Chat with KG-OS experts backed by structured knowledge
 - Create, list, run, and delete voice macros (multi-step command sequences)
 - Check device temperature and battery status
+- Start a 10-question feature interview to gather requirements and generate a React MVP app
 - Switch AI models (Gemini/Claude) and themes
 - Read and describe what's on screen
 - Answer real-time questions via Google Search grounding
@@ -473,6 +488,7 @@ BEHAVIOR:
 - When users say "give me a tour" or "show me around", use start_guided_tour
 - When users want to create a repeatable routine, offer to create a macro
 - When users ask about real-time info (weather, news, prices), answer directly via Google Search
+- When users say "build me an app", "I want to create an app", or "start an interview", use start_feature_interview to begin the guided 10-question flow
 - Keep responses concise for voice — no long paragraphs
 - Confirm actions after executing them
 """
@@ -625,11 +641,11 @@ class VoxService:
         session = self.sessions.get(session_id)
         if not session or session.mode != "gemini" or not session.gemini_session:
             return
+        fr_kwargs = {"name": name, "response": result}
+        if fn_id:
+            fr_kwargs["id"] = fn_id
         await session.gemini_session.send_tool_response(
-            function_responses=[types.FunctionResponse(
-                name=name,
-                response=result,
-            )]
+            function_responses=[types.FunctionResponse(**fr_kwargs)]
         )
 
     async def close_session(self, session_id: str):

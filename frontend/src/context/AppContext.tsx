@@ -6,6 +6,17 @@ import { generateUniqueId } from '../utils/common';
 import { useTheme } from '../hooks/useTheme';
 import type { ThemeId, ThemeDefinition } from '../themes/index';
 
+export interface ModelCatalogEntry {
+  name: string;
+  category: string;
+  context: string;
+  cost_in: string;
+  cost_out: string;
+  use_case: string;
+}
+
+export type ModelCatalog = Record<string, Record<string, ModelCatalogEntry>>;
+
 export interface WebAppBuilderState {
   isActive: boolean;
   currentStep: number;
@@ -54,6 +65,7 @@ interface AppContextType {
   thinkingEnabled: boolean;
   thinkingBudget: number;
   workspaceMode: 'standalone' | 'claude-code';
+  modelCatalog: ModelCatalog;
   // Agents
   agents: Agent[];
   activeAgentId: string | null;
@@ -135,6 +147,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [thinkingEnabled, setThinkingEnabled] = useState(false);
   const [thinkingBudget, setThinkingBudget] = useState(settings.thinkingBudget);
   const [workspaceMode, _setWorkspaceMode] = useState<'standalone' | 'claude-code'>(settings.mode);
+  const [modelCatalog, setModelCatalog] = useState<ModelCatalog>({});
 
   const setActiveProvider = (p: 'gemini' | 'claude') => {
     _setActiveProvider(p);
@@ -159,6 +172,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setCustomAiStyles([...defaultCustomStyles, ...userStyles]);
       setPersonas(await storageService.getPersonas());
       setAgents(await storageService.getAgents());
+      try {
+        const catalog = await apiService.listModels();
+        setModelCatalog(catalog);
+      } catch {}
     };
     load();
   }, []);
@@ -384,7 +401,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const value: AppContextType = {
     projects, selectedProjectIds, filesByProject, activeProjectView, editingProject, isProjectPanelCollapsed,
     activePersona, selectedPersonaId, customAiStyles, personas, useWebSearch,
-    activeProvider, activeModel, thinkingEnabled, thinkingBudget, workspaceMode,
+    activeProvider, activeModel, thinkingEnabled, thinkingBudget, workspaceMode, modelCatalog,
     agents, activeAgentId, globalError, builderState, themeId, theme, switchTheme,
     setActiveProvider, setActiveModel, setThinkingEnabled, setThinkingBudget, setWorkspaceMode,
     setUseWebSearch, setGlobalError, setSelectedProjectIds,

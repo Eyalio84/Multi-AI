@@ -15,6 +15,7 @@ import SettingsPage from './pages/SettingsPage';
 import ExpertsPage from './pages/ExpertsPage';
 import ToolsPage from './pages/ToolsPage';
 import VoxPage from './pages/VoxPage';
+import GamesPage from './pages/GamesPage';
 import VoxOverlay from './components/VoxOverlay';
 import VoxTourOverlay from './components/VoxTourOverlay';
 import ToastContainer from './components/ToastContainer';
@@ -46,6 +47,7 @@ const AppContent: React.FC = () => {
             <Route path="/experts" element={<ExpertsPage />} />
             <Route path="/tools" element={<ToolsPage />} />
             <Route path="/vox" element={<VoxPage />} />
+            <Route path="/games" element={<GamesPage />} />
             <Route path="/integrations" element={<IntegrationsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>

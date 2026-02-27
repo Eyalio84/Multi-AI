@@ -11,7 +11,40 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 
+from services.vox_service import build_function_declarations
+
 DB_PATH = Path(__file__).parent.parent / "vox_macros.db"
+
+# Build a lookup of function declarations keyed by name
+_FUNCTION_DECLS: dict[str, dict] = {}
+
+
+def _get_function_decls() -> dict[str, dict]:
+    """Lazy-load function declarations into a name-keyed lookup."""
+    if not _FUNCTION_DECLS:
+        for fn in build_function_declarations():
+            _FUNCTION_DECLS[fn["name"]] = fn
+    return _FUNCTION_DECLS
+
+
+def _validate_step_args(function_name: str, args: dict) -> tuple[bool, str | None]:
+    """Validate that required parameters are present for a VOX function.
+
+    Returns:
+        (valid, error) — True/None if valid, False/message if not.
+    """
+    decls = _get_function_decls()
+    decl = decls.get(function_name)
+    if not decl:
+        return False, f"Unknown function: {function_name}"
+
+    params_schema = decl.get("parameters", {})
+    required = params_schema.get("required", [])
+    missing = [r for r in required if r not in args]
+    if missing:
+        return False, f"Missing required args for {function_name}: {', '.join(missing)}"
+
+    return True, None
 
 
 class VoxMacroService:
@@ -241,6 +274,19 @@ class VoxMacroService:
                                 fn_args["tool_id"] = tools[0].get("id", "")
                         elif "result" in prev_result:
                             fn_args["_piped_input"] = prev_result["result"]
+
+            # Validate step arguments against function declaration
+            valid, validation_error = _validate_step_args(fn_name, fn_args)
+            if not valid:
+                results.append({
+                    "step": i,
+                    "function": fn_name,
+                    "success": False,
+                    "error": validation_error,
+                })
+                if error_policy == "abort":
+                    break
+                continue
 
             try:
                 result = await execute_fn(fn_name, fn_args)

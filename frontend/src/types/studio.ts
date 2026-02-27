@@ -43,6 +43,7 @@ export interface StudioMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: string;
+  thinking?: string;
   files?: StudioFileChange[];
   plan?: string;
   apiSpec?: StudioApiSpec | null;

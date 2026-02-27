@@ -36,6 +36,11 @@ const AssistantMessage: React.FC<Props> = ({ message, onUseImage }) => {
               )}
             </div>
           )}
+          {part.audioUrl && (
+            <div className="mt-2">
+              <audio src={part.audioUrl} controls className="w-full max-w-sm" />
+            </div>
+          )}
           {part.videoUrl && (
             <video src={part.videoUrl} controls className="mt-2 rounded-lg max-w-sm" />
           )}

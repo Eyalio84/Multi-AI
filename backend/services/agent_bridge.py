@@ -1,6 +1,10 @@
-"""Bridge to NLKE agent system — imports AgentRunner and Pipeline from agent SDK."""
+"""Bridge to NLKE agent system — imports AgentRunner and Pipeline from agent SDK.
+
+Falls back to an AI-powered executor (Gemini) when the SDK symlink is unavailable.
+"""
 import sys
 import json
+import sqlite3
 from pathlib import Path
 from typing import Optional
 
@@ -44,6 +48,60 @@ AGENT_CATALOG = {
 }
 
 
+CUSTOM_AGENTS_DB = Path(__file__).parent.parent / "data" / "agents.db"
+
+
+def _get_agents_conn() -> sqlite3.Connection:
+    """Return a connection to the custom agents database."""
+    CUSTOM_AGENTS_DB.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(CUSTOM_AGENTS_DB))
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    return conn
+
+
+def _init_agents_db():
+    """Create the custom_agents table if it does not exist."""
+    conn = _get_agents_conn()
+    try:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS custom_agents (
+                id            TEXT PRIMARY KEY,
+                name          TEXT NOT NULL UNIQUE,
+                description   TEXT NOT NULL DEFAULT '',
+                category      TEXT NOT NULL DEFAULT 'CUSTOM',
+                system_prompt TEXT NOT NULL DEFAULT '',
+                tools         TEXT NOT NULL DEFAULT '[]',
+                created_at    TEXT NOT NULL
+            )
+        """)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+_init_agents_db()
+
+
+def _load_custom_agents() -> list[dict]:
+    """Load all custom agents from SQLite."""
+    conn = _get_agents_conn()
+    try:
+        rows = conn.execute("SELECT * FROM custom_agents ORDER BY created_at DESC").fetchall()
+        results = []
+        for row in rows:
+            d = dict(row)
+            if isinstance(d.get("tools"), str):
+                try:
+                    d["tools"] = json.loads(d["tools"])
+                except (json.JSONDecodeError, TypeError):
+                    d["tools"] = []
+            results.append(d)
+        return results
+    finally:
+        conn.close()
+
+
 class AgentBridge:
     """Bridge between the web API and NLKE agent system."""
 
@@ -65,24 +123,101 @@ class AgentBridge:
             self._pipeline_cls = Pipeline
             self._sdk_loaded = True
         except ImportError:
-            # SDK not available — agents will work in metadata-only mode
+            # SDK not available — agents will use AI-powered fallback
             self._sdk_loaded = True
 
+    def _run_with_ai(self, name: str, workload: dict) -> dict:
+        """AI-powered agent executor using Gemini when the SDK is unavailable."""
+        from services import gemini_service
+
+        # Look up agent metadata from catalog or custom agents
+        info = AGENT_CATALOG.get(name)
+        if info is None:
+            custom = self._get_custom_agent(name)
+            if custom is None:
+                return {"error": f"Unknown agent: {name}", "agent": name}
+            system_prompt = custom.get("system_prompt", "")
+            description = custom.get("description", "")
+            category = custom.get("category", "CUSTOM")
+        else:
+            description = info["description"]
+            category = info["category"]
+            system_prompt = ""
+
+        if not system_prompt:
+            system_prompt = (
+                f"You are the '{name}' agent in the {category} category.\n"
+                f"Your role: {description}\n\n"
+                "Analyze the user's workload and provide a thorough, actionable response. "
+                "Structure your output with clear sections. Be specific and practical."
+            )
+
+        workload_text = json.dumps(workload, indent=2) if isinstance(workload, dict) else str(workload)
+
+        try:
+            result_text = gemini_service.generate_content(
+                prompt=workload_text,
+                system_instruction=system_prompt,
+            )
+            return {
+                "agent": name,
+                "status": "completed",
+                "output": result_text,
+                "executor": "ai_fallback",
+            }
+        except Exception as e:
+            return {"agent": name, "status": "error", "error": str(e)}
+
+    def _get_custom_agent(self, name: str) -> dict | None:
+        """Look up a custom agent by name."""
+        conn = _get_agents_conn()
+        try:
+            row = conn.execute("SELECT * FROM custom_agents WHERE name = ?", (name,)).fetchone()
+            if row is None:
+                return None
+            d = dict(row)
+            if isinstance(d.get("tools"), str):
+                try:
+                    d["tools"] = json.loads(d["tools"])
+                except (json.JSONDecodeError, TypeError):
+                    d["tools"] = []
+            return d
+        finally:
+            conn.close()
+
     def list_agents(self) -> list[dict]:
-        """Return all agent names with metadata."""
+        """Return all agents (catalog + custom) with metadata."""
         agents = []
         for name, info in AGENT_CATALOG.items():
             agents.append({
                 "name": name,
                 "category": info["category"],
                 "description": info["description"],
+                "type": "builtin",
             })
+
+        for custom in _load_custom_agents():
+            agents.append({
+                "name": custom["name"],
+                "category": custom.get("category", "CUSTOM"),
+                "description": custom.get("description", ""),
+                "type": "custom",
+                "system_prompt": custom.get("system_prompt", ""),
+                "tools": custom.get("tools", []),
+            })
+
         return agents
 
     def get_example(self, name: str) -> dict:
         """Get example workload for an agent."""
         if name not in AGENT_CATALOG:
-            raise ValueError(f"Unknown agent: {name}")
+            custom = self._get_custom_agent(name)
+            if custom is None:
+                raise ValueError(f"Unknown agent: {name}")
+            return {
+                "goal": f"Example goal for {name}",
+                "context": {"description": custom.get("description", "")},
+            }
 
         self._ensure_sdk()
         if self._runner:
@@ -92,7 +227,6 @@ class AgentBridge:
             except Exception:
                 pass
 
-        # Fallback example
         return {
             "goal": f"Example goal for {name}",
             "context": {"project": "my-project", "language": "python"},
@@ -100,7 +234,8 @@ class AgentBridge:
 
     def run_agent(self, name: str, workload: dict) -> dict:
         """Execute an agent with a workload."""
-        if name not in AGENT_CATALOG:
+        is_known = name in AGENT_CATALOG or self._get_custom_agent(name) is not None
+        if not is_known:
             raise ValueError(f"Unknown agent: {name}")
 
         self._ensure_sdk()
@@ -111,12 +246,8 @@ class AgentBridge:
             except Exception as e:
                 return {"error": str(e), "agent": name}
 
-        return {
-            "agent": name,
-            "status": "sdk_not_available",
-            "message": f"Agent SDK not loaded. Ensure agents symlink exists at {AGENTS_DIR}",
-            "workload_received": workload,
-        }
+        # AI-powered fallback when SDK is unavailable
+        return self._run_with_ai(name, workload)
 
     def run_pipeline(self, steps: list[dict]) -> dict:
         """Execute a multi-agent pipeline."""

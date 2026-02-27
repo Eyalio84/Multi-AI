@@ -31,6 +31,7 @@ interface StudioContextType {
   messages: StudioMessage[];
   streamingText: string;
   streamingPlan: string;
+  streamingThinking: string;
   isStreaming: boolean;
   sendMessage: (prompt: string) => Promise<void>;
   clearChat: () => void;
@@ -93,6 +94,7 @@ export const StudioProvider: React.FC<{ children: ReactNode; initialProvider: 'g
   const [messages, setMessages] = useState<StudioMessage[]>([]);
   const [streamingText, setStreamingText] = useState('');
   const [streamingPlan, setStreamingPlan] = useState('');
+  const [streamingThinking, setStreamingThinking] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
 
   // Versions
@@ -171,6 +173,7 @@ export const StudioProvider: React.FC<{ children: ReactNode; initialProvider: 'g
     setIsStreaming(true);
     setStreamingText('');
     setStreamingPlan('');
+    setStreamingThinking('');
 
     try {
       const isFirstMessage = Object.keys(files).length === 0 && messages.length === 0;
@@ -193,6 +196,7 @@ export const StudioProvider: React.FC<{ children: ReactNode; initialProvider: 'g
       const decoder = new TextDecoder();
       let accText = '';
       let accPlan = '';
+      let accThinking = '';
       const collectedFiles: StudioFileChange[] = [];
       let collectedDeps: Record<string, string> = {};
       let collectedApiSpec: StudioApiSpec | null = null;
@@ -215,7 +219,9 @@ export const StudioProvider: React.FC<{ children: ReactNode; initialProvider: 'g
                 break;
 
               case 'thinking':
-                break; // Silently consume thinking tokens
+                accThinking += data.content || '';
+                setStreamingThinking(accThinking);
+                break;
 
               case 'studio_plan':
                 accPlan = data.content || '';
@@ -235,7 +241,7 @@ export const StudioProvider: React.FC<{ children: ReactNode; initialProvider: 'g
               }
 
               case 'studio_deps':
-                collectedDeps = { ...collectedDeps, ...(data.deps || data.content || {}) };
+                collectedDeps = { ...collectedDeps, ...(data.dependencies || data.deps || data.content || {}) };
                 break;
 
               case 'studio_api_spec':
@@ -263,6 +269,7 @@ export const StudioProvider: React.FC<{ children: ReactNode; initialProvider: 'g
         role: 'assistant',
         content: accText,
         timestamp: new Date().toISOString(),
+        thinking: accThinking || undefined,
         files: collectedFiles.length > 0 ? collectedFiles : undefined,
         plan: accPlan || undefined,
         apiSpec: collectedApiSpec,
@@ -283,6 +290,7 @@ export const StudioProvider: React.FC<{ children: ReactNode; initialProvider: 'g
       setIsStreaming(false);
       setStreamingText('');
       setStreamingPlan('');
+      setStreamingThinking('');
     }
   }, [isStreaming, files, messages, project, provider, model]);
 
@@ -330,10 +338,10 @@ export const StudioProvider: React.FC<{ children: ReactNode; initialProvider: 'g
     if (!project) return;
     setIsLoading(true);
     try {
-      // Update project files and chat
+      // Update project files and chat (backend expects snake_case keys)
       await studioApi.updateProject(project.id, {
         files,
-        chatHistory: messages,
+        chat_history: messages,
       } as any);
       // Save version snapshot
       await studioApi.saveVersion(project.id, message || `Save v${project.currentVersion + 1}`);
@@ -441,7 +449,7 @@ export const StudioProvider: React.FC<{ children: ReactNode; initialProvider: 'g
     mode, setMode,
     project, projectList, isLoading, isDirty,
     files, setFiles, updateFile, addFile, deleteFile: deleteFileHandler, renameFile,
-    messages, streamingText, streamingPlan, isStreaming, sendMessage, clearChat,
+    messages, streamingText, streamingPlan, streamingThinking, isStreaming, sendMessage, clearChat,
     createProject: createProjectHandler, loadProject, saveProject: saveProjectHandler,
     deleteProject: deleteProjectHandler, loadProjectList: loadProjectListHandler, closeProject,
     versions, loadVersions: loadVersionsHandler, restoreVersion: restoreVersionHandler,

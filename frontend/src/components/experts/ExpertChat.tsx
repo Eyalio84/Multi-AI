@@ -108,99 +108,107 @@ const ExpertChat: React.FC<ExpertChatProps> = ({ expert }) => {
   };
 
   return (
-    <div className="flex h-full">
-      {/* Chat area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Conversation picker */}
-        {conversations.length > 0 && (
-          <div className="flex items-center gap-1 p-2 overflow-x-auto" style={{ borderBottom: '1px solid var(--t-border)' }}>
-            <button onClick={() => { setMessages([]); setConversationId(null); setSources([]); }}
-              className="text-[10px] px-2 py-1 rounded whitespace-nowrap"
-              style={{ background: !conversationId ? 'var(--t-primary)' : 'var(--t-surface2)', color: !conversationId ? '#fff' : 'var(--t-muted)' }}>
-              New
+    <div className="flex flex-col h-full">
+      {/* Conversation picker */}
+      {conversations.length > 0 && (
+        <div className="flex items-center gap-1 p-2 overflow-x-auto" style={{ borderBottom: '1px solid var(--t-border)', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' } as React.CSSProperties}>
+          <button onClick={() => { setMessages([]); setConversationId(null); setSources([]); }}
+            className="text-[10px] px-2 py-1 rounded whitespace-nowrap flex-shrink-0"
+            style={{ background: !conversationId ? 'var(--t-primary)' : 'var(--t-surface2)', color: !conversationId ? '#fff' : 'var(--t-muted)' }}>
+            New
+          </button>
+          {conversations.slice(0, 10).map(c => (
+            <button key={c.id} onClick={() => loadConversation(c.id)}
+              className="text-[10px] px-2 py-1 rounded whitespace-nowrap truncate max-w-[120px] flex-shrink-0"
+              style={{ background: conversationId === c.id ? 'var(--t-primary)' : 'var(--t-surface2)', color: conversationId === c.id ? '#fff' : 'var(--t-muted)' }}>
+              {c.title || `Conv ${c.id.slice(0, 6)}`}
             </button>
-            {conversations.slice(0, 10).map(c => (
-              <button key={c.id} onClick={() => loadConversation(c.id)}
-                className="text-[10px] px-2 py-1 rounded whitespace-nowrap truncate max-w-[120px]"
-                style={{ background: conversationId === c.id ? 'var(--t-primary)' : 'var(--t-surface2)', color: conversationId === c.id ? '#fff' : 'var(--t-muted)' }}>
-                {c.title || `Conv ${c.id.slice(0, 6)}`}
-              </button>
-            ))}
+          ))}
+        </div>
+      )}
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {messages.length === 0 && (
+          <div className="text-center py-12" style={{ color: 'var(--t-muted)' }}>
+            <div className="text-2xl mb-2">
+              <span style={{ color: expert.color }}>
+                {expert.persona_name || expert.name}
+              </span>
+            </div>
+            <div className="text-xs">Ask anything backed by the <strong>{expert.kg_db_id}</strong> knowledge graph</div>
           </div>
         )}
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {messages.length === 0 && (
-            <div className="text-center py-12" style={{ color: 'var(--t-muted)' }}>
-              <div className="text-2xl mb-2">
-                <span style={{ color: expert.color }}>
-                  {expert.persona_name || expert.name}
-                </span>
-              </div>
-              <div className="text-xs">Ask anything backed by the <strong>{expert.kg_db_id}</strong> knowledge graph</div>
+        {messages.map(msg => (
+          <div key={msg.id} className={`flex ${msg.author === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap"
+              style={{
+                background: msg.author === 'user' ? 'var(--t-primary)' : 'var(--t-surface2)',
+                color: msg.author === 'user' ? '#fff' : 'var(--t-text)',
+              }}>
+              {msg.content || (streaming && msg.author === 'assistant' ? '...' : '')}
             </div>
-          )}
-          {messages.map(msg => (
-            <div key={msg.id} className={`flex ${msg.author === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className="max-w-[80%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap"
-                style={{
-                  background: msg.author === 'user' ? 'var(--t-primary)' : 'var(--t-surface2)',
-                  color: msg.author === 'user' ? '#fff' : 'var(--t-text)',
-                }}>
-                {msg.content || (streaming && msg.author === 'assistant' ? '...' : '')}
-              </div>
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input */}
-        <div className="p-3" style={{ borderTop: '1px solid var(--t-border)' }}>
-          <div className="flex gap-2">
-            <input
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-              placeholder={`Ask ${expert.persona_name || expert.name}...`}
-              className="flex-1 text-sm px-3 py-2 rounded border outline-none"
-              style={{ background: 'var(--t-bg)', borderColor: 'var(--t-border)', color: 'var(--t-text)' }}
-              disabled={streaming}
-            />
-            <button onClick={handleSend} disabled={streaming || !input.trim()}
-              className="px-4 py-2 rounded text-sm font-medium"
-              style={{ background: streaming ? 'var(--t-surface2)' : 'var(--t-primary)', color: '#fff' }}>
-              {streaming ? '...' : 'Send'}
-            </button>
-            <button onClick={() => setShowSources(!showSources)}
-              className="px-2 py-2 rounded text-xs border"
-              style={{ borderColor: showSources ? expert.color : 'var(--t-border)', color: showSources ? expert.color : 'var(--t-muted)' }}>
-              Sources{sources.length > 0 ? ` (${sources.length})` : ''}
-            </button>
           </div>
-        </div>
+        ))}
+        <div ref={messagesEndRef} />
       </div>
 
-      {/* Sources panel */}
+      {/* Sources panel — bottom collapsible */}
       {showSources && (
-        <div className="w-64 overflow-y-auto p-3 space-y-2" style={{ borderLeft: '1px solid var(--t-border)', background: 'var(--t-surface)' }}>
-          <div className="text-xs font-semibold" style={{ color: 'var(--t-text)' }}>Retrieved Sources</div>
+        <div className="overflow-y-auto p-3 space-y-2" style={{ borderTop: '1px solid var(--t-border)', background: 'var(--t-surface)', maxHeight: '40%' }}>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold" style={{ color: 'var(--t-text)' }}>Retrieved Sources</span>
+            <button
+              onClick={() => setShowSources(false)}
+              className="text-xs px-1.5 rounded"
+              style={{ color: 'var(--t-muted)' }}
+            >
+              Close
+            </button>
+          </div>
           {sources.length === 0 ? (
             <div className="text-xs" style={{ color: 'var(--t-muted)' }}>No sources yet. Send a message.</div>
           ) : (
-            sources.map((s, i) => (
-              <div key={i} className="p-2 rounded text-xs space-y-1" style={{ background: 'var(--t-surface2)' }}>
-                <div className="font-medium truncate" style={{ color: 'var(--t-text)' }}>{s.name}</div>
-                <div className="flex gap-1">
-                  <span className="px-1 rounded" style={{ background: 'var(--t-bg)', color: 'var(--t-muted)' }}>{s.type}</span>
-                  <span style={{ color: expert.color }}>{(s.score * 100).toFixed(0)}%</span>
+            <div className="flex flex-wrap gap-2">
+              {sources.map((s, i) => (
+                <div key={i} className="p-2 rounded text-xs space-y-1 flex-shrink-0" style={{ background: 'var(--t-surface2)', minWidth: 140, maxWidth: 200 }}>
+                  <div className="font-medium truncate" style={{ color: 'var(--t-text)' }}>{s.name}</div>
+                  <div className="flex gap-1">
+                    <span className="px-1 rounded" style={{ background: 'var(--t-bg)', color: 'var(--t-muted)' }}>{s.type}</span>
+                    <span style={{ color: expert.color }}>{(s.score * 100).toFixed(0)}%</span>
+                  </div>
+                  <div style={{ color: 'var(--t-muted)' }}>{s.method}</div>
                 </div>
-                <div style={{ color: 'var(--t-muted)' }}>{s.method}</div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
       )}
+
+      {/* Input */}
+      <div className="p-3" style={{ borderTop: '1px solid var(--t-border)' }}>
+        <div className="flex gap-2">
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+            placeholder={`Ask ${expert.persona_name || expert.name}...`}
+            className="flex-1 text-sm px-3 py-2 rounded border outline-none min-w-0"
+            style={{ background: 'var(--t-bg)', borderColor: 'var(--t-border)', color: 'var(--t-text)' }}
+            disabled={streaming}
+          />
+          <button onClick={handleSend} disabled={streaming || !input.trim()}
+            className="px-3 py-2 rounded text-sm font-medium flex-shrink-0"
+            style={{ background: streaming ? 'var(--t-surface2)' : 'var(--t-primary)', color: '#fff' }}>
+            {streaming ? '...' : 'Send'}
+          </button>
+          <button onClick={() => setShowSources(!showSources)}
+            className="px-2 py-2 rounded text-xs border flex-shrink-0"
+            style={{ borderColor: showSources ? expert.color : 'var(--t-border)', color: showSources ? expert.color : 'var(--t-muted)' }}>
+            Src{sources.length > 0 ? ` ${sources.length}` : ''}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

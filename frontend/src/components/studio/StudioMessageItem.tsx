@@ -9,6 +9,7 @@ interface Props {
 
 const StudioMessageItem: React.FC<Props> = ({ message, isStreaming }) => {
   const [showPlan, setShowPlan] = useState(false);
+  const [showThinking, setShowThinking] = useState(false);
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
 
@@ -59,6 +60,29 @@ const StudioMessageItem: React.FC<Props> = ({ message, isStreaming }) => {
           border: isUser || isSystem ? 'none' : '1px solid var(--t-border)',
         }}
       >
+        {/* Thinking collapsible */}
+        {message.thinking && (
+          <div className="mb-2">
+            <button
+              onClick={() => setShowThinking(!showThinking)}
+              className="flex items-center gap-1 text-xs font-medium opacity-70 hover:opacity-100 transition-opacity"
+            >
+              <svg className={`w-3 h-3 transition-transform ${showThinking ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ color: 'var(--t-warning)' }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707" />
+              </svg>
+              Thought process
+            </button>
+            {showThinking && (
+              <div className="mt-1 text-xs p-2 rounded whitespace-pre-wrap" style={{ background: 'var(--t-bg)', color: 'var(--t-muted)', maxHeight: '200px', overflow: 'auto' }}>
+                {message.thinking}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Plan collapsible */}
         {message.plan && (
           <div className="mb-2">

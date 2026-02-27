@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from config import MODE, ANTHROPIC_API_KEY
 from services import gemini_service, claude_service
 from services import studio_service
+from backend_types.backend_spec import BackendSpec
 
 router = APIRouter()
 
@@ -394,38 +395,340 @@ async def get_version(project_id: str, version_number: int):
 async def restore_version(project_id: str, version_number: int):
     """Restore a project to a specific version."""
     try:
-        studio_service.restore_version(project_id, version_number)
-        return {"status": "restored", "version": version_number}
+        project = studio_service.restore_version(project_id, version_number)
+        # Ensure JSON columns are parsed for the frontend
+        for key in ("files", "settings", "chat_history"):
+            val = project.get(key)
+            if isinstance(val, str):
+                try:
+                    project[key] = json.loads(val)
+                except (json.JSONDecodeError, TypeError):
+                    project[key] = {} if key != "chat_history" else []
+        return project
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": str(e)})
 
 
 # ---------------------------------------------------------------------------
-# Mock server stubs
+# Mock server management (wired to mock_server_manager)
 # ---------------------------------------------------------------------------
 
 @router.post("/studio/projects/{project_id}/mock/start")
 async def start_mock(project_id: str):
-    """Start mock server (stub)."""
-    return {"running": False, "message": "Mock server not yet implemented"}
+    """Start a Node.js mock server for the project's API spec."""
+    from services.mock_server_manager import start_mock_server
+    try:
+        from services.openapi_extractor import extract_openapi_from_code
+        project = studio_service.get_project(project_id)
+        files = json.loads(project.get("files", "{}")) if isinstance(project.get("files"), str) else project.get("files", {})
+        # Combine all Python/TS files for extraction
+        code_files = {p: f for p, f in files.items() if p.endswith(('.py', '.ts', '.js'))}
+        combined = "\n\n".join(f"# {p}\n{c}" for p, c in code_files.items())
+        spec = extract_openapi_from_code(combined) if combined.strip() else {"paths": {}}
+        return start_mock_server(project_id, spec)
+    except ImportError:
+        return {"running": False, "error": "OpenAPI extractor not available"}
+    except Exception as e:
+        return {"running": False, "error": str(e)}
 
 
 @router.post("/studio/projects/{project_id}/mock/stop")
 async def stop_mock(project_id: str):
-    """Stop mock server (stub)."""
-    return {"running": False}
+    """Stop the mock server for a project."""
+    from services.mock_server_manager import stop_mock_server
+    return stop_mock_server(project_id)
 
 
 @router.get("/studio/projects/{project_id}/mock/status")
 async def mock_status(project_id: str):
-    """Get mock server status (stub)."""
-    return {"running": False, "port": None, "pid": None}
+    """Get mock server status."""
+    from services.mock_server_manager import get_mock_status
+    return get_mock_status(project_id)
 
 
 @router.post("/studio/projects/{project_id}/mock/update")
 async def update_mock(project_id: str):
-    """Update mock server routes (stub)."""
-    return {"running": False, "message": "Mock server not yet implemented"}
+    """Restart mock server with updated routes."""
+    from services.mock_server_manager import update_mock_server
+    try:
+        from services.openapi_extractor import extract_openapi_from_code
+        project = studio_service.get_project(project_id)
+        files = json.loads(project.get("files", "{}")) if isinstance(project.get("files"), str) else project.get("files", {})
+        code_files = {p: f for p, f in files.items() if p.endswith(('.py', '.ts', '.js'))}
+        combined = "\n\n".join(f"# {p}\n{c}" for p, c in code_files.items())
+        spec = extract_openapi_from_code(combined) if combined.strip() else {"paths": {}}
+        return update_mock_server(project_id, spec)
+    except ImportError:
+        return {"running": False, "error": "OpenAPI extractor not available"}
+    except Exception as e:
+        return {"running": False, "error": str(e)}
+
+
+# ---------------------------------------------------------------------------
+# Backend spec extraction & builder
+# ---------------------------------------------------------------------------
+
+EXTRACT_SPEC_SYSTEM_PROMPT = """\
+You are a backend architecture analyzer. Analyze the provided project files and \
+chat history, then extract a structured backend specification as JSON.
+
+Return ONLY valid JSON with this exact structure (no markdown fences, no extra text):
+{
+  "version": "1.0",
+  "framework": "fastapi",
+  "language": "python",
+  "database": {
+    "type": "sqlite",
+    "tables": [
+      {
+        "name": "table_name",
+        "columns": [
+          {"name": "id", "type": "TEXT", "primary_key": true, "unique": true, "nullable": false, "default": null},
+          {"name": "title", "type": "TEXT", "primary_key": false, "unique": false, "nullable": false, "default": null}
+        ],
+        "indexes": ["idx_table_title"]
+      }
+    ]
+  },
+  "endpoints": [
+    {"method": "GET", "path": "/api/items", "summary": "List all items", "request_body": null, "response": {"type": "array", "items": "Item"}, "auth_required": false},
+    {"method": "POST", "path": "/api/items", "summary": "Create item", "request_body": {"title": "string", "done": "boolean"}, "response": {"type": "object", "model": "Item"}, "auth_required": false}
+  ],
+  "models": {
+    "Item": {"name": "Item", "fields": {"id": "str", "title": "str", "done": "bool"}}
+  },
+  "dependencies": ["fastapi", "uvicorn", "sqlite3"],
+  "environment_variables": ["DATABASE_URL"]
+}
+
+Infer the database schema, endpoints, and models from the code. If no backend files \
+exist, infer what backend would be needed from the frontend code and chat context. \
+Omit the database field if no persistence is needed. Always return valid JSON.
+"""
+
+BUILD_BACKEND_SYSTEM_PROMPT = """\
+You are a backend code generator. Given a backend specification, generate complete \
+Python backend files using FastAPI.
+
+Generate each file wrapped in markers:
+
+### FILE: /main.py
+from fastapi import FastAPI
+# ... complete file content
+### END FILE
+
+### FILE: /models.py
+# ... content
+### END FILE
+
+Rules:
+- Use FastAPI with proper type hints and Pydantic models
+- Use SQLite via sqlite3 for persistence (unless spec says otherwise)
+- Include proper error handling with HTTPException
+- Generate complete, runnable code - no TODOs or placeholders
+- Include requirements.txt with all dependencies
+- IMPORTANT: Do NOT wrap file contents in markdown code fences
+- If the spec includes database tables, generate migration/init code
+- Follow the endpoint definitions exactly as specified
+"""
+
+
+@router.post("/studio/projects/{project_id}/extract-backend-spec")
+async def extract_backend_spec(project_id: str, request: Request):
+    """Use AI to analyze project files and extract structured backend specification."""
+    body = await request.json()
+    provider = body.get("provider", "gemini")
+    model = body.get("model")
+
+    project = studio_service.get_project(project_id)
+    if not project:
+        return JSONResponse(status_code=404, content={"message": "Project not found"})
+
+    files = project.get("files") or {}
+    if isinstance(files, str):
+        files = json.loads(files)
+
+    chat_history = project.get("chat_history") or []
+    if isinstance(chat_history, str):
+        chat_history = json.loads(chat_history)
+
+    # Build the analysis prompt with file contents and chat context
+    parts = ["Project files:\n"]
+    for path, content in files.items():
+        file_content = content["content"] if isinstance(content, dict) else content
+        parts.append(f"### FILE: {path}\n{file_content}\n### END FILE\n")
+
+    if chat_history:
+        parts.append("\nRecent chat context:\n")
+        for msg in chat_history[-10:]:
+            author = msg.get("author", msg.get("role", "user"))
+            text = msg.get("text", "")
+            if not text and "parts" in msg:
+                text = " ".join(p.get("text", "") for p in msg["parts"])
+            if text:
+                parts.append(f"[{author}]: {text}\n")
+
+    parts.append("\nExtract the backend specification as JSON.")
+    user_prompt = "\n".join(parts)
+
+    try:
+        raw_response = gemini_service.generate_content(
+            prompt=user_prompt,
+            model=model or "gemini-2.5-flash",
+            system_instruction=EXTRACT_SPEC_SYSTEM_PROMPT,
+            response_mime_type="application/json",
+        )
+
+        # Parse and validate through the Pydantic model
+        spec_data = json.loads(raw_response)
+        spec = BackendSpec(**spec_data)
+        return spec.model_dump()
+    except json.JSONDecodeError:
+        # If AI returned non-JSON, try to extract JSON from the response
+        json_match = re.search(r'\{[\s\S]*\}', raw_response)
+        if json_match:
+            spec_data = json.loads(json_match.group())
+            spec = BackendSpec(**spec_data)
+            return spec.model_dump()
+        return JSONResponse(
+            status_code=422,
+            content={"message": "AI did not return valid JSON", "raw": raw_response[:500]},
+        )
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": str(e)})
+
+
+@router.post("/studio/projects/{project_id}/build-backend")
+async def build_backend(project_id: str, request: Request):
+    """Generate backend implementation from specification. Returns SSE stream of files."""
+    body = await request.json()
+    spec_data = body.get("spec")
+    prompt = body.get("prompt", "")
+    provider = body.get("provider", "gemini")
+    model = body.get("model")
+
+    project = studio_service.get_project(project_id)
+    if not project:
+        return JSONResponse(status_code=404, content={"message": "Project not found"})
+
+    # If no spec provided, extract one first
+    if not spec_data:
+        files = project.get("files") or {}
+        if isinstance(files, str):
+            files = json.loads(files)
+
+        file_parts = ["Project files:\n"]
+        for path, content in files.items():
+            file_content = content["content"] if isinstance(content, dict) else content
+            file_parts.append(f"### FILE: {path}\n{file_content}\n### END FILE\n")
+        file_parts.append("\nExtract the backend specification as JSON.")
+
+        raw_spec = gemini_service.generate_content(
+            prompt="\n".join(file_parts),
+            model=model or "gemini-2.5-flash",
+            system_instruction=EXTRACT_SPEC_SYSTEM_PROMPT,
+            response_mime_type="application/json",
+        )
+        try:
+            spec_data = json.loads(raw_spec)
+        except json.JSONDecodeError:
+            json_match = re.search(r'\{[\s\S]*\}', raw_spec)
+            if json_match:
+                spec_data = json.loads(json_match.group())
+            else:
+                spec_data = {}
+
+    # Build the generation prompt from the spec
+    user_parts = [f"Backend specification:\n```json\n{json.dumps(spec_data, indent=2)}\n```\n"]
+    if prompt:
+        user_parts.append(f"Additional instructions: {prompt}\n")
+    user_parts.append("Generate the complete backend implementation files.")
+    user_prompt = "\n".join(user_parts)
+
+    messages = [{"author": "user", "parts": [{"text": user_prompt}]}]
+
+    async def generate():
+        accumulated = ""
+        emitted_files = set()
+        emitted_deps = {}
+        plan_emitted = False
+
+        try:
+            if provider == "claude" and MODE == "standalone" and ANTHROPIC_API_KEY:
+                target_model = model or "claude-sonnet-4-6"
+                stream = claude_service.stream_chat(
+                    messages=messages,
+                    model=target_model,
+                    system=BUILD_BACKEND_SYSTEM_PROMPT,
+                    max_tokens=16384,
+                    temperature=0.7,
+                )
+            else:
+                target_model = model or "gemini-2.5-flash"
+                stream = gemini_service.stream_chat(
+                    messages=messages,
+                    model=target_model,
+                    system_instruction=BUILD_BACKEND_SYSTEM_PROMPT,
+                    temperature=0.7,
+                )
+
+            async for chunk in stream:
+                if chunk.get("type") == "token":
+                    token_text = chunk["content"]
+                    accumulated += token_text
+
+                    yield f"data: {json.dumps({'type': 'token', 'content': token_text})}\n\n"
+
+                    plan_text, parsed_files, parsed_deps, _ = _parse_file_markers(accumulated)
+
+                    if not plan_emitted and plan_text and parsed_files:
+                        yield f"data: {json.dumps({'type': 'studio_plan', 'content': plan_text})}\n\n"
+                        plan_emitted = True
+
+                    for path, content in parsed_files.items():
+                        if path not in emitted_files:
+                            emitted_files.add(path)
+                            yield f"data: {json.dumps({'type': 'studio_file', 'path': path, 'content': content})}\n\n"
+
+                    for pkg, ver in parsed_deps.items():
+                        if pkg not in emitted_deps:
+                            emitted_deps[pkg] = ver
+                            yield f"data: {json.dumps({'type': 'studio_deps', 'dependencies': {pkg: ver}})}\n\n"
+
+                elif chunk.get("type") == "done":
+                    plan_text, parsed_files, parsed_deps, _ = _parse_file_markers(accumulated)
+
+                    if not plan_emitted and plan_text:
+                        yield f"data: {json.dumps({'type': 'studio_plan', 'content': plan_text})}\n\n"
+
+                    for path, content in parsed_files.items():
+                        if path not in emitted_files:
+                            emitted_files.add(path)
+                            yield f"data: {json.dumps({'type': 'studio_file', 'path': path, 'content': content})}\n\n"
+
+                    for pkg, ver in parsed_deps.items():
+                        if pkg not in emitted_deps:
+                            emitted_deps[pkg] = ver
+                            yield f"data: {json.dumps({'type': 'studio_deps', 'dependencies': {pkg: ver}})}\n\n"
+
+                    # Auto-save generated backend files to the project
+                    if parsed_files:
+                        try:
+                            existing_files = project.get("files") or {}
+                            if isinstance(existing_files, str):
+                                existing_files = json.loads(existing_files)
+                            existing_files.update(parsed_files)
+                            studio_service.update_project(project_id, {"files": existing_files})
+                        except Exception:
+                            pass
+
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 
 # ---------------------------------------------------------------------------

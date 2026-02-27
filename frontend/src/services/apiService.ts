@@ -183,6 +183,62 @@ export const listModels = async () => {
   return res.json();
 };
 
+// --- SDK Media Generation ---
+export const generateImageSDK = async (
+  prompt: string, model = 'gemini-3-pro-image-preview', aspectRatio = '1:1', numImages = 1
+) => {
+  const res = await fetch(`${BASE}/media/image/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, model, aspect_ratio: aspectRatio, num_images: numImages }),
+  });
+  if (!res.ok) throw new Error((await res.json()).message || 'Image generation failed');
+  return res.json();
+};
+
+export const generateTTSSDK = async (
+  text: string, model = 'gemini-2.5-flash-preview-tts', voice = 'Kore', speed = 1.0
+) => {
+  const res = await fetch(`${BASE}/media/tts/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, model, voice, speed }),
+  });
+  if (!res.ok) throw new Error((await res.json()).message || 'TTS generation failed');
+  return res.json();
+};
+
+export const generateVideoSDK = async (
+  prompt: string, model = 'veo-3.1-generate-preview', aspectRatio = '16:9', durationSeconds = 8
+) => {
+  const res = await fetch(`${BASE}/media/video/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, model, aspect_ratio: aspectRatio, duration_seconds: durationSeconds }),
+  });
+  if (!res.ok) throw new Error((await res.json()).message || 'Video generation failed');
+  return res.json();
+};
+
+export const streamAgentSDK = async (
+  prompt: string, allowedTools?: string[], model?: string, cwd?: string, maxTurns?: number, sessionId?: string
+): Promise<ReadableStream<Uint8Array>> => {
+  const res = await fetch(`${BASE}/agent/run`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt,
+      allowed_tools: allowedTools,
+      model,
+      cwd,
+      max_turns: maxTurns,
+      session_id: sessionId,
+    }),
+  });
+  if (!res.ok || !res.body) throw new Error((await res.json().catch(() => ({ message: 'Agent stream failed' }))).message);
+  return res.body;
+};
+
 // --- Mode & Interchange ---
 export const getMode = async () => {
   const res = await fetch(`${BASE}/mode`);
@@ -707,5 +763,149 @@ export const setApiKeys = async (geminiKey?: string, anthropicKey?: string) => {
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error((await res.json()).error || 'Failed to set keys');
+  return res.json();
+};
+
+// ── Games (Phaser 3 RPG) ──────────────────────────────────────────────
+
+export const listGames = async () => {
+  const res = await fetch(`${BASE}/games`);
+  return res.json();
+};
+
+export const createGame = async (name: string, description: string = '') => {
+  const res = await fetch(`${BASE}/games`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, description }),
+  });
+  if (!res.ok) throw new Error((await res.json()).detail || 'Failed to create game');
+  return res.json();
+};
+
+export const getGame = async (id: string) => {
+  const res = await fetch(`${BASE}/games/${id}`);
+  if (!res.ok) throw new Error('Game not found');
+  return res.json();
+};
+
+export const updateGame = async (id: string, data: any) => {
+  const res = await fetch(`${BASE}/games/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+};
+
+export const deleteGame = async (id: string) => {
+  const res = await fetch(`${BASE}/games/${id}`, { method: 'DELETE' });
+  return res.json();
+};
+
+export const getInterviewQuestions = async () => {
+  const res = await fetch(`${BASE}/games/interview/questions`);
+  return res.json();
+};
+
+export const submitInterviewAnswer = async (gameId: string, questionId: string, answer: any) => {
+  const res = await fetch(`${BASE}/games/${gameId}/interview`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question_id: questionId, answer }),
+  });
+  return res.json();
+};
+
+export const synthesizeGDD = async (gameId: string) => {
+  const res = await fetch(`${BASE}/games/${gameId}/synthesize`, { method: 'POST' });
+  return res.json();
+};
+
+export const streamGenerateGame = async (gameId: string): Promise<ReadableStream<Uint8Array>> => {
+  const res = await fetch(`${BASE}/games/${gameId}/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  if (!res.ok || !res.body) {
+    const err = await res.json().catch(() => ({ detail: 'Game generation failed' }));
+    throw new Error(err.detail || 'Game generation failed');
+  }
+  return res.body;
+};
+
+export const streamRefineGame = async (gameId: string, prompt: string, files: Record<string, string> = {}): Promise<ReadableStream<Uint8Array>> => {
+  const res = await fetch(`${BASE}/games/${gameId}/refine`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, files }),
+  });
+  if (!res.ok || !res.body) throw new Error('Game refinement failed');
+  return res.body;
+};
+
+export const saveGameVersion = async (gameId: string) => {
+  const res = await fetch(`${BASE}/games/${gameId}/save`, { method: 'POST' });
+  return res.json();
+};
+
+export const listGameVersions = async (gameId: string) => {
+  const res = await fetch(`${BASE}/games/${gameId}/versions`);
+  return res.json();
+};
+
+export const restoreGameVersion = async (gameId: string, versionNumber: number) => {
+  const res = await fetch(`${BASE}/games/${gameId}/versions/${versionNumber}/restore`, { method: 'POST' });
+  return res.json();
+};
+
+export const exportGame = async (gameId: string) => {
+  const res = await fetch(`${BASE}/games/${gameId}/export`);
+  return res.blob();
+};
+
+export const streamGameChat = async (
+  gameId: string, query: string, conversationId?: string, history: any[] = []
+): Promise<ReadableStream<Uint8Array>> => {
+  const res = await fetch(`${BASE}/games/${gameId}/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, conversation_id: conversationId, history }),
+  });
+  if (!res.ok || !res.body) throw new Error('Game chat failed');
+  return res.body;
+};
+
+export const extractGamePatterns = async (gameId: string) => {
+  const res = await fetch(`${BASE}/games/${gameId}/extract-patterns`, { method: 'POST' });
+  return res.json();
+};
+
+export const gameLLMStatus = async () => {
+  const res = await fetch(`${BASE}/games/llm/status`);
+  return res.json();
+};
+
+export const gameLLMLoad = async (modelType: string) => {
+  const res = await fetch(`${BASE}/games/llm/load`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model_type: modelType }),
+  });
+  return res.json();
+};
+
+export const gameLLMUnload = async () => {
+  const res = await fetch(`${BASE}/games/llm/unload`, { method: 'POST' });
+  return res.json();
+};
+
+export const gameLLMChat = async (npcName: string, systemPrompt: string, message: string, history: any[] = []) => {
+  const res = await fetch(`${BASE}/games/llm/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ npc_name: npcName, system_prompt: systemPrompt, message, history }),
+  });
   return res.json();
 };

@@ -5,6 +5,7 @@ from fastapi.responses import StreamingResponse, JSONResponse
 
 from services import gemini_service
 from services.model_router import route as route_model
+from services import workflow_service
 
 router = APIRouter()
 
@@ -171,3 +172,91 @@ async def execute_workflow(request: Request):
         yield f"data: {json.dumps({'type': 'workflow_complete', 'step_count': len(steps)})}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+# ---------------------------------------------------------------------------
+# Saved workflow CRUD
+# ---------------------------------------------------------------------------
+
+@router.post("/workflows")
+async def create_workflow(request: Request):
+    """Save a new workflow definition."""
+    body = await request.json()
+    name = body.get("name", "Untitled Workflow")
+    description = body.get("description", "")
+    goal = body.get("goal", "")
+    steps = body.get("steps", [])
+    workflow = workflow_service.create_workflow(name, description, goal, steps)
+    return {"workflow": workflow}
+
+
+@router.get("/workflows")
+async def list_workflows():
+    """List all saved workflows alongside built-in templates."""
+    saved = workflow_service.list_workflows()
+    templates = []
+    for key, tmpl in WORKFLOW_TEMPLATES.items():
+        templates.append({
+            "id": key,
+            "name": tmpl["name"],
+            "description": tmpl["description"],
+            "step_count": len(tmpl["steps"]),
+            "type": "template",
+        })
+    return {"saved": saved, "templates": templates}
+
+
+@router.get("/workflows/{workflow_id}")
+async def get_workflow(workflow_id: str):
+    """Get a saved workflow by ID."""
+    workflow = workflow_service.get_workflow(workflow_id)
+    if workflow is None:
+        return JSONResponse(status_code=404, content={"error": "Workflow not found"})
+    return {"workflow": workflow}
+
+
+@router.put("/workflows/{workflow_id}")
+async def update_workflow(workflow_id: str, request: Request):
+    """Update a saved workflow."""
+    body = await request.json()
+    workflow = workflow_service.update_workflow(workflow_id, body)
+    if workflow is None:
+        return JSONResponse(status_code=404, content={"error": "Workflow not found"})
+    return {"workflow": workflow}
+
+
+@router.delete("/workflows/{workflow_id}")
+async def delete_workflow(workflow_id: str):
+    """Delete a saved workflow."""
+    deleted = workflow_service.delete_workflow(workflow_id)
+    if not deleted:
+        return JSONResponse(status_code=404, content={"error": "Workflow not found"})
+    return {"deleted": True}
+
+
+# ---------------------------------------------------------------------------
+# Export to Claude Code format
+# ---------------------------------------------------------------------------
+
+@router.get("/workflows/{workflow_id}/export/claude-code")
+async def export_claude_code(workflow_id: str):
+    """Export a saved workflow as Claude Code compatible JSON."""
+    workflow = workflow_service.get_workflow(workflow_id)
+    if workflow is None:
+        return JSONResponse(status_code=404, content={"error": "Workflow not found"})
+
+    exported_steps = []
+    for step in workflow.get("steps", []):
+        exported_steps.append({
+            "id": step.get("id", ""),
+            "tool": step.get("tool", step.get("name", step.get("id", ""))),
+            "inputs": step.get("inputs", {"prompt_template": step.get("prompt_template", "")}),
+            "outputs": step.get("outputs", [f"{step.get('id', 'step')}_result"]),
+            "depends_on": step.get("depends_on", []),
+        })
+
+    return {
+        "name": workflow.get("name", ""),
+        "description": workflow.get("description", ""),
+        "steps": exported_steps,
+    }

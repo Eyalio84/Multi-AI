@@ -12,8 +12,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import type { VoxState, VoxConfig, VoxTranscriptEntry, VoxFunctionEntry, VoxMode } from '../types/vox';
 import type { Tour } from '../components/VoxTourOverlay';
 
-const API_BASE = `${window.location.protocol}//${window.location.hostname}:8000`;
-const WS_BASE = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname}:8000`;
+const API_BASE = `${window.location.protocol}//${window.location.hostname}:8088`;
+const WS_BASE = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname}:8088`;
 
 const MAX_RECONNECT_ATTEMPTS = 3;
 const RECONNECT_BASE_DELAY = 500;
@@ -58,6 +58,7 @@ export function useVox() {
   const sessionTokenRef = useRef<string | null>(null);
   const reconnectAttemptsRef = useRef<number>(0);
   const reconnectConfigRef = useRef<{ mode: VoxMode; config?: Partial<VoxConfig> } | null>(null);
+  const resumeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keep stateRef synced
   useEffect(() => { stateRef.current = state; }, [state]);
@@ -164,7 +165,7 @@ export function useVox() {
   }, [ensurePlayContext]);
 
   // ── Mic capture ───────────────────────────────────────────────────
-  const downsample = (buffer: Float32Array, fromRate: number, toRate: number): Float32Array => {
+  const downsample = (buffer: Float32Array<ArrayBufferLike>, fromRate: number, toRate: number): Float32Array => {
     if (fromRate === toRate) return buffer;
     const ratio = fromRate / toRate;
     const newLength = Math.floor(buffer.length / ratio);
@@ -208,9 +209,9 @@ export function useVox() {
 
       processor.onaudioprocess = (e) => {
         if (!stateRef.current.connected || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-        let samples = e.inputBuffer.getChannelData(0);
-        if (nativeRate !== targetRate) samples = downsample(samples, nativeRate, targetRate);
-        sendPCMChunk(samples);
+        const raw = e.inputBuffer.getChannelData(0);
+        const samples = nativeRate !== targetRate ? downsample(raw, nativeRate, targetRate) : raw;
+        sendPCMChunk(samples as Float32Array);
       };
 
       source.connect(processor);
@@ -329,6 +330,12 @@ export function useVox() {
     let msg: any;
     try { msg = JSON.parse(raw); } catch (_) { return; }
     const mt = msg.type || '';
+
+    // Clear resume timeout on any message from the server
+    if (resumeTimeoutRef.current) {
+      clearTimeout(resumeTimeoutRef.current);
+      resumeTimeoutRef.current = null;
+    }
 
     switch (mt) {
       case 'setup_complete':
@@ -484,6 +491,21 @@ export function useVox() {
               initMsg.session_token = sessionTokenRef.current;
             }
             ws.send(JSON.stringify(initMsg));
+
+            // If no response within 5s, session token may be stale -- start fresh
+            resumeTimeoutRef.current = setTimeout(() => {
+              if (wsRef.current?.readyState === WebSocket.OPEN) {
+                addTranscript('system', 'Session token stale, starting fresh session...');
+                sessionTokenRef.current = null;
+                wsRef.current.send(JSON.stringify({
+                  type: 'start',
+                  mode,
+                  voice,
+                  model,
+                  systemPrompt,
+                }));
+              }
+            }, 5000);
           };
 
           ws.onmessage = (event) => handleMessage(event.data);
@@ -556,6 +578,10 @@ export function useVox() {
   const disconnect = useCallback(() => {
     reconnectConfigRef.current = null;
     reconnectAttemptsRef.current = 0;
+    if (resumeTimeoutRef.current) {
+      clearTimeout(resumeTimeoutRef.current);
+      resumeTimeoutRef.current = null;
+    }
     stopMic();
     stopSpeechRecognition();
     if (wsRef.current) {
@@ -614,6 +640,9 @@ export function useVox() {
   // ── Cleanup on unmount ────────────────────────────────────────────
   useEffect(() => {
     return () => {
+      if (resumeTimeoutRef.current) {
+        clearTimeout(resumeTimeoutRef.current);
+      }
       if (wsRef.current) {
         try { wsRef.current.close(); } catch (_) {}
       }

@@ -1,0 +1,179 @@
+{
+  "version": "1.0",
+  "total_questions": 10,
+  "philosophy": "Generate an editable React MVP as a starting point, not a full production app. Something workable that users can iterate on.",
+  "questions": [
+    {
+      "id": 1,
+      "key": "domain",
+      "question": "What kind of app do you want to build?",
+      "type": "single_choice",
+      "required": true,
+      "options": [
+        {
+          "id": "landing",
+          "label": "Small Business Landing Page",
+          "description": "A single-page site for a local business or startup with hero, features, testimonials, and contact sections.",
+          "default_features": ["hero_section", "features_grid", "testimonials", "contact_form", "responsive_layout"]
+        },
+        {
+          "id": "knowledge",
+          "label": "Knowledge Graphs / Knowledge Base / RAG",
+          "description": "A knowledge management app with entity relationships, search, and retrieval-augmented generation.",
+          "default_features": ["graph_visualization", "entity_crud", "semantic_search", "chat_with_sources", "import_export"]
+        },
+        {
+          "id": "saas",
+          "label": "SaaS (Software as a Service)",
+          "description": "A subscription-based web application with user accounts, dashboards, and billing.",
+          "default_features": ["auth_flow", "dashboard", "settings_page", "pricing_table", "onboarding"]
+        },
+        {
+          "id": "game",
+          "label": "Game",
+          "description": "A browser-based game with interactive mechanics, scoring, and visual feedback.",
+          "default_features": ["game_canvas", "score_system", "level_progression", "input_controls", "game_over_screen"]
+        },
+        {
+          "id": "dashboard",
+          "label": "Dashboard / Admin Panel",
+          "description": "A data-driven dashboard with charts, tables, filters, and real-time metrics.",
+          "default_features": ["data_table", "chart_widgets", "filters_sidebar", "stats_cards", "date_range_picker"]
+        },
+        {
+          "id": "ecommerce",
+          "label": "E-commerce / Marketplace",
+          "description": "A product listing and shopping app with cart, checkout, and product detail pages.",
+          "default_features": ["product_grid", "product_detail", "shopping_cart", "checkout_flow", "search_filter"]
+        },
+        {
+          "id": "social",
+          "label": "Social / Community App",
+          "description": "A social platform with user profiles, feeds, posts, and interactions.",
+          "default_features": ["user_feed", "profile_page", "post_composer", "reactions", "notifications"]
+        },
+        {
+          "id": "portfolio",
+          "label": "Portfolio / Personal Site",
+          "description": "A personal portfolio showcasing projects, skills, and contact information.",
+          "default_features": ["hero_intro", "project_gallery", "skills_section", "about_page", "contact_form"]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "key": "purpose",
+      "question": "What's the primary purpose of your app in one sentence?",
+      "type": "free_text",
+      "placeholder": "e.g., Help freelancers track their invoices and get paid faster",
+      "required": true
+    },
+    {
+      "id": 3,
+      "key": "target_user",
+      "question": "Who is your target user?",
+      "type": "free_text",
+      "placeholder": "e.g., developers, business owners, students, gamers",
+      "required": true
+    },
+    {
+      "id": 4,
+      "key": "core_features",
+      "question": "What are the 3-5 core features you need in the MVP?",
+      "type": "free_text",
+      "placeholder": "e.g., user login, task board with drag-and-drop, real-time notifications, export to PDF",
+      "required": true
+    },
+    {
+      "id": 5,
+      "key": "data",
+      "question": "What data does your app need to display or manage?",
+      "type": "free_text",
+      "placeholder": "e.g., user profiles, product listings, analytics metrics, blog posts",
+      "required": true
+    },
+    {
+      "id": 6,
+      "key": "auth",
+      "question": "Do you need user authentication?",
+      "type": "single_choice",
+      "required": true,
+      "options": [
+        {
+          "id": "yes",
+          "label": "Yes",
+          "description": "Include login/signup flow with mock auth in the MVP."
+        },
+        {
+          "id": "no",
+          "label": "No",
+          "description": "No authentication needed. Open access."
+        },
+        {
+          "id": "later",
+          "label": "Later",
+          "description": "Not for the MVP, but plan the structure for adding it later."
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "key": "visual_style",
+      "question": "What's your preferred visual style?",
+      "type": "single_choice",
+      "required": true,
+      "options": [
+        {
+          "id": "minimal",
+          "label": "Minimal",
+          "description": "Clean whitespace, simple typography, subtle borders."
+        },
+        {
+          "id": "colorful",
+          "label": "Colorful",
+          "description": "Vibrant palette, gradients, bold accents."
+        },
+        {
+          "id": "professional",
+          "label": "Professional",
+          "description": "Corporate feel, muted tones, structured layout."
+        },
+        {
+          "id": "playful",
+          "label": "Playful",
+          "description": "Rounded corners, fun colors, casual tone."
+        },
+        {
+          "id": "dark",
+          "label": "Dark Mode",
+          "description": "Dark backgrounds, high contrast, modern feel."
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "key": "integrations",
+      "question": "Do you need any external integrations?",
+      "type": "free_text",
+      "placeholder": "e.g., Stripe payments, Google Maps, REST API, Firebase, none",
+      "required": false
+    },
+    {
+      "id": 9,
+      "key": "key_flow",
+      "question": "What's the most important user action or flow in the app?",
+      "type": "free_text",
+      "placeholder": "e.g., user signs up, creates a project, invites team members, and starts collaborating",
+      "required": true
+    },
+    {
+      "id": 10,
+      "key": "constraints",
+      "question": "Any specific tech preferences or constraints?",
+      "type": "free_text",
+      "placeholder": "e.g., must use TypeScript, needs to be mobile-first, keep it under 5 files, use dark theme",
+      "required": false
+    }
+  ],
+  "prompt_template": "Generate a React MVP app based on these interview requirements:\n\nDomain: {domain}\nPurpose: {purpose}\nTarget User: {target_user}\nCore Features: {core_features}\nData Model: {data}\nAuthentication: {auth}\nVisual Style: {visual_style}\nIntegrations: {integrations}\nKey User Flow: {key_flow}\nConstraints: {constraints}\n\nPhilosophy: This is an MVP — generate a working, editable starting point with realistic mock data. Focus on the core user flow and make it look polished. Use functional React components with hooks and inline styles."
+}

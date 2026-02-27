@@ -161,16 +161,92 @@ export const useChat = (
     }
   }, [addMessage, projects, persona, provider, model, useWebSearch, customStyles, thinkingBudget, handleToolCall]);
 
+  const handleSlashCommand = async (prompt: string): Promise<boolean> => {
+    if (!prompt.startsWith('/')) return false;
+    const [cmd, ...rest] = prompt.slice(1).split(' ');
+    const arg = rest.join(' ');
+
+    switch (cmd.toLowerCase()) {
+      case 'help':
+        addMessage(MessageAuthor.SYSTEM, [{ text:
+          'Available commands:\n' +
+          '  /image <prompt> — Generate an image\n' +
+          '  /tts <text> — Text-to-speech\n' +
+          '  /video <prompt> — Generate a video\n' +
+          '  /agent <prompt> — Run an autonomous agent\n' +
+          '  /help — Show this help'
+        }]);
+        return true;
+
+      case 'image':
+        if (!arg) { addMessage(MessageAuthor.SYSTEM, [{ text: 'Usage: /image <prompt>' }]); return true; }
+        addMessage(MessageAuthor.USER, [{ text: prompt }]);
+        setStatusText('Generating image...');
+        try {
+          const results = await apiService.generateImageSDK(arg);
+          const parts: MessagePart[] = Array.isArray(results)
+            ? results.map((r: any) => ({ imageUrl: r.imageUrl, text: r.text }))
+            : [{ text: JSON.stringify(results) }];
+          addMessage(MessageAuthor.ASSISTANT, parts, { provider: 'gemini' });
+        } catch (e: any) {
+          addMessage(MessageAuthor.SYSTEM, [{ text: `Image error: ${e.message}` }]);
+        }
+        return true;
+
+      case 'tts':
+        if (!arg) { addMessage(MessageAuthor.SYSTEM, [{ text: 'Usage: /tts <text>' }]); return true; }
+        addMessage(MessageAuthor.USER, [{ text: prompt }]);
+        setStatusText('Generating speech...');
+        try {
+          const result = await apiService.generateTTSSDK(arg);
+          addMessage(MessageAuthor.ASSISTANT, [{ audioUrl: result.audioUrl, text: `TTS generated (${result.duration?.toFixed(1) || '?'}s)` }], { provider: 'gemini' });
+        } catch (e: any) {
+          addMessage(MessageAuthor.SYSTEM, [{ text: `TTS error: ${e.message}` }]);
+        }
+        return true;
+
+      case 'video':
+        if (!arg) { addMessage(MessageAuthor.SYSTEM, [{ text: 'Usage: /video <prompt>' }]); return true; }
+        addMessage(MessageAuthor.USER, [{ text: prompt }]);
+        setStatusText('Starting video generation...');
+        try {
+          const result = await apiService.generateVideoSDK(arg);
+          addMessage(MessageAuthor.ASSISTANT, [{ text: `Video generation started.\nOperation: ${result.operationName}\n\nUse the video status endpoint to check progress.` }], { provider: 'gemini' });
+        } catch (e: any) {
+          addMessage(MessageAuthor.SYSTEM, [{ text: `Video error: ${e.message}` }]);
+        }
+        return true;
+
+      case 'agent':
+        if (!arg) { addMessage(MessageAuthor.SYSTEM, [{ text: 'Usage: /agent <prompt>' }]); return true; }
+        addMessage(MessageAuthor.USER, [{ text: prompt }]);
+        setStatusText('Running agent...');
+        try {
+          const stream = await apiService.streamAgentSDK(arg);
+          await processSSEStream(stream, messages, 'chat');
+        } catch (e: any) {
+          addMessage(MessageAuthor.SYSTEM, [{ text: `Agent error: ${e.message}` }]);
+        }
+        return true;
+
+      default:
+        return false;
+    }
+  };
+
   const sendMessage = async (prompt: string, mode: ChatMode, file?: File | null) => {
     if (isLoading) return;
     setIsLoading(true);
     setStatusText('Thinking...');
 
-    const userParts: MessagePart[] = [{ text: prompt }];
-    if (mode === 'image-edit' && file) userParts.push({ imageUrl: URL.createObjectURL(file) });
-    const userMessage = addMessage(MessageAuthor.USER, userParts);
-
     try {
+      // Check for slash commands first
+      if (await handleSlashCommand(prompt)) return;
+
+      const userParts: MessagePart[] = [{ text: prompt }];
+      if (mode === 'image-edit' && file) userParts.push({ imageUrl: URL.createObjectURL(file) });
+      const userMessage = addMessage(MessageAuthor.USER, userParts);
+
       if (mode === 'image-edit') {
         if (!file) throw new Error('Image file required');
         const resultParts = await apiService.editImage(prompt, file);
