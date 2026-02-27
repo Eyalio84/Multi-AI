@@ -215,20 +215,87 @@ async def edit_image(prompt: str, image_bytes: bytes, mime_type: str, model: str
     return result_parts
 
 
-async def generate_video(prompt: str, image_bytes: Optional[bytes] = None, mime_type: Optional[str] = None) -> str:
-    """Start video generation, returns operation name for polling."""
-    request_body = {"prompt": prompt}
-    if image_bytes and mime_type:
-        import base64
-        request_body["image"] = {
-            "imageBytes": base64.b64encode(image_bytes).decode(),
-            "mimeType": mime_type,
-        }
+async def generate_image(
+    prompt: str,
+    model: str = "gemini-3-pro-image-preview",
+    aspect_ratio: str = "1:1",
+    num_images: int = 1,
+) -> list[dict]:
+    """Generate images from text using Nano Banana Pro / Gemini Flash Image / Imagen 4."""
+    import base64
 
-    operation = client.models.generate_videos(
-        model="veo-2.0-generate-001",
-        prompt=prompt,
+    # Imagen 4 uses a dedicated generate_images API
+    if model.startswith("imagen"):
+        response = client.models.generate_images(
+            model=model,
+            prompt=prompt,
+            config=types.GenerateImagesConfig(
+                number_of_images=num_images,
+                aspect_ratio=aspect_ratio,
+            ),
+        )
+        results = []
+        for img in response.generated_images:
+            b64 = base64.b64encode(img.image.image_bytes).decode()
+            results.append({"imageUrl": f"data:image/png;base64,{b64}"})
+        return results
+
+    # Nano Banana / Gemini Flash Image use generate_content with IMAGE modality
+    config = types.GenerateContentConfig(
+        response_modalities=["IMAGE", "TEXT"],
     )
+    response = client.models.generate_content(
+        model=model,
+        contents=f"{prompt}\n\nAspect ratio: {aspect_ratio}",
+        config=config,
+    )
+
+    results = []
+    for part in response.candidates[0].content.parts:
+        if part.text:
+            results.append({"text": part.text})
+        if hasattr(part, "inline_data") and part.inline_data:
+            b64 = base64.b64encode(part.inline_data.data).decode()
+            results.append({"imageUrl": f"data:{part.inline_data.mime_type};base64,{b64}"})
+    return results
+
+
+async def generate_video(
+    prompt: str,
+    model: str = "veo-3.1-generate-preview",
+    image_bytes: Optional[bytes] = None,
+    mime_type: Optional[str] = None,
+    aspect_ratio: str = "16:9",
+    duration_seconds: int = 8,
+) -> str:
+    """Start video generation with Veo 3.1, returns operation name for polling."""
+    import base64
+
+    kwargs = {
+        "model": model,
+        "prompt": prompt,
+    }
+
+    # Pass reference image if provided
+    if image_bytes and mime_type:
+        from google.genai.types import Image, RawReferenceImage
+        kwargs["image"] = RawReferenceImage(
+            reference_image=Image(
+                image_bytes=image_bytes,
+                mime_type=mime_type,
+            ),
+            reference_type="REFERENCE_TYPE_STYLE",
+        )
+
+    config_kwargs = {}
+    if aspect_ratio:
+        config_kwargs["aspect_ratio"] = aspect_ratio
+    if duration_seconds:
+        config_kwargs["duration_seconds"] = duration_seconds
+    if config_kwargs:
+        kwargs["config"] = types.GenerateVideosConfig(**config_kwargs)
+
+    operation = client.models.generate_videos(**kwargs)
     return operation.name
 
 
@@ -241,3 +308,77 @@ async def check_video_status(operation_name: str) -> dict:
         video = operation.response.generated_videos[0]
         return {"done": True, "videoUrl": video.video.uri}
     return {"done": False}
+
+
+async def generate_tts(
+    text: str,
+    model: str = "gemini-2.5-flash-preview-tts",
+    voice: str = "Kore",
+    speed: float = 1.0,
+) -> dict:
+    """Text-to-speech using Gemini TTS models."""
+    import base64
+    import struct
+
+    config = types.GenerateContentConfig(
+        response_modalities=["AUDIO"],
+        speech_config=types.SpeechConfig(
+            voice_config=types.VoiceConfig(
+                prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice),
+            ),
+        ),
+    )
+
+    response = client.models.generate_content(
+        model=model,
+        contents=text,
+        config=config,
+    )
+
+    audio_data = response.candidates[0].content.parts[0].inline_data.data
+    mime = response.candidates[0].content.parts[0].inline_data.mime_type or "audio/wav"
+
+    # Wrap raw PCM in WAV header if needed
+    if "pcm" in mime.lower() or not audio_data[:4] == b"RIFF":
+        sample_rate = 24000
+        num_channels = 1
+        bits_per_sample = 16
+        data_size = len(audio_data)
+        header = struct.pack(
+            "<4sI4s4sIHHIIHH4sI",
+            b"RIFF", 36 + data_size, b"WAVE",
+            b"fmt ", 16, 1, num_channels,
+            sample_rate, sample_rate * num_channels * bits_per_sample // 8,
+            num_channels * bits_per_sample // 8, bits_per_sample,
+            b"data", data_size,
+        )
+        audio_data = header + audio_data
+        mime = "audio/wav"
+
+    b64 = base64.b64encode(audio_data).decode()
+    duration = len(audio_data) / (24000 * 2)  # approximate for 16-bit mono 24kHz
+    return {"audioUrl": f"data:{mime};base64,{b64}", "duration": round(duration, 2)}
+
+
+async def generate_music(
+    prompt: str,
+    model: str = "lyria-realtime-exp",
+    duration_seconds: int = 30,
+) -> dict:
+    """Generate music using Lyria."""
+    import base64
+
+    config = types.GenerateContentConfig(
+        response_modalities=["AUDIO"],
+    )
+
+    response = client.models.generate_content(
+        model=model,
+        contents=f"{prompt}\n\nDuration: approximately {duration_seconds} seconds.",
+        config=config,
+    )
+
+    audio_data = response.candidates[0].content.parts[0].inline_data.data
+    mime = response.candidates[0].content.parts[0].inline_data.mime_type or "audio/wav"
+    b64 = base64.b64encode(audio_data).decode()
+    return {"audioUrl": f"data:{mime};base64,{b64}", "duration": duration_seconds}

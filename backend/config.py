@@ -40,15 +40,42 @@ TOOLS_DIR = PROJECT_ROOT.parent / "tools"
 # --- Model Catalog ---
 MODELS = {
     "gemini": {
+        # --- Text models ---
         "gemini-3-pro-preview": {
             "name": "Gemini 3 Pro",
+            "category": "text",
             "context": 1000000,
             "cost_in": 2.0,
             "cost_out": 12.0,
             "use_case": "Flagship reasoning",
         },
+        "gemini-3.1-pro-preview": {
+            "name": "Gemini 3.1 Pro",
+            "category": "text",
+            "context": 1000000,
+            "cost_in": 2.0,
+            "cost_out": 12.0,
+            "use_case": "Better thinking, token efficiency, agentic workflows",
+        },
+        "gemini-3.1-pro-preview-customtools": {
+            "name": "Gemini 3.1 Pro Custom Tools",
+            "category": "text",
+            "context": 1000000,
+            "cost_in": 2.0,
+            "cost_out": 12.0,
+            "use_case": "Prioritizes custom tools over bash",
+        },
+        "gemini-3-flash-preview": {
+            "name": "Gemini 3 Flash",
+            "category": "text",
+            "context": 1000000,
+            "cost_in": 0.10,
+            "cost_out": 0.40,
+            "use_case": "Fast next-gen flash",
+        },
         "gemini-2.5-flash": {
             "name": "Gemini 2.5 Flash",
+            "category": "text",
             "context": 1000000,
             "cost_in": 0.15,
             "cost_out": 0.60,
@@ -56,36 +83,135 @@ MODELS = {
         },
         "gemini-2.5-pro": {
             "name": "Gemini 2.5 Pro",
+            "category": "text",
             "context": 1000000,
             "cost_in": 1.25,
             "cost_out": 5.0,
             "use_case": "Deep reasoning",
         },
+        "gemini-2.5-flash-lite": {
+            "name": "Gemini 2.5 Flash Lite",
+            "category": "text",
+            "context": 1000000,
+            "cost_in": 0.075,
+            "cost_out": 0.30,
+            "use_case": "Cheapest Gemini, bulk tasks",
+        },
+        # --- Image models ---
         "gemini-2.5-flash-image": {
             "name": "Gemini 2.5 Flash Image",
+            "category": "image",
             "context": 1000000,
             "cost_in": 0.15,
             "cost_out": 0.60,
-            "use_case": "Image generation",
+            "use_case": "Fast image generation/editing",
         },
+        "gemini-3-pro-image-preview": {
+            "name": "Nano Banana Pro",
+            "category": "image",
+            "context": 1000000,
+            "cost_in": 2.0,
+            "cost_out": 12.0,
+            "use_case": "High-quality image generation",
+        },
+        "imagen-4.0-generate-preview-05-20": {
+            "name": "Imagen 4",
+            "category": "image",
+            "context": 0,
+            "cost_in": 0,
+            "cost_out": 0.04,
+            "use_case": "Dedicated image generation (non-chat)",
+        },
+        # --- Video models ---
+        "veo-2.0-generate-001": {
+            "name": "Veo 2.0",
+            "category": "video",
+            "context": 0,
+            "cost_in": 0,
+            "cost_out": 0,
+            "use_case": "Video generation (legacy)",
+        },
+        "veo-3.1-generate-preview": {
+            "name": "Veo 3.1",
+            "category": "video",
+            "context": 0,
+            "cost_in": 0,
+            "cost_out": 0,
+            "use_case": "Video generation with audio",
+        },
+        "veo-3.1-fast-generate-preview": {
+            "name": "Veo 3.1 Fast",
+            "category": "video",
+            "context": 0,
+            "cost_in": 0,
+            "cost_out": 0,
+            "use_case": "Fast video generation",
+        },
+        # --- Audio/TTS models ---
+        "gemini-2.5-flash-native-audio-preview": {
+            "name": "Gemini Flash Audio",
+            "category": "audio",
+            "context": 1000000,
+            "cost_in": 0.15,
+            "cost_out": 0.60,
+            "use_case": "Native audio understanding/generation",
+        },
+        "gemini-2.5-flash-preview-tts": {
+            "name": "Gemini Flash TTS",
+            "category": "audio",
+            "context": 8192,
+            "cost_in": 0.15,
+            "cost_out": 0.60,
+            "use_case": "Text-to-speech (24 voices)",
+        },
+        "gemini-2.5-pro-preview-tts": {
+            "name": "Gemini Pro TTS",
+            "category": "audio",
+            "context": 8192,
+            "cost_in": 1.25,
+            "cost_out": 5.0,
+            "use_case": "High-quality text-to-speech",
+        },
+        # --- Music models ---
+        "lyria-realtime-exp": {
+            "name": "Lyria",
+            "category": "music",
+            "context": 0,
+            "cost_in": 0,
+            "cost_out": 0,
+            "use_case": "AI music generation",
+        },
+        # --- Embedding models ---
         "gemini-embedding-001": {
             "name": "Gemini Embedding",
+            "category": "embedding",
             "context": 8192,
             "cost_in": 0,
             "cost_out": 0,
             "use_case": "RAG/embeddings",
         },
-        "veo-2.0-generate-001": {
-            "name": "Veo 2.0",
-            "context": 0,
-            "cost_in": 0,
-            "cost_out": 0,
-            "use_case": "Video generation",
+        # --- Agent/specialized models ---
+        "gemini-2.5-computer-use-preview": {
+            "name": "Gemini Computer Use",
+            "category": "agent",
+            "context": 1000000,
+            "cost_in": 1.25,
+            "cost_out": 5.0,
+            "use_case": "Autonomous computer control",
+        },
+        "deep-research-pro-preview": {
+            "name": "Deep Research",
+            "category": "agent",
+            "context": 1000000,
+            "cost_in": 2.0,
+            "cost_out": 12.0,
+            "use_case": "Multi-step web research",
         },
     },
     "claude": {
         "claude-opus-4-6": {
             "name": "Claude Opus 4.6",
+            "category": "text",
             "context": 200000,
             "cost_in": 5.0,
             "cost_out": 25.0,
@@ -93,6 +219,7 @@ MODELS = {
         },
         "claude-sonnet-4-6": {
             "name": "Claude Sonnet 4.6",
+            "category": "text",
             "context": 200000,
             "cost_in": 3.0,
             "cost_out": 15.0,
@@ -100,6 +227,7 @@ MODELS = {
         },
         "claude-haiku-4-5-20251001": {
             "name": "Claude Haiku 4.5",
+            "category": "text",
             "context": 200000,
             "cost_in": 1.0,
             "cost_out": 5.0,
@@ -115,7 +243,7 @@ DEFAULT_CLAUDE_MODEL = "claude-sonnet-4-6"
 VOX_AUDIO_SAMPLE_RATE_IN = 16000   # PCM capture rate from mic
 VOX_AUDIO_SAMPLE_RATE_OUT = 24000  # Playback rate for Gemini audio
 VOX_DEFAULT_VOICE = "Puck"         # Gemini Live API voice
-VOX_DEFAULT_MODEL = "gemini-2.0-flash-live-001"  # Stable Live API model
+VOX_DEFAULT_MODEL = "gemini-2.5-flash-native-audio-preview-12-2025"  # Live API model (2.0 deprecated)
 
 # --- Integration Credentials (all optional, configured via UI) ---
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")

@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
-from routers import chat, coding, agents, playbooks, workflows, builder, media, interchange, kg, studio, memory, integrations, experts, tools, vox
+from routers import chat, coding, agents, playbooks, workflows, builder, media, interchange, kg, studio, memory, integrations, experts, tools, vox, games, agent
 
 app = FastAPI(
     title="Multi-AI Agentic Workspace",
@@ -37,6 +37,13 @@ app.include_router(integrations.router, prefix="/api")
 app.include_router(experts.router, prefix="/api")
 app.include_router(tools.router, prefix="/api")
 app.include_router(vox.router)  # No prefix: WS at /ws/vox, REST at /api/vox/*
+app.include_router(games.router, prefix="/api")
+app.include_router(agent.router, prefix="/api")
+
+# Serve Phaser runtime for game preview
+_phaser_dir = Path(__file__).parent.parent / "docs" / "phaser"
+if _phaser_dir.exists():
+    app.mount("/docs/phaser", StaticFiles(directory=str(_phaser_dir)), name="phaser-static")
 
 
 @app.get("/api/health")
