@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>User Guide — Multi-AI Agentic Workspace</title>
+<title>User Guide — Multi-AI Agentic Workspace v2.5.0</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; line-height: 1.6; }
@@ -17,6 +17,7 @@
   .toc h3 { margin-top: 0; }
   .toc a { color: #38bdf8; text-decoration: none; display: block; padding: 4px 0; font-size: 14px; }
   .toc a:hover { color: #7dd3fc; }
+  .toc .sub { padding-left: 16px; font-size: 13px; color: #7dd3fc; }
   .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin: 16px 0; }
   .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
   .card-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
@@ -29,6 +30,7 @@
   .badge-gemini { background: #1e3a5f; color: #38bdf8; }
   .badge-claude { background: #3b2a1a; color: #fb923c; }
   .badge-both { background: #1a2744; color: #a78bfa; }
+  .badge-new { background: #064e3b; color: #34d399; font-size: 10px; margin-left: 6px; }
   .steps { counter-reset: step; }
   .step { counter-increment: step; padding: 12px 12px 12px 48px; position: relative; margin: 8px 0; background: #1e293b; border-radius: 8px; }
   .step::before { content: counter(step); position: absolute; left: 12px; top: 12px; width: 24px; height: 24px; background: #0ea5e9; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; }
@@ -38,7 +40,13 @@
   table { width: 100%; border-collapse: collapse; margin: 12px 0; }
   th { text-align: left; padding: 8px 12px; background: #1e293b; color: #94a3b8; font-size: 12px; border-bottom: 1px solid #334155; }
   td { padding: 8px 12px; border-bottom: 1px solid #1e293b; font-size: 13px; color: #cbd5e1; }
-  @media (max-width: 600px) { .container { padding: 16px; } h1 { font-size: 24px; } .grid { grid-template-columns: 1fr; } }
+  .nav-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin: 16px 0; }
+  .nav-item { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; text-align: center; }
+  .nav-item .route { font-family: monospace; font-size: 11px; color: #64748b; margin-top: 4px; }
+  .nav-item .name { font-size: 14px; font-weight: 600; color: #e2e8f0; }
+  .slash-cmd { display: flex; align-items: center; gap: 8px; padding: 8px 0; }
+  .slash-cmd code { font-size: 14px; min-width: 120px; }
+  @media (max-width: 600px) { .container { padding: 16px; } h1 { font-size: 24px; } .grid { grid-template-columns: 1fr; } .nav-grid { grid-template-columns: repeat(2, 1fr); } }
 </style>
 </head>
 <body>
@@ -46,64 +54,169 @@
 <div class="container">
 
 <h1>User Guide</h1>
-<p class="subtitle">Multi-AI Agentic Workspace v1.0 — Professional workflow orchestrator for Gemini + Claude</p>
+<p class="subtitle">Multi-AI Agentic Workspace v2.5.0 — Professional agentic workflow orchestrator for Gemini + Claude</p>
 
 <div class="toc">
   <h3>Table of Contents</h3>
   <a href="#getting-started">1. Getting Started</a>
-  <a href="#chat">2. Chat (Dual-Model)</a>
-  <a href="#coding">3. Coding IDE</a>
-  <a href="#agents">4. NLKE Agents</a>
-  <a href="#playbooks">5. Playbooks</a>
-  <a href="#workflows">6. Workflows</a>
-  <a href="#kg-studio">7. KG Studio</a>
-  <a href="#builder">8. Web App Builder</a>
-  <a href="#themes">9. Themes</a>
-  <a href="#settings">10. Settings & Modes</a>
-  <a href="#tips">11. Tips & Shortcuts</a>
+  <a href="#navigation">2. Navigation (14 Pages)</a>
+  <a href="#chat">3. Chat — Dual-Model Streaming</a>
+  <a class="sub" href="#models">3a. Model Catalog (23 Models)</a>
+  <a class="sub" href="#slash-commands">3b. Slash Commands</a>
+  <a class="sub" href="#media">3c. Media Rendering</a>
+  <a href="#coding">4. Coding IDE</a>
+  <a href="#agents">5. NLKE Agents (33 Agents)</a>
+  <a href="#playbooks">6. Playbooks (53 Recipes)</a>
+  <a href="#workflows">7. Workflows</a>
+  <a href="#kg-studio">8. KG Studio (57 Databases, 10 Tabs)</a>
+  <a href="#studio">9. AI Studio — Full-Stack App Builder</a>
+  <a href="#experts">10. KG-OS Expert Builder</a>
+  <a href="#games">11. Game Studio (Phaser 3)</a>
+  <a href="#tools">12. Tools Playground (58+ Tools)</a>
+  <a href="#vox">13. VOX Voice Agent</a>
+  <a href="#themes">14. Themes (5 Presets)</a>
+  <a href="#settings">15. Settings, Export/Import & API Keys</a>
+  <a href="#integrations">16. Integrations</a>
+  <a href="#tips">17. Tips & Shortcuts</a>
 </div>
 
+<!-- ================================================================ -->
 <h2 id="getting-started">1. Getting Started</h2>
 
 <div class="steps">
-  <div class="step">Start the backend: <code>cd backend && uvicorn main:app --host 0.0.0.0 --port 8000</code></div>
+  <div class="step">Start the backend: <code>cd backend && uvicorn main:app --host 0.0.0.0 --port 8000 --reload</code></div>
   <div class="step">Start the frontend: <code>cd frontend && npm run dev</code></div>
   <div class="step">Open <code>http://localhost:5173</code> in your browser</div>
   <div class="step">Verify the backend: visit <code>http://localhost:8000/docs</code> for Swagger UI</div>
 </div>
 
 <div class="tip">
-  <strong>Phone setup:</strong> Run <code>npm install</code> on a laptop, then copy <code>node_modules/</code> to your phone. The Vite dev server works on the phone.
+  <strong>Phone setup (Termux):</strong> Run <code>npm install</code> on a laptop, then copy <code>node_modules/</code> to your phone. The Vite dev server works on the phone. Use the <code>ESBUILD_BINARY_PATH</code> env var if esbuild fails on ARM.
 </div>
 
-<h2 id="chat">2. Chat</h2>
-
-<div class="card">
-  <div class="card-header">
-    <div class="card-icon" style="background:#1e3a5f">💬</div>
-    <h4>Dual-Model Streaming</h4>
-  </div>
-  <p>Chat with either <span class="badge badge-gemini">Gemini</span> or <span class="badge badge-claude">Claude</span>. Switch providers using the ModelSelector at the top.</p>
-</div>
-
-<h3>Model Selection</h3>
+<h3>API Keys</h3>
+<p>Set environment variables before starting the backend, or configure them at runtime via the Settings page:</p>
 <table>
-  <tr><th>Need</th><th>Choose</th></tr>
-  <tr><td>Fast, cheap responses</td><td><span class="badge badge-gemini">Gemini 2.5 Flash</span></td></tr>
-  <tr><td>Deep reasoning</td><td><span class="badge badge-claude">Claude Opus 4.6</span></td></tr>
-  <tr><td>Balanced quality</td><td><span class="badge badge-claude">Claude Sonnet 4.6</span></td></tr>
-  <tr><td>Extended thinking</td><td>Enable "Think" checkbox (Claude only), set budget</td></tr>
-  <tr><td>Web search</td><td>Available with Gemini models</td></tr>
+  <tr><th>Variable</th><th>Purpose</th><th>Required</th></tr>
+  <tr><td><code>GEMINI_API_KEY</code></td><td>Google Gemini API access (text, image, video, audio, VOX)</td><td>Yes</td></tr>
+  <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Anthropic Claude API access (text, agents)</td><td>Standalone mode only</td></tr>
 </table>
 
-<h2 id="coding">3. Coding IDE</h2>
+<!-- ================================================================ -->
+<h2 id="navigation">2. Navigation (14 Pages)</h2>
+
+<p>The NavBar displays all pages as tabs on desktop and a hamburger menu on mobile. A theme switcher icon and the active model badge are always visible.</p>
+
+<div class="nav-grid">
+  <div class="nav-item"><div class="name">Chat</div><div class="route">/chat</div></div>
+  <div class="nav-item"><div class="name">Coding</div><div class="route">/coding</div></div>
+  <div class="nav-item"><div class="name">Agents</div><div class="route">/agents</div></div>
+  <div class="nav-item"><div class="name">Playbooks</div><div class="route">/playbooks</div></div>
+  <div class="nav-item"><div class="name">Workflows</div><div class="route">/workflows</div></div>
+  <div class="nav-item"><div class="name">KG Studio</div><div class="route">/kg-studio</div></div>
+  <div class="nav-item"><div class="name">Experts</div><div class="route">/experts</div></div>
+  <div class="nav-item"><div class="name">Studio</div><div class="route">/builder</div></div>
+  <div class="nav-item"><div class="name">VOX</div><div class="route">/vox</div></div>
+  <div class="nav-item"><div class="name">Games</div><div class="route">/games</div></div>
+  <div class="nav-item"><div class="name">Tools</div><div class="route">/tools</div></div>
+  <div class="nav-item"><div class="name">Integrations</div><div class="route">/integrations</div></div>
+  <div class="nav-item"><div class="name">Settings</div><div class="route">/settings</div></div>
+</div>
+
+<p>The default route (<code>/</code>) redirects to <code>/chat</code>. A floating VOX overlay pill and guided tour spotlight overlay are present on all pages when active.</p>
+
+<!-- ================================================================ -->
+<h2 id="chat">3. Chat — Dual-Model Streaming</h2>
 
 <div class="card">
   <div class="card-header">
-    <div class="card-icon" style="background:#1a3320">⚡</div>
+    <div class="card-icon" style="background:#1e3a5f">&#x1F4AC;</div>
+    <h4>Dual-Model Streaming Chat</h4>
+  </div>
+  <p>Chat with <span class="badge badge-gemini">Gemini</span> or <span class="badge badge-claude">Claude</span> models via SSE streaming. Responses render in real-time with markdown, code blocks, images, audio players, and video elements. A conversation sidebar lets you browse and load past chat sessions.</p>
+</div>
+
+<h3>Chat Features</h3>
+<table>
+  <tr><th>Feature</th><th>Description</th></tr>
+  <tr><td>Provider filter</td><td>Toggle between All / Gemini / Claude in the ModelSelector bar</td></tr>
+  <tr><td>Grouped model dropdown</td><td>Models organized by category (Text, Image, Video, Audio, Agent, Embedding) with provider badges [G] / [C]</td></tr>
+  <tr><td>Extended thinking</td><td>Enable "Think" checkbox for Claude models. Adjust token budget with slider (1K-32K). Thinking content appears in a collapsible block.</td></tr>
+  <tr><td>Web search</td><td>Available with Gemini models. Sources appear as clickable links below responses.</td></tr>
+  <tr><td>Image rendering</td><td>Inline image display with "Use this image" button for image editing workflows</td></tr>
+  <tr><td>Audio player</td><td>Inline audio controls for TTS-generated speech</td></tr>
+  <tr><td>Video player</td><td>Inline video element for generated video content</td></tr>
+  <tr><td>Tool use</td><td>Claude can call tools (file operations, npm search, Python execution) with visible tool call/response blocks</td></tr>
+  <tr><td>Grounding sources</td><td>Gemini web search results displayed as a sources list with clickable links</td></tr>
+  <tr><td>Memory &amp; Skills badges</td><td>When the backend injects conversation memory or skills, badges appear next to the ModelSelector</td></tr>
+  <tr><td>Conversation history</td><td>Sidebar to browse and load past conversations</td></tr>
+</table>
+
+<!-- ── 3a. Model Catalog ── -->
+<h3 id="models">3a. Model Catalog (23 Models)</h3>
+<p>The ModelSelector groups 23 models into 6 categories. Select any model and the provider switches automatically.</p>
+
+<table>
+  <tr><th>Category</th><th>Models</th><th>Provider</th></tr>
+  <tr><td><strong>Text</strong> (10)</td><td>Gemini 3.1 Pro, Gemini 3 Pro, Gemini 3.1 Pro Custom Tools, Gemini 3 Flash, Gemini 2.5 Flash, Gemini 2.5 Pro, Gemini 2.5 Flash Lite, Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5</td><td><span class="badge badge-both">Both</span></td></tr>
+  <tr><td><strong>Image</strong> (3)</td><td>Gemini 2.5 Flash Image, Nano Banana Pro, Imagen 4</td><td><span class="badge badge-gemini">Gemini</span></td></tr>
+  <tr><td><strong>Video</strong> (3)</td><td>Veo 2.0, Veo 3.1, Veo 3.1 Fast</td><td><span class="badge badge-gemini">Gemini</span></td></tr>
+  <tr><td><strong>Audio</strong> (3)</td><td>Gemini Flash Audio, Gemini Flash TTS, Gemini Pro TTS</td><td><span class="badge badge-gemini">Gemini</span></td></tr>
+  <tr><td><strong>Music</strong> (1)</td><td>Lyria</td><td><span class="badge badge-gemini">Gemini</span></td></tr>
+  <tr><td><strong>Agent</strong> (2)</td><td>Gemini Computer Use, Deep Research</td><td><span class="badge badge-gemini">Gemini</span></td></tr>
+  <tr><td><strong>Embedding</strong> (1)</td><td>Gemini Embedding (used internally by KG Studio)</td><td><span class="badge badge-gemini">Gemini</span></td></tr>
+</table>
+
+<h3>Quick Model Picks</h3>
+<table>
+  <tr><th>Need</th><th>Choose</th><th>Why</th></tr>
+  <tr><td>Fast, cheap responses</td><td><span class="badge badge-gemini">Gemini 2.5 Flash</span></td><td>$0.15/1M in, $0.60/1M out</td></tr>
+  <tr><td>Deep reasoning</td><td><span class="badge badge-claude">Claude Opus 4.6</span></td><td>Most intelligent, 200K context</td></tr>
+  <tr><td>Balanced quality</td><td><span class="badge badge-claude">Claude Sonnet 4.6</span></td><td>Fast + capable</td></tr>
+  <tr><td>Flagship Gemini</td><td><span class="badge badge-gemini">Gemini 3.1 Pro</span></td><td>1M context, better thinking</td></tr>
+  <tr><td>Cheapest possible</td><td><span class="badge badge-gemini">Gemini 2.5 Flash Lite</span></td><td>$0.075/1M in, bulk tasks</td></tr>
+  <tr><td>Image generation</td><td><span class="badge badge-gemini">Nano Banana Pro</span></td><td>High-quality from Gemini 3 Pro</td></tr>
+  <tr><td>Video generation</td><td><span class="badge badge-gemini">Veo 3.1</span></td><td>Video with audio</td></tr>
+  <tr><td>Text-to-speech</td><td><span class="badge badge-gemini">Gemini Flash TTS</span></td><td>24 voices, low cost</td></tr>
+  <tr><td>Autonomous research</td><td><span class="badge badge-gemini">Deep Research</span></td><td>Multi-step web research agent</td></tr>
+</table>
+
+<!-- ── 3b. Slash Commands ── -->
+<h3 id="slash-commands">3b. Slash Commands <span class="badge badge-new">NEW in v2.5.0</span></h3>
+<p>Type slash commands directly in the chat input. These bypass the normal chat flow and trigger specialized SDK features.</p>
+
+<table>
+  <tr><th>Command</th><th>Usage</th><th>Description</th></tr>
+  <tr><td><code>/image &lt;prompt&gt;</code></td><td><code>/image a sunset over mountains</code></td><td>Generate an image using the Gemini image SDK. Returns inline image(s).</td></tr>
+  <tr><td><code>/tts &lt;text&gt;</code></td><td><code>/tts Hello, welcome to the workspace</code></td><td>Generate speech audio using Gemini TTS. Returns an inline audio player with duration.</td></tr>
+  <tr><td><code>/video &lt;prompt&gt;</code></td><td><code>/video a mountain lake at dawn</code></td><td>Start video generation using Veo. Returns an operation ID for status polling.</td></tr>
+  <tr><td><code>/agent &lt;prompt&gt;</code></td><td><code>/agent list all Python files and summarize</code></td><td>Run an autonomous Claude agent (Sonnet 4.6) that streams a response with tool use.</td></tr>
+  <tr><td><code>/help</code></td><td><code>/help</code></td><td>Show all available slash commands.</td></tr>
+</table>
+
+<!-- ── 3c. Media Rendering ── -->
+<h3 id="media">3c. Media Rendering</h3>
+<p>Assistant messages can contain mixed content. Each part renders appropriately:</p>
+<table>
+  <tr><th>Content Type</th><th>Rendered As</th></tr>
+  <tr><td>Text with code</td><td>Formatted with syntax-highlighted code blocks</td></tr>
+  <tr><td>Images</td><td>Inline <code>&lt;img&gt;</code> with "Use this image" button</td></tr>
+  <tr><td>Audio</td><td>Native <code>&lt;audio&gt;</code> player with controls</td></tr>
+  <tr><td>Video</td><td>Native <code>&lt;video&gt;</code> player with controls</td></tr>
+  <tr><td>Thinking</td><td>Collapsible "Thinking..." block showing Claude's reasoning process</td></tr>
+  <tr><td>Tool calls</td><td>Mono-spaced block showing tool name and JSON arguments</td></tr>
+  <tr><td>Grounding</td><td>Clickable source links from Gemini web search</td></tr>
+</table>
+
+<!-- ================================================================ -->
+<h2 id="coding">4. Coding IDE</h2>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-icon" style="background:#1a3320">&#x26A1;</div>
     <h4>AI-Powered Code Editor</h4>
   </div>
-  <p>Create projects, add files, and chat with AI to generate code. The AI has 7 tools:</p>
+  <p>Create projects, add files, and chat with AI to generate code. The AI has 7 tools for autonomous file operations.</p>
 </div>
 
 <table>
@@ -114,10 +227,11 @@
   <tr><td><code>updateFile</code></td><td>Updates existing file content</td></tr>
   <tr><td><code>deleteFile</code></td><td>Removes a file</td></tr>
   <tr><td><code>searchNpm</code></td><td>Searches npm for packages</td></tr>
-  <tr><td><code>runPython</code></td><td>Executes Python code in-browser</td></tr>
+  <tr><td><code>runPython</code></td><td>Executes Python code in-browser (via Pyodide)</td></tr>
 </table>
 
-<h2 id="agents">4. NLKE Agents</h2>
+<!-- ================================================================ -->
+<h2 id="agents">5. NLKE Agents (33 Agents)</h2>
 
 <div class="grid">
   <div class="card">
@@ -142,105 +256,369 @@
   <tr><td>ORCHESTRATION</td><td>5</td><td>deployment-planner, scaling-advisor</td></tr>
 </table>
 
-<h2 id="playbooks">5. Playbooks</h2>
+<!-- ================================================================ -->
+<h2 id="playbooks">6. Playbooks (53 Recipes)</h2>
 
 <div class="card">
   <div class="card-header">
-    <div class="card-icon" style="background:#3b2a1a">📚</div>
+    <div class="card-icon" style="background:#3b2a1a">&#x1F4DA;</div>
     <h4>53 Implementation Recipes</h4>
   </div>
-  <p>Search by keyword or filter by category. Click any playbook to read the full content with syntax-highlighted code examples.</p>
+  <p>Search by keyword or filter by category. Click any playbook to read the full content with syntax-highlighted code examples. Playbooks cover cost optimization, agent development, knowledge engineering, meta-cognition, production deployment, and more.</p>
 </div>
 
-<h2 id="workflows">6. Workflows</h2>
+<!-- ================================================================ -->
+<h2 id="workflows">7. Workflows</h2>
 
 <div class="steps">
   <div class="step">Choose a template (Dev Lifecycle, Research, KG Pipeline, Decision Making) or type a custom goal</div>
   <div class="step">Click "AI Plan" to generate steps with model assignments</div>
-  <div class="step">Review the planned steps — each shows which model will execute it</div>
-  <div class="step">Click "Execute Workflow" — watch real-time progress via SSE streaming</div>
+  <div class="step">Review the planned steps &mdash; each shows which model will execute it</div>
+  <div class="step">Click "Execute Workflow" &mdash; watch real-time progress via SSE streaming</div>
 </div>
 
-<h2 id="kg-studio">7. KG Studio</h2>
+<!-- ================================================================ -->
+<h2 id="kg-studio">8. KG Studio (57 Databases, 10 Tabs)</h2>
 
 <div class="card">
   <div class="card-header">
-    <div class="card-icon" style="background:#2a1a3b">🔗</div>
-    <h4>Knowledge Graph Explorer</h4>
+    <div class="card-icon" style="background:#2a1a3b">&#x1F517;</div>
+    <h4>Graph-RAG Knowledge Graph Workspace</h4>
   </div>
-  <p>Visualize nodes and edges in an SVG graph. Click "Load Demo Graph" to see a sample. Filter by node type, search by name, inspect properties and connections.</p>
+  <p>A full-featured knowledge graph studio supporting 57 SQLite KG databases with 6 schema profiles, live hybrid search, d3-force graph visualization, NetworkX analytics, RAG chat with streaming and source citations, edge browser with edit/delete, and multi-KG cross-search.</p>
 </div>
 
-<h2 id="builder">8. Web App Builder</h2>
+<h3>10 Tabs</h3>
+<table>
+  <tr><th>Tab</th><th>What It Does</th></tr>
+  <tr><td><strong>Explore</strong></td><td>Interactive d3-force graph visualization. Click nodes to inspect, drag to rearrange, zoom and pan. Filter by node type.</td></tr>
+  <tr><td><strong>Search</strong></td><td>Hybrid semantic search using the formula: <code>0.40 * embedding + 0.45 * BM25 + 0.15 * graph_boost</code>. Returns ranked results with scores. Also supports multi-KG cross-search across multiple databases.</td></tr>
+  <tr><td><strong>Edit</strong></td><td>Create, update, and delete nodes and edges. Full CRUD for building KGs manually. Edge browser with pagination, filtering, and inline edit/delete.</td></tr>
+  <tr><td><strong>Ingest</strong></td><td>AI entity extraction: paste text and the AI extracts entities and relationships to add to the KG automatically.</td></tr>
+  <tr><td><strong>Analytics</strong></td><td>NetworkX graph algorithms: centrality metrics, community detection, shortest path finding, and structural statistics.</td></tr>
+  <tr><td><strong>RAG Chat</strong></td><td>Chat with your knowledge graph. Retrieves relevant nodes as context, streams AI responses, and shows source citations.</td></tr>
+  <tr><td><strong>Compare</strong></td><td>Structural comparison between two KGs: shared nodes, unique nodes, overlap metrics.</td></tr>
+  <tr><td><strong>Merge</strong></td><td>Merge two KGs with union, intersection, or complement operations.</td></tr>
+  <tr><td><strong>Embeddings</strong></td><td>Embedding dashboard: view and manage the embedding index, retrain embeddings, check quality metrics.</td></tr>
+  <tr><td><strong>Batch</strong></td><td>Bulk operations: batch node/edge creation, import/export.</td></tr>
+</table>
 
+<h3>6 Schema Profiles</h3>
+<p>KG databases are auto-detected into one of 6 schema profiles. The system adapts its queries and display based on the detected schema.</p>
+
+<h3>Creating a New KG</h3>
 <div class="steps">
-  <div class="step"><strong>Idea:</strong> Describe what you want to build</div>
-  <div class="step"><strong>Plan:</strong> AI generates project architecture (name, features, tech stack, file structure)</div>
-  <div class="step"><strong>Theme:</strong> Choose color palette and typography</div>
-  <div class="step"><strong>Generate:</strong> AI creates all project files</div>
-  <div class="step"><strong>Export:</strong> Open in IDE (creates a project in /coding) or download as ZIP</div>
+  <div class="step">Click "New Database" in the sidebar</div>
+  <div class="step">Name your KG and choose a schema profile</div>
+  <div class="step">Use the Edit tab to add nodes and edges manually, or the Ingest tab to extract entities from text using AI</div>
+  <div class="step">Use the Search tab to verify hybrid search is working, then RAG Chat to converse with your graph</div>
 </div>
 
-<h2 id="themes">9. Themes</h2>
+<!-- ================================================================ -->
+<h2 id="studio">9. AI Studio &mdash; Full-Stack App Builder</h2>
 
 <div class="card">
   <div class="card-header">
-    <div class="card-icon" style="background:#2a1a3b">🎨</div>
+    <div class="card-icon" style="background:#1a2744">&#x2728;</div>
+    <h4>AI Studio with Live Sandpack Preview</h4>
+  </div>
+  <p>Generate full-stack React applications through chat. The Studio provides 3 editing modes, live preview via Sandpack, SQLite project persistence, version history, and ZIP export. 24 specialized components power the interface.</p>
+</div>
+
+<h3>Studio Features</h3>
+<table>
+  <tr><th>Feature</th><th>Description</th></tr>
+  <tr><td>Chat-to-code</td><td>Describe what you want, AI generates all project files with streaming</td></tr>
+  <tr><td>3 Editing modes</td><td>Code editor, visual mode (component tree + element inspector), and chat refinement</td></tr>
+  <tr><td>Live preview</td><td>Sandpack-powered preview with browser-compatible shims for react-markdown, lucide-react, and more</td></tr>
+  <tr><td>File management</td><td>Files panel with tree view, new file dialog, and editor tabs</td></tr>
+  <tr><td>Diff view</td><td>See changes between versions</td></tr>
+  <tr><td>Version history</td><td>Save snapshots, list versions, restore any previous version</td></tr>
+  <tr><td>Export</td><td>Download the project as a ZIP archive, or view generated OpenAPI spec and TypeScript types</td></tr>
+  <tr><td>API panel</td><td>View OpenAPI spec extracted from FastAPI code, test endpoints, generate TypeScript interfaces</td></tr>
+  <tr><td>Mock server</td><td>Start a Node.js mock server for API testing</td></tr>
+  <tr><td>Project CRUD</td><td>Create, list, load, update, and delete projects in SQLite</td></tr>
+  <tr><td>Mobile layout</td><td>Responsive mobile layout with bottom tab bar</td></tr>
+  <tr><td>Thinking tokens</td><td>Collapsible "Thought process" display for Claude's reasoning</td></tr>
+</table>
+
+<h3>Studio Workflow</h3>
+<div class="steps">
+  <div class="step"><strong>Create or load</strong> a project from the welcome screen</div>
+  <div class="step"><strong>Chat:</strong> Describe what you want to build in the chat panel</div>
+  <div class="step"><strong>Generate:</strong> AI creates all files, streaming token by token</div>
+  <div class="step"><strong>Preview:</strong> See the live running app in the Sandpack preview panel</div>
+  <div class="step"><strong>Refine:</strong> Edit code directly or chat to request changes</div>
+  <div class="step"><strong>Save &amp; Export:</strong> Save versions, export as ZIP, or view API spec</div>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="experts">10. KG-OS Expert Builder <span class="badge badge-new">NEW in v2.2.0</span></h2>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-icon" style="background:#2a1a3b">&#x1F4A1;</div>
+    <h4>Create AI Experts Backed by Knowledge Graphs</h4>
+  </div>
+  <p>Build domain-specific AI experts that answer questions using structured knowledge graph retrieval. Each expert is backed by a KG database with intent-driven retrieval, a 4-weight scoring formula, and 56 semantic dimensions.</p>
+</div>
+
+<h3>Expert Builder UI</h3>
+<table>
+  <tr><th>Tab</th><th>Description</th></tr>
+  <tr><td><strong>Chat</strong></td><td>SSE streaming conversation with the expert. The expert retrieves relevant KG nodes as context and provides source citations. Multiple conversations per expert.</td></tr>
+  <tr><td><strong>Config</strong></td><td>View and edit expert settings: name, color, KG database binding, system prompt, retrieval weights, persona configuration.</td></tr>
+  <tr><td><strong>Analytics</strong></td><td>Graph analytics for the expert's bound KG: centrality, communities, node distribution.</td></tr>
+</table>
+
+<h3>Expert Actions</h3>
+<p>From the top bar: <strong>Edit</strong> (open builder), <strong>Dup</strong> (duplicate), <strong>Del</strong> (delete), <strong>+ New</strong> (create). Experts are selected via a dropdown picker showing name, color dot, and bound KG ID.</p>
+
+<h3>KG-OS Query Engine</h3>
+<p>Behind each expert chat is the KG-OS query engine with 12 query methods, 14 intent types, and 56 semantic dimensions. Queries use a 4-weight scoring formula to rank relevant knowledge graph nodes.</p>
+
+<!-- ================================================================ -->
+<h2 id="games">11. Game Studio (Phaser 3) <span class="badge badge-new">NEW in v2.5.0</span></h2>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-icon" style="background:#1a3320">&#x1F3AE;</div>
+    <h4>Phaser 3 Game Studio</h4>
+  </div>
+  <p>Design 2D RPG games through a structured interview. AI generates Phaser 3 code with sprites, physics, NPCs, and combat. Games go through states: draft, interviewing, generating, playable, and editing.</p>
+</div>
+
+<h3>6 Tabs</h3>
+<table>
+  <tr><th>Tab</th><th>Description</th></tr>
+  <tr><td><strong>Interview</strong></td><td>Structured Q&A to define your game: genre, mechanics, characters, world, visual style. Completed interviews produce a Game Design Document.</td></tr>
+  <tr><td><strong>Preview</strong></td><td>Live game preview running in an embedded Phaser 3 canvas. See your game as soon as code is generated.</td></tr>
+  <tr><td><strong>Code</strong></td><td>View and edit all generated game files. Syntax-highlighted code editor with save support.</td></tr>
+  <tr><td><strong>Chat</strong></td><td>Chat with AI about your game to refine mechanics, fix bugs, or add features.</td></tr>
+  <tr><td><strong>GDD</strong></td><td>View the generated Game Design Document &mdash; a structured overview of your game's design.</td></tr>
+  <tr><td><strong>Versions</strong></td><td>Version history with restore support.</td></tr>
+</table>
+
+<h3>Game Workflow</h3>
+<div class="steps">
+  <div class="step">Click <strong>"Create Your First Game"</strong> or <strong>"+ New"</strong> and name your game</div>
+  <div class="step">Complete the <strong>Interview</strong> tab &mdash; answer at least 4 questions to unlock generation</div>
+  <div class="step">Review the <strong>GDD</strong> tab to verify the design</div>
+  <div class="step">Click <strong>"Generate"</strong> &mdash; AI creates Phaser 3 code via SSE streaming</div>
+  <div class="step">Switch to <strong>Preview</strong> tab to play your game immediately</div>
+  <div class="step">Use <strong>Chat</strong> or <strong>Code</strong> tabs to iterate, then <strong>"Regen"</strong> to rebuild</div>
+</div>
+
+<p>Multiple games can be managed via the dropdown picker in the top bar. Each game shows its status with a colored badge (draft, interviewing, generating, playable, editing).</p>
+
+<!-- ================================================================ -->
+<h2 id="tools">12. Tools Playground (58+ Python Tools, 11 Categories) <span class="badge badge-new">NEW in v2.2.0</span></h2>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-icon" style="background:#1a2744">&#x2B50;</div>
+    <h4>58+ Python Tools</h4>
+  </div>
+  <p>A playground for running Python tools covering code quality, cost optimization, agent intelligence, knowledge graphs, generators, reasoning, and more. Every tool runs locally with zero external dependencies.</p>
+</div>
+
+<h3>11 Tool Categories</h3>
+<table>
+  <tr><th>Category</th><th>Examples</th></tr>
+  <tr><td>Code Quality</td><td>Code review, complexity analysis, refactoring suggestions</td></tr>
+  <tr><td>Cost Optimization</td><td>API cost estimation, batch optimization</td></tr>
+  <tr><td>Agent Intelligence</td><td>Task decomposition, workflow planning</td></tr>
+  <tr><td>Knowledge Graph</td><td>KG building, entity extraction, graph analytics</td></tr>
+  <tr><td>Generators</td><td>Code generation, test generation, doc generation</td></tr>
+  <tr><td>Reasoning</td><td>Fact validation, metacognition analysis</td></tr>
+  <tr><td>Dev Tools</td><td>Linting, formatting, debugging helpers</td></tr>
+  <tr><td>Frontend</td><td>Component analysis, accessibility checks</td></tr>
+  <tr><td>Backend</td><td>API design, database schema tools</td></tr>
+  <tr><td>Full-Stack</td><td>Project scaffolding, architecture analysis</td></tr>
+  <tr><td>Orchestration</td><td>Deployment planning, scaling analysis</td></tr>
+</table>
+
+<h3>Tools UI</h3>
+<p>The page has a sidebar listing all tools grouped by category with category filter buttons and a search bar. Selecting a tool shows two tabs:</p>
+<table>
+  <tr><th>Tab</th><th>Description</th></tr>
+  <tr><td><strong>Run</strong></td><td>Dynamic parameter form (text, number, boolean, JSON, textarea) with typed inputs. Click "Run Tool" to execute. Output displays as formatted JSON.</td></tr>
+  <tr><td><strong>Schema</strong></td><td>Full parameter schema table (name, type, required, default, description) and raw JSON definition.</td></tr>
+</table>
+
+<!-- ================================================================ -->
+<h2 id="vox">13. VOX Voice Agent <span class="badge badge-new">NEW in v2.2.0</span></h2>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-icon" style="background:#1a3320">&#x1F3A4;</div>
+    <h4>VOX: Voice-Powered Workspace Control</h4>
+  </div>
+  <p>A bidirectional voice agent using the Gemini Live API (native audio) or Claude (browser STT/TTS). VOX has 34 function declarations for navigating the workspace, running tools, querying KGs, guided tours, and more. 16 AI voices with distinct personalities. Auto-reconnect and thermal monitoring.</p>
+</div>
+
+<h3>4 Tabs</h3>
+<table>
+  <tr><th>Tab</th><th>Description</th></tr>
+  <tr><td><strong>Chat (Transcript)</strong></td><td>Real-time voice conversation displayed as chat bubbles. User messages on the right, VOX responses on the left, system messages dashed. Text input for typing when you cannot speak.</td></tr>
+  <tr><td><strong>Controls</strong></td><td>Mode selector (Gemini native audio / Claude browser STT/TTS), 16-voice grid selector, model picker, system prompt, connect/disconnect, mic toggle, session stats (turns, function count, speaking/listening).</td></tr>
+  <tr><td><strong>Log</strong></td><td>Function call log showing every workspace function VOX executed: function name, arguments, status (OK/ERR/...), and whether it was handled server-side.</td></tr>
+  <tr><td><strong>Macros</strong></td><td>Saved voice macros with trigger phrase, step count, run and delete buttons. Create macros by asking VOX to "create a macro" by voice.</td></tr>
+</table>
+
+<h3>16 Voices</h3>
+<table>
+  <tr><th>Voice</th><th>Gender</th><th>Style</th></tr>
+  <tr><td>Puck (default)</td><td>Male</td><td>Upbeat, lively</td></tr>
+  <tr><td>Charon</td><td>Male</td><td>Informative, steady</td></tr>
+  <tr><td>Kore</td><td>Female</td><td>Firm, authoritative</td></tr>
+  <tr><td>Fenrir</td><td>Male</td><td>Excitable, bold</td></tr>
+  <tr><td>Aoede</td><td>Female</td><td>Breezy, warm</td></tr>
+  <tr><td>Leda</td><td>Female</td><td>Youthful, approachable</td></tr>
+  <tr><td>Orus</td><td>Male</td><td>Firm, decisive</td></tr>
+  <tr><td>Zephyr</td><td>Male</td><td>Calm, breezy</td></tr>
+  <tr><td>Sage</td><td>Non-binary</td><td>Wise, thoughtful</td></tr>
+  <tr><td>Vale</td><td>Non-binary</td><td>Gentle, melodic</td></tr>
+  <tr><td>Solaria</td><td>Female</td><td>Bright, energetic</td></tr>
+  <tr><td>River</td><td>Non-binary</td><td>Smooth, flowing</td></tr>
+  <tr><td>Ember</td><td>Female</td><td>Warm, passionate</td></tr>
+  <tr><td>Breeze</td><td>Female</td><td>Light, airy</td></tr>
+  <tr><td>Cove</td><td>Male</td><td>Deep, resonant</td></tr>
+  <tr><td>Orbit</td><td>Male</td><td>Futuristic, crisp</td></tr>
+</table>
+
+<h3>34 Workspace Functions</h3>
+<p>VOX can execute 34 workspace functions by voice, including: navigate to pages, run tools, query knowledge graphs, search playbooks, execute agents, start guided tours, create macros, check system health, monitor device temperature, and more.</p>
+
+<h3>Additional VOX Features</h3>
+<table>
+  <tr><th>Feature</th><th>Description</th></tr>
+  <tr><td>Guided tours</td><td>11 interactive tours that spotlight UI elements and walk you through features page by page</td></tr>
+  <tr><td>Voice macros</td><td>Pipe-chained multi-step commands triggered by a phrase (e.g., "morning briefing" runs 3 functions)</td></tr>
+  <tr><td>Thermal monitoring</td><td>Real-time device temperature and battery status (Termux battery API integration)</td></tr>
+  <tr><td>Auto-reconnect</td><td>Automatic reconnection on WebSocket drop with visual indicator</td></tr>
+  <tr><td>Awareness layer</td><td>Tracks page visits, errors, and context so VOX understands where you are in the workspace</td></tr>
+  <tr><td>Floating overlay</td><td>A floating VOX pill available on all pages for quick voice interaction without navigating to /vox</td></tr>
+  <tr><td>Google Search grounding</td><td>VOX can ground answers using Google Search for real-time information</td></tr>
+</table>
+
+<!-- ================================================================ -->
+<h2 id="themes">14. Themes (5 Presets)</h2>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-icon" style="background:#2a1a3b">&#x1F3A8;</div>
     <h4>5 Built-in Themes</h4>
   </div>
-  <p>Switch themes via the palette icon in the NavBar or from the Settings page. Your choice is saved in localStorage and persists across sessions.</p>
+  <p>Switch themes via the palette icon in the NavBar or from the Settings page. Your choice is saved in localStorage and persists across sessions. Every component uses CSS custom properties, so the entire UI updates instantly.</p>
 </div>
 
 <table>
   <tr><th>Theme</th><th>Style</th><th>Special Effects</th></tr>
-  <tr><td><strong>Default</strong></td><td>Dark slate, sky-blue accents</td><td>None</td></tr>
+  <tr><td><strong>Default</strong></td><td>Dark slate, sky-blue accents, system-ui font</td><td>None</td></tr>
   <tr><td><strong>Deluxe-CRT</strong></td><td>Amber phosphor, monospace font</td><td>Subtle scanlines, vignette, text glow</td></tr>
-  <tr><td><strong>Scratch</strong></td><td>B&W, hand-drawn doodle</td><td>Dashed borders, box-shadows, Patrick Hand font</td></tr>
-  <tr><td><strong>Solarized Zen</strong></td><td>Warm earth tones, teal/amber</td><td>Clean & minimal</td></tr>
-  <tr><td><strong>Sunset Warm</strong></td><td>Coral, amber, rose gold</td><td>Subtle gradient accents</td></tr>
+  <tr><td><strong>Scratch</strong></td><td>B&amp;W, hand-drawn doodle</td><td>Dashed borders, box-shadows, Patrick Hand font, 0px radius</td></tr>
+  <tr><td><strong>Solarized Zen</strong></td><td>Warm earth tones, teal/amber</td><td>Clean &amp; minimal, rounded corners</td></tr>
+  <tr><td><strong>Sunset Warm</strong></td><td>Coral, amber, rose gold on dark charcoal</td><td>Subtle warm gradient accents</td></tr>
 </table>
 
 <div class="tip">
-  <strong>How it works:</strong> Themes use CSS custom properties (<code>--t-bg</code>, <code>--t-surface</code>, <code>--t-primary</code>, etc.) applied to <code>:root</code>. All components reference these variables instead of hardcoded colors, so the entire UI updates instantly when you switch themes.
+  <strong>How it works:</strong> Themes define 17 CSS custom properties (<code>--t-bg</code>, <code>--t-surface</code>, <code>--t-surface2</code>, <code>--t-border</code>, <code>--t-primary</code>, <code>--t-primary-h</code>, <code>--t-accent1</code>, <code>--t-accent2</code>, <code>--t-text</code>, <code>--t-text2</code>, <code>--t-muted</code>, <code>--t-success</code>, <code>--t-warning</code>, <code>--t-error</code>, <code>--t-font</code>, <code>--t-font-mono</code>, <code>--t-radius</code>) applied to <code>:root</code>. All components use <code>style={{ background: 'var(--t-surface)' }}</code> for visuals and <code>className</code> for layout.
 </div>
 
-<h2 id="settings">10. Settings & Modes</h2>
+<!-- ================================================================ -->
+<h2 id="settings">15. Settings, Export/Import &amp; API Keys</h2>
 
-<h3>Standalone Mode (default)</h3>
-<p>Both Gemini and Claude APIs are active. Full dual-model experience.</p>
+<h3>Workspace Modes</h3>
+<table>
+  <tr><th>Mode</th><th>Description</th></tr>
+  <tr><td><strong>Standalone</strong> (default)</td><td>Both Gemini and Claude APIs are active. Full dual-model experience with all 23 models available.</td></tr>
+  <tr><td><strong>Claude Code</strong></td><td>Only Gemini API is active. When you select Claude as provider, the app generates structured JSON context for a Claude Code session. This saves Anthropic API costs.</td></tr>
+</table>
 
-<h3>Claude Code Mode</h3>
-<p>Only Gemini API is active. When you select Claude as provider, the app generates structured JSON context that you can feed into a Claude Code session. This saves Anthropic API costs (subscription vs per-token).</p>
+<h3>API Key Configuration</h3>
+<p>The Settings page lets you enter API keys at runtime. Keys are stored in memory (not written to disk) and take effect immediately. Status indicators show which keys are configured. You can also set keys via environment variables before startup.</p>
 
 <h3>Workspace Transfer</h3>
-<p>Export your entire workspace (projects, files, chat history, personas) as JSON. Import it in the other mode or on another device.</p>
+<p>Export your entire workspace (projects, files, chat history, personas) as a JSON file. Import it on another device, in the other mode, or as a backup.</p>
+<div class="grid">
+  <div class="card">
+    <h4>Export</h4>
+    <p>Click "Export Workspace" to download a timestamped JSON file containing all projects, personas, and files.</p>
+  </div>
+  <div class="card">
+    <h4>Import</h4>
+    <p>Click "Import" and select a previously exported JSON file. Projects and data are merged into the current workspace.</p>
+  </div>
+</div>
 
-<h2 id="tips">11. Tips & Shortcuts</h2>
+<h3>Theme Selection</h3>
+<p>Choose from the 5 themes listed in <a href="#themes">Section 14</a>. The selection is previewed with color swatches and persists in localStorage.</p>
+
+<!-- ================================================================ -->
+<h2 id="integrations">16. Integrations</h2>
+
+<p>The Integrations page manages connections to external platforms. Configuration requires API tokens or credentials set via environment variables:</p>
+
+<table>
+  <tr><th>Platform</th><th>Variables</th></tr>
+  <tr><td>Telegram</td><td><code>TELEGRAM_BOT_TOKEN</code></td></tr>
+  <tr><td>WhatsApp</td><td><code>WHATSAPP_TOKEN</code>, <code>WHATSAPP_PHONE_ID</code>, <code>WHATSAPP_VERIFY_TOKEN</code></td></tr>
+  <tr><td>Discord</td><td><code>DISCORD_BOT_TOKEN</code>, <code>DISCORD_PUBLIC_KEY</code></td></tr>
+  <tr><td>Slack</td><td><code>SLACK_BOT_TOKEN</code>, <code>SLACK_SIGNING_SECRET</code></td></tr>
+  <tr><td>Gmail</td><td><code>GMAIL_CLIENT_ID</code>, <code>GMAIL_CLIENT_SECRET</code>, <code>GMAIL_REFRESH_TOKEN</code></td></tr>
+  <tr><td>Spotify</td><td><code>SPOTIFY_CLIENT_ID</code>, <code>SPOTIFY_CLIENT_SECRET</code>, <code>SPOTIFY_REFRESH_TOKEN</code></td></tr>
+  <tr><td>Google Calendar</td><td><code>GOOGLE_CALENDAR_CREDENTIALS</code></td></tr>
+</table>
+
+<!-- ================================================================ -->
+<h2 id="tips">17. Tips &amp; Shortcuts</h2>
 
 <div class="grid">
   <div class="tip">
-    <strong>Cost savings:</strong> Use Gemini Flash for routine tasks, Claude Sonnet for quality work, Opus only for complex reasoning.
+    <strong>Cost savings:</strong> Use Gemini 2.5 Flash Lite ($0.075/1M) for routine tasks, Claude Sonnet for quality work, Opus only for complex reasoning. The /agent command uses Sonnet automatically.
   </div>
   <div class="tip">
-    <strong>Extended thinking:</strong> Enable the "Think" checkbox for Claude to see its reasoning process. Budget 4K-8K tokens for most tasks.
+    <strong>Extended thinking:</strong> Enable the "Think" checkbox for Claude to see its reasoning process. Budget 4K-8K tokens for most tasks, up to 32K for complex analysis.
   </div>
   <div class="tip">
-    <strong>Agent pipelines:</strong> Chain cost-advisor → prompt-engineer → code-reviewer for a complete optimization workflow.
+    <strong>Slash commands:</strong> Type <code>/image a robot painting</code> directly in chat to generate images without switching pages. <code>/tts</code> for speech, <code>/video</code> for video.
   </div>
   <div class="tip">
-    <strong>Playbook search:</strong> Search "cost" to find optimization recipes, "agent" for autonomous workflows, "reasoning" for metacognition tools.
+    <strong>Agent pipelines:</strong> Chain cost-advisor, prompt-engineer, and code-reviewer for a complete optimization workflow on the Agents page.
   </div>
   <div class="tip">
-    <strong>Theme switching:</strong> Click the palette icon in the NavBar to quickly switch themes. Try Deluxe-CRT for a retro terminal feel or Scratch for a whiteboard doodle aesthetic.
+    <strong>KG Studio search:</strong> The hybrid search formula (0.40 embedding + 0.45 BM25 + 0.15 graph boost) achieves 88.5% recall. Use multi-KG search to search across all 57 databases at once.
+  </div>
+  <div class="tip">
+    <strong>Expert Builder:</strong> Create a domain expert by selecting a relevant KG database, writing a focused system prompt, and tuning the 4 retrieval weights. The expert will cite KG nodes as sources.
+  </div>
+  <div class="tip">
+    <strong>Game Studio:</strong> Complete at least 4 interview questions before generating. Use the Chat tab to iterate on mechanics without regenerating the entire game.
+  </div>
+  <div class="tip">
+    <strong>VOX voice:</strong> Try different voices for different tasks. Sage (wise, thoughtful) for analysis, Fenrir (excitable, bold) for brainstorming, Puck (upbeat) for general use.
+  </div>
+  <div class="tip">
+    <strong>Theme switching:</strong> Click the palette icon in the NavBar for instant theme changes. Try Deluxe-CRT for retro terminal aesthetics or Scratch for a whiteboard doodle feel.
+  </div>
+  <div class="tip">
+    <strong>MCP server:</strong> The workspace exposes all 58+ tools via <code>mcp_server.py</code> as JSON-RPC over stdio for integration with Claude Code and other MCP clients.
+  </div>
+  <div class="tip">
+    <strong>Mobile-first:</strong> All pages use responsive layouts. Games, Experts, and VOX pages use dropdown pickers instead of sidebars. KG Studio uses a collapsible sidebar pattern.
+  </div>
+  <div class="tip">
+    <strong>Playbook search:</strong> Search "cost" for optimization recipes, "agent" for autonomous workflows, "reasoning" for metacognition tools, "production" for deployment guides.
   </div>
 </div>
 
 <div class="tip warning">
-  <strong>Note:</strong> API keys are stored in <code>backend/config.py</code>. Set environment variables <code>GEMINI_API_KEY</code> and <code>ANTHROPIC_API_KEY</code> to override. Never commit keys to public repositories.
+  <strong>Security note:</strong> API keys entered in Settings are stored in server memory only and not written to disk. Set environment variables (<code>GEMINI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>) for persistence. CORS is configured for all origins in dev mode. No authentication is enabled &mdash; this is designed for local/trusted environments.
 </div>
 
 <hr style="border: 1px solid #1e293b; margin: 40px 0;">
-<p style="text-align: center; font-size: 12px; color: #475569;">Multi-AI Agentic Workspace v1.0 — Built with FastAPI + React 19 + Gemini + Claude</p>
+<p style="text-align: center; font-size: 12px; color: #475569;">Multi-AI Agentic Workspace v2.5.0 &mdash; Built with FastAPI + React 19 + Gemini + Claude<br>14 pages &middot; 23 models &middot; 33 agents &middot; 53 playbooks &middot; 58+ tools &middot; 57 KG databases &middot; 16 voices &middot; 5 themes</p>
 
 </div>
 </body>

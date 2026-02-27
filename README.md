@@ -1,165 +1,288 @@
-# Multi-AI Agentic Workspace v2.3.0
+# Multi-AI Agentic Workspace
 
-A professional agentic workflow orchestrator combining **Gemini** and **Claude** intelligence into a unified web interface. Build real software with 33 NLKE agents, 53 playbooks, 58+ Python tools, visual workflows, a dual-model coding IDE, a full Graph-RAG Knowledge Graph workspace, an **AI-powered Studio**, **VOX voice agent**, **KG-OS Expert Builder**, and a standalone **MCP server**.
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.4-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://python.org)
+[![Models](https://img.shields.io/badge/AI_Models-23-blueviolet)]()
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+A professional agentic workflow orchestrator combining **Gemini + Claude** intelligence. 23 AI models across 7 categories, dual-model streaming, an AI-powered app Studio, Knowledge Graph workspace, Expert Builder, voice agent, game studio, 58+ tools, and 5 visual themes -- all in one interface.
+
+---
 
 ## Features
 
-- **Dual-Model Chat** — Stream responses from Gemini or Claude, switch mid-conversation
-- **Coding IDE** — File explorer, code editor, AI-powered file operations via tool use
-- **33 NLKE Agents** — Run specialized agents (cost-advisor, code-reviewer, workflow-orchestrator, etc.)
-- **53 Playbooks** — Searchable library of implementation recipes with category filtering
-- **Visual Workflows** — 4 templates, AI-planned custom workflows, SSE execution with progress
-- **KG Studio** — Full Graph-RAG workspace: 57 SQLite KGs, 6 auto-detected schema profiles, d3-force + React Flow visualization, **live hybrid semantic search** (0.40\*embedding + 0.45\*BM25 + 0.15\*graph via numpy cosine similarity), CRUD, edge browser with edit/delete, **multi-KG cross-search**, AI ingestion (Gemini + LightRAG with resilient fallback), NetworkX analytics (PageRank, communities, centrality), RAG chat with source citations, KG compare/diff/merge, embedding dashboard with PCA projections (10 tabs), toast notifications for all errors
-- **Studio** — AI-powered full-stack React app generator: describe in chat → live Sandpack preview → 3 modes (Chat/Code/Visual) → SQLite project persistence with version history → ZIP export. 28 components, mobile-responsive with bottom tab bar
-- **KG-OS Expert Builder** — Create AI experts backed by structured knowledge graphs with intent-driven retrieval, 4-weight scoring formula (0.35\*embedding + 0.40\*text + 0.15\*graph + 0.10\*intent), 56 semantic dimensions, SSE streaming with source citations
-- **58+ Python Tools** — 11 categories (Code Quality, Cost Optimization, Agent Intelligence, Knowledge Graph, Generators, Reasoning, Dev Tools, Frontend, Backend, Full-Stack, Orchestration) — all pure Python, $0 cost, no external deps
-- **VOX Voice Agent** — Voice-powered workspace intelligence via Gemini Live API (native audio) + Claude (browser STT/TTS). **34 function declarations**, 16 voices, Google Search grounding for real-time answers, workspace awareness layer, voice-narrated guided tours (11 pages), voice macros with pipe chaining, full Jarvis-mode workspace control (create projects, search KGs/playbooks, run workflows, chat with experts), auto-reconnect with exponential backoff, async task queue, thermal monitoring
-- **MCP Server** — Standalone MCP server (`python3 backend/mcp_server.py`) exposing all 58+ workspace tools as individual MCP tools via JSON-RPC over stdio
-- **Workspace Transfer** — JSON import/export between standalone and Claude Code modes
-- **5 Themes** — Default, Deluxe-CRT, Scratch (B&W doodle), Solarized Zen, Sunset Warm — switchable via NavBar or Settings
-- **Mobile-First** — Responsive design, collapsible sidebars, touch-friendly
+- **Dual-Model AI Chat** -- Stream responses from Gemini or Claude with a 23-model selector and slash commands (`/image`, `/tts`, `/video`, `/agent`)
+- **AI Studio** -- Generate full-stack React apps from a prompt with live Sandpack preview, 3 editing modes, SQLite project persistence, version history, and ZIP export
+- **KG-OS Expert Builder** -- Create AI experts backed by structured knowledge graphs with intent-driven retrieval, 4-weight scoring formula, and 56 semantic dimensions
+- **KG Studio** -- Graph-RAG workspace: 57 SQLite KGs, 6 schema profiles, hybrid search (embedding + BM25 + graph boost), d3-force visualization, NetworkX analytics, RAG chat with source citations, and multi-KG cross-search
+- **Games Studio** -- AI-powered Phaser 3 RPG game generation with interview-driven design, KG context injection, and live preview
+- **VOX Voice Agent** -- Gemini Live API + Claude tool_use: 34 function declarations, 16 voices, Google Search grounding, workspace awareness, guided tours, voice macros, thermal monitoring, and auto-reconnect
+- **Tools Playground** -- 58+ Python tools across 11 categories with dynamic parameter forms and streaming output
+- **Media Generation** -- Image (Imagen 4, Nano Banana Pro), video (Veo 3.1), TTS (24 voices), and music (Lyria)
+- **33 NLKE Agents** -- Autonomous agents for error recovery, KG curation, reasoning, cost optimization, and more
+- **53 Playbooks** -- Searchable implementation recipes for cost optimization, prompt engineering, deployment, and beyond
+- **Visual Workflows** -- DAG-based workflow designer with SSE execution and 4 built-in templates
+- **MCP Server** -- Standalone JSON-RPC server exposing all 58+ tools for Claude Code integration
+- **5 Themes** -- Default, Deluxe-CRT, Scratch, Solarized Zen, Sunset Warm
+- **Mobile-First** -- Responsive design with collapsible sidebars and touch-friendly controls
 
-## Architecture
+## Screenshots
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                    React 19 Frontend                      │
-│  Chat │ Coding │ Agents │ Playbooks │ Workflows │ ...    │
-├──────────────────────────────────────────────────────────┤
-│                    Vite Dev Server (:5173)                │
-│                    Proxy /api → :8000                     │
-├──────────────────────────────────────────────────────────┤
-│                    FastAPI Backend (:8000)                │
-│  15 Routers │ 19 Services │ Model Router │ Agent Bridge  │
-├──────────────────────────────────────────────────────────┤
-│              External APIs                                │
-│  Gemini API (google-genai) │ Claude API (anthropic)      │
-│  33 NLKE Agents (Python)   │ 53 Playbooks (.pb files)   │
-└──────────────────────────────────────────────────────────┘
-```
+<!-- Add screenshots here -->
+<!-- ![Chat](docs/screenshots/chat.png) -->
+<!-- ![Studio](docs/screenshots/studio.png) -->
+<!-- ![KG Studio](docs/screenshots/kg-studio.png) -->
+<!-- ![Games](docs/screenshots/games.png) -->
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Backend** | Python 3.11+, FastAPI 0.115+, Uvicorn |
+| **Frontend** | React 19, TypeScript 5.4, Vite 5 |
+| **Styling** | Tailwind CSS 3.4, CSS custom properties (5 themes) |
+| **AI SDKs** | `google-genai` (Gemini), `anthropic` (Claude) |
+| **Graph/Search** | SQLite + FTS5, NetworkX, numpy, model2vec, LightRAG |
+| **Visualization** | React Flow, d3-force |
+| **App Preview** | Sandpack (CodeSandbox runtime) |
+| **Game Engine** | Phaser 3 |
+| **Voice** | Gemini Live API (WebSocket, PCM audio) |
+
+---
 
 ## Quick Start
 
+### Prerequisites
+
+- Python 3.11+
+- Node.js 18+
+- API keys for [Google AI Studio](https://aistudio.google.com/) and/or [Anthropic Console](https://console.anthropic.com/)
+
 ### Backend
+
 ```bash
 cd backend
 pip install -r requirements.txt
+
+# Set API keys (or configure at runtime via the Settings page)
+export GEMINI_API_KEY="your-gemini-key"
+export ANTHROPIC_API_KEY="your-anthropic-key"  # optional for Claude Code mode
+
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ### Frontend
+
 ```bash
 cd frontend
-npm install    # Run on laptop, copy node_modules to phone
-npm run dev    # Vite on :5173
+npm install
+npm run dev
 ```
 
+Open [http://localhost:5173](http://localhost:5173). The Vite dev server proxies `/api` requests to the backend on port 8000.
+
 ### Verify
-- Backend: http://localhost:8000/docs (Swagger UI)
-- Frontend: http://localhost:5173
-- Health: http://localhost:8000/api/health
 
-## Dual-Mode Operation
+- **Swagger UI**: http://localhost:8000/docs
+- **Frontend**: http://localhost:5173
+- **Health check**: http://localhost:8000/api/health
 
-### Standalone Mode (default)
-Both Gemini and Claude APIs active. Full dual-model UI.
+---
 
-### Claude Code Mode
-Only Gemini API active. Claude requests generate structured JSON context for Claude Code sessions. Toggle in Settings or via `POST /api/mode`.
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     React 19 Frontend                       │
+│  Chat | Studio | Experts | KG Studio | Games | VOX | ...   │
+├─────────────────────────────────────────────────────────────┤
+│                  Vite Dev Server (:5173)                     │
+│                  Proxy /api -> :8000                         │
+├─────────────────────────────────────────────────────────────┤
+│                  FastAPI Backend (:8000)                     │
+│  17 Routers | 28 Services | Model Router | Agent Bridge     │
+├─────────────────────────────────────────────────────────────┤
+│                     External APIs                           │
+│  Gemini API (20 models) | Claude API (3 models)            │
+│  33 NLKE Agents         | 53 Playbooks                     │
+│  57 SQLite KGs          | 58+ Python Tools                 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Dual-Mode Operation
+
+| Mode | Description |
+|------|-------------|
+| **Standalone** (default) | Both `GEMINI_API_KEY` and `ANTHROPIC_API_KEY` active. Full dual-model UI with all 23 models. |
+| **Claude Code** | Only `GEMINI_API_KEY` active. Claude tasks return structured JSON for CLI sessions. |
+
+Toggle via the Settings page or `POST /api/mode`.
+
+---
+
+## Pages
+
+| Route | Page | Description |
+|-------|------|-------------|
+| `/chat` | Chat | Dual-model streaming chat with 23-model selector and slash commands |
+| `/coding` | Coding | IDE with file explorer and AI-assisted coding via tool use |
+| `/builder` | Studio | AI app generator with live Sandpack preview, version history, ZIP export |
+| `/experts` | Experts | KG-OS Expert Builder -- AI experts backed by knowledge graphs |
+| `/kg-studio` | KG Studio | Graph-RAG workspace: 57 KGs, hybrid search, d3 visualization, RAG chat |
+| `/games` | Games | Phaser 3 RPG game studio with AI interview-driven generation |
+| `/tools` | Tools | 58+ Python tools playground with dynamic parameter forms |
+| `/vox` | VOX | Voice agent: 16 voices, 34 functions, macros, transcript |
+| `/agents` | Agents | 33 NLKE agents with pipeline builder |
+| `/playbooks` | Playbooks | 53 searchable implementation playbooks |
+| `/workflows` | Workflows | Visual workflow designer with SSE execution |
+| `/integrations` | Integrations | Platform integrations (Telegram, Discord, Slack, Gmail, Spotify) |
+| `/settings` | Settings | Mode toggle, theme picker, API key config, export/import |
+
+---
 
 ## Model Catalog
 
-| Provider | Model | Best For | Cost (in/out per MTok) |
-|----------|-------|----------|------------------------|
-| Gemini | 2.5 Flash | Fast coding/streaming | $0.15/$0.60 |
-| Gemini | 2.5 Pro | Deep reasoning | $1.25/$5 |
-| Gemini | 3 Pro | Flagship reasoning | ~$2/$12 |
-| Claude | Haiku 4.5 | Budget routing | $1/$5 |
-| Claude | Sonnet 4.6 | Fast + capable | $3/$15 |
-| Claude | Opus 4.6 | Most intelligent | $5/$25 |
+### Gemini (20 models)
+
+| Model | Category | Context | Cost (in/out $/MTok) | Use Case |
+|-------|----------|---------|----------------------|----------|
+| Gemini 3.1 Pro | Text | 1M | $2.00 / $12.00 | Flagship -- better thinking, agentic workflows |
+| Gemini 3 Pro | Text | 1M | $2.00 / $12.00 | Flagship reasoning |
+| Gemini 2.5 Pro | Text | 1M | $1.25 / $5.00 | Deep reasoning |
+| Gemini 2.5 Flash | Text | 1M | $0.15 / $0.60 | Fast coding/streaming (default) |
+| Gemini 3 Flash | Text | 1M | $0.10 / $0.40 | Fast next-gen flash |
+| Gemini 2.5 Flash Lite | Text | 1M | $0.075 / $0.30 | Cheapest, bulk tasks |
+| Nano Banana Pro | Image | 1M | $2.00 / $12.00 | High-quality image generation |
+| Gemini 2.5 Flash Image | Image | 1M | $0.15 / $0.60 | Fast image generation/editing |
+| Imagen 4 | Image | -- | $0 / $0.04 | Dedicated image generation |
+| Veo 3.1 | Video | -- | -- | Video generation with audio |
+| Veo 3.1 Fast | Video | -- | -- | Fast video generation |
+| Veo 2.0 | Video | -- | -- | Video generation (legacy) |
+| Gemini Flash Audio | Audio | 1M | $0.15 / $0.60 | Native audio understanding/generation |
+| Gemini Flash TTS | Audio | 8K | $0.15 / $0.60 | Text-to-speech (24 voices) |
+| Gemini Pro TTS | Audio | 8K | $1.25 / $5.00 | High-quality TTS |
+| Lyria | Music | -- | -- | AI music generation |
+| Gemini Embedding | Embedding | 8K | Free | RAG/embeddings |
+| Gemini Computer Use | Agent | 1M | $1.25 / $5.00 | Autonomous computer control |
+| Deep Research | Agent | 1M | $2.00 / $12.00 | Multi-step web research |
+
+### Claude (3 models)
+
+| Model | Context | Cost (in/out $/MTok) | Use Case |
+|-------|---------|----------------------|----------|
+| Claude Opus 4.6 | 200K | $5.00 / $25.00 | Most intelligent |
+| Claude Sonnet 4.6 | 200K | $3.00 / $15.00 | Fast + capable (default) |
+| Claude Haiku 4.5 | 200K | $1.00 / $5.00 | Budget routing |
+
+---
+
+## API Overview
+
+The backend exposes **100+ REST endpoints** and a **WebSocket** for voice streaming. Key groups:
+
+| Prefix | Count | Purpose |
+|--------|-------|---------|
+| `/api/chat` | 1 | SSE streaming chat (dual-model) |
+| `/api/coding` | 1 | Coding with tool use |
+| `/api/studio` | 18 | App Studio: stream, project CRUD, versions, export, mock server |
+| `/api/kg` | 33 | KG Studio: CRUD, hybrid search, analytics, RAG chat, merge |
+| `/api/experts` | 15 | Expert Builder: CRUD, chat, KG-OS query engine |
+| `/api/games` | 10+ | Games: interview, generate, refine, chat, project CRUD |
+| `/api/vox` | 12+ | VOX: sessions, functions, macros, tours, thermal |
+| `/api/tools` | 4 | Tools playground: list, get, run, stream |
+| `/api/agents` | 4 | NLKE agent CRUD + execution |
+| `/api/playbooks` | 3 | Playbook search + retrieval |
+| `/api/workflows` | 3 | Workflow templates + execution |
+| `/api/media` | 4 | Image, video, TTS, music generation |
+| `/api/agent` | 2 | Claude Agent SDK (run, sessions) |
+| `/ws/vox` | 1 | Bidirectional voice WebSocket |
+
+Interactive API docs are available at `/docs` (FastAPI Swagger UI) when the backend is running.
+
+---
 
 ## Project Structure
 
 ```
 multi-ai-agentic-workspace/
 ├── backend/
-│   ├── main.py                 # FastAPI entry + CORS
-│   ├── config.py               # Keys, models, paths
-│   ├── requirements.txt        # Python dependencies
-│   ├── routers/
-│   │   ├── chat.py             # Dual-model SSE streaming
-│   │   ├── coding.py           # IDE tool use (7 tools)
-│   │   ├── agents.py           # NLKE agent execution
-│   │   ├── playbooks.py        # Playbook search/retrieval
-│   │   ├── workflows.py        # Workflow engine
-│   │   ├── builder.py          # Legacy web app generator
-│   │   ├── studio.py           # Studio: AI app gen + project CRUD (18 endpoints)
-│   │   ├── experts.py          # Expert Builder + KG-OS (15 endpoints)
-│   │   ├── tools.py            # Tools playground (list, get, run, stream)
-│   │   ├── vox.py              # VOX voice agent (WebSocket + REST, 17 functions)
-│   │   ├── media.py            # Image/video
-│   │   ├── interchange.py      # Export/import
-│   │   └── kg.py               # KG Studio (33 endpoints)
-│   ├── services/
-│   │   ├── gemini_service.py   # google-genai wrapper (lazy init)
-│   │   ├── claude_service.py   # anthropic wrapper (streaming + tool_use)
-│   │   ├── model_router.py     # Smart model selection
-│   │   ├── agent_bridge.py     # NLKE bridge
-│   │   ├── playbook_index.py   # .pb file parser
-│   │   ├── studio_service.py   # Studio SQLite persistence + versions + ZIP export
-│   │   ├── openapi_extractor.py # FastAPI → OpenAPI spec extractor
-│   │   ├── type_generator.py   # OpenAPI → TypeScript interfaces
-│   │   ├── mock_server_manager.py # Node.js mock server lifecycle
-│   │   ├── tools_service.py    # 58+ tool registry, dynamic import + execution
-│   │   ├── vox_service.py      # VOX sessions (Gemini Live API + Claude text pipeline)
-│   │   ├── expert_service.py   # Expert CRUD + KG-OS execution pipeline
-│   │   ├── kgos_query_engine.py # KG-OS: 12 query methods, 14 intents, 56 dimensions
-│   │   ├── kg_service.py       # KG core: 6 schema profiles, CRUD
-│   │   ├── embedding_service.py # Hybrid search (numpy cosine + BM25 + graph boost)
-│   │   ├── analytics_service.py # NetworkX graph algorithms
-│   │   ├── ingestion_service.py # AI entity extraction
-│   │   └── rag_chat_service.py  # RAG chat + source citations
-│   ├── mcp_server.py           # MCP server: 58+ tools via JSON-RPC stdio
-│   └── tests/                  # Integration tests
+│   ├── main.py                    # FastAPI entry, CORS, 17 router mounts
+│   ├── config.py                  # API keys, 23-model catalog, paths
+│   ├── routers/                   # 17 API routers
+│   │   ├── chat.py                #   Dual-model SSE streaming
+│   │   ├── coding.py              #   IDE tool use
+│   │   ├── studio.py              #   AI Studio (18 endpoints)
+│   │   ├── kg.py                  #   KG Studio (33 endpoints)
+│   │   ├── experts.py             #   Expert Builder + KG-OS (15 endpoints)
+│   │   ├── games.py               #   Games studio
+│   │   ├── vox.py                 #   VOX voice agent (WebSocket + REST)
+│   │   ├── tools.py               #   Tools playground
+│   │   ├── agents.py              #   NLKE agents
+│   │   ├── playbooks.py           #   Playbook search
+│   │   ├── workflows.py           #   Workflow engine
+│   │   ├── media.py               #   Image/video/TTS/music generation
+│   │   ├── agent.py               #   Claude Agent SDK
+│   │   └── ...                    #   builder, memory, integrations, interchange
+│   ├── services/                  # 28 business logic services (~12,400 lines)
+│   ├── data/                      # Static data (tour definitions, etc.)
+│   ├── mcp_server.py              # Standalone MCP server (JSON-RPC stdio)
+│   └── tests/                     # Integration tests
+│
 ├── frontend/
 │   ├── src/
-│   │   ├── App.tsx             # React Router shell
-│   │   ├── context/            # Global state
-│   │   ├── context/StudioContext # Studio state (files, mode, streaming, versions)
-│   │   ├── pages/              # 11 route pages (Chat, Coding, Agents, Playbooks, Workflows, KG Studio, Studio, Experts, Tools, VOX, Settings)
-│   │   ├── components/         # UI components
-│   │   ├── components/studio/  # 28 Studio components
-│   │   ├── components/experts/ # 6 Expert components
-│   │   ├── themes/             # 5 theme definitions (CSS vars)
-│   │   ├── hooks/              # useChat, useTheme, useToast, useVox
-│   │   ├── context/            # AppContext, StudioContext, VoxContext
-│   │   ├── services/           # API + storage + studioApiService
-│   │   └── types/              # TypeScript interfaces (studio, tools, vox, expert)
-│   ├── package.json
-│   └── vite.config.ts
-├── docs/
-│   ├── API-Endpoints.md        # Full API reference (inc. 18 Studio endpoints)
-│   ├── STUDIO-ROADMAP.md       # Studio future enhancements roadmap
-│   ├── KG-Libraries-Guide.md   # KG library capabilities (NetworkX, Model2Vec, LightRAG, d3-force)
-│   ├── RTX3060-Build-Guide.md  # Desktop build guide (dual-boot, CUDA, local LLMs)
-│   ├── system-atlas.html       # Interactive architecture (updated for Studio)
-│   └── user-guide.html         # Usage guide
-├── agents -> NLKE/agents       # 33 agents (symlink)
-├── playbooks -> playbooks-v2   # 53 playbooks (symlink)
-├── CLAUDE.md                   # Claude Code instructions
-└── README.md                   # This file
+│   │   ├── App.tsx                # React Router shell
+│   │   ├── pages/                 # 14 route pages
+│   │   ├── components/            # UI components (Studio, Experts, VOX, KG, Games)
+│   │   ├── context/               # AppContext, StudioContext, VoxContext
+│   │   ├── themes/                # 5 CSS variable theme definitions
+│   │   ├── hooks/                 # useChat, useTheme, useToast, useVox
+│   │   ├── services/              # API client + localStorage
+│   │   └── types/                 # TypeScript interfaces
+│   └── package.json
+│
+├── agents/                        # 33 NLKE agents (symlink)
+├── playbooks/                     # 53 playbooks (symlink)
+└── docs/                          # Guides, context packets, assets
 ```
 
-## Testing
+---
 
-```bash
-cd backend
-python -m pytest tests/ -v              # All tests
-python tests/run_all.py                  # With summary
-python -m pytest tests/test_api_endpoints.py -v  # API only
-```
+## Theme System
+
+Five built-in themes applied via CSS custom properties on `:root`. Selection persists in `localStorage`. Switch via the NavBar palette icon or Settings page.
+
+| Theme | Style | Special |
+|-------|-------|---------|
+| **Default** | Dark slate, sky-blue accents | -- |
+| **Deluxe-CRT** | Amber phosphor, monospace | Scanlines, vignette, text glow |
+| **Scratch** | B&W, hand-drawn doodle | Dashed borders, Patrick Hand font |
+| **Solarized Zen** | Warm earth tones, teal/amber | Clean and minimal |
+| **Sunset Warm** | Coral, amber, rose gold | Gradient accents |
+
+All components use `style={{ background: 'var(--t-surface)' }}` for theming while keeping layout utilities (`flex`, `p-4`, `rounded`) in `className`.
+
+---
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GEMINI_API_KEY` | -- | Google AI API key (required) |
+| `ANTHROPIC_API_KEY` | -- | Anthropic API key (optional, enables Claude models) |
+| `WORKSPACE_MODE` | `standalone` | `"standalone"` or `"claude-code"` |
+| `KGS_DIR` | `docs/KGS` | Path to KG SQLite databases |
+
+Keys can also be set at runtime via `POST /api/config/keys` or the Settings page.
+
+---
 
 ## Symlink Setup
+
+The agents and playbooks directories are expected as symlinks:
 
 ```bash
 cd multi-ai-agentic-workspace
@@ -167,28 +290,27 @@ ln -sf /path/to/NLKE/agents agents
 ln -sf /path/to/playbooks/playbooks-v2 playbooks
 ```
 
-## Theme System
+---
 
-5 built-in themes, switchable via NavBar palette icon or Settings page:
+## Testing
 
-| Theme | Style | Special Effects |
-|-------|-------|-----------------|
-| Default | Dark slate, sky-blue accents | None |
-| Deluxe-CRT | Amber phosphor, monospace | Subtle scanlines, vignette, text glow |
-| Scratch | B&W, hand-drawn doodle | Dashed borders, box-shadows, Patrick Hand font |
-| Solarized Zen | Warm earth tones, teal/amber | None, clean & minimal |
-| Sunset Warm | Coral, amber, rose gold | Subtle gradient accents |
+```bash
+cd backend
+python -m pytest tests/ -v
+```
 
-Themes use CSS custom properties (`--t-bg`, `--t-surface`, `--t-primary`, etc.) applied to `:root`. Selection persists in localStorage.
+---
 
-## Environment Variables
+## Environment Notes
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| WORKSPACE_MODE | standalone | "standalone" or "claude-code" |
-| GEMINI_API_KEY | (hardcoded) | Google AI API key |
-| ANTHROPIC_API_KEY | (hardcoded) | Anthropic API key |
+This project was developed on **Termux/Android (proot-distro)** and works on standard Linux, macOS, and WSL.
+
+- Termux requires setting `ESBUILD_BINARY_PATH` for frontend builds
+- `sqlite-vec` has no aarch64 wheel; vector search degrades gracefully to FTS5
+- VOX thermal monitoring uses the Termux battery API (optional)
+
+---
 
 ## License
 
-Private project. Not for public distribution.
+MIT

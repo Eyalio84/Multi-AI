@@ -1,8 +1,8 @@
-# CLAUDE.md — Multi-AI Agentic Workspace v2.3.0
+# CLAUDE.md — Multi-AI Agentic Workspace v2.5.0
 
 ## What This Is
 
-A professional agentic workflow orchestrator combining Gemini + Claude intelligence. Built as a FastAPI backend + React 19 frontend with dual-model streaming, 33 NLKE agents, 53 playbooks, **58+ Python tools (11 categories)**, visual workflow execution, a full Graph-RAG Knowledge Graph workspace (57 SQLite KGs, 6 schema profiles, live hybrid search with numpy cosine similarity, d3-force graph visualization, NetworkX analytics, RAG chat, edge browser with edit/delete, multi-KG cross-search), an **AI-powered Studio** for generating full-stack React apps with live Sandpack preview, 3 editing modes, SQLite project persistence, and version history, a **KG-OS Expert Builder** for creating AI experts backed by structured knowledge graphs with intent-driven retrieval, a 4-weight scoring formula, and 56 semantic dimensions, a **VOX voice agent** (Gemini Live API + Claude tool_use, **34 function declarations**, 16 voices, Google Search grounding, awareness layer, guided tours, voice macros, thermal monitoring, auto-reconnect), and a standalone **MCP server** exposing all tools via JSON-RPC.
+A professional agentic workflow orchestrator combining Gemini + Claude intelligence. Built as a FastAPI backend + React 19 frontend with dual-model streaming, 33 NLKE agents, 53 playbooks, **58+ Python tools (11 categories)**, visual workflow execution, a full Graph-RAG Knowledge Graph workspace (57 SQLite KGs, 6 schema profiles, live hybrid search with numpy cosine similarity, d3-force graph visualization, NetworkX analytics, RAG chat, edge browser with edit/delete, multi-KG cross-search), an **AI-powered Studio** for generating full-stack React apps with live Sandpack preview, 3 editing modes, SQLite project persistence, and version history, a **KG-OS Expert Builder** for creating AI experts backed by structured knowledge graphs with intent-driven retrieval, a 4-weight scoring formula, and 56 semantic dimensions, a **VOX voice agent** (Gemini Live API + Claude tool_use, **34 function declarations**, 16 voices, Google Search grounding, awareness layer, guided tours, voice macros, thermal monitoring, auto-reconnect), a **Games Studio** for AI-generated Phaser 3 RPG games with structured interview, GDD synthesis, live preview, local LLM NPC dialogue, and expert chat, a **23-model catalog** (20 Gemini + 3 Claude across 7 categories: text, image, video, audio, music, embedding, agent), **5 slash commands** (/image, /tts, /video, /agent, /help) in the Chat page, **Claude Agent SDK** integration for autonomous tasks, **media generation endpoints** (image, video, TTS, music), a unified **8-stage agentic loop** (intake, memory, skills, context, infer, tools, stream, persist), **persistent conversation memory** stored as a KG with hybrid retrieval, **skill injection** (intent classification + playbook/KG context enrichment), a **messaging gateway** with 7 platform adapters, and a standalone **MCP server** exposing all tools via JSON-RPC.
 
 ## Quick Start
 
@@ -20,10 +20,10 @@ cd frontend && npm install && npm run dev
 ```
 multi-ai-agentic-workspace/
 ├── backend/                    # FastAPI (Python)
-│   ├── main.py                 # App entry, CORS, router mounting
-│   ├── config.py               # API keys, model catalog, paths
-│   ├── routers/                # 15 API routers
-│   │   ├── chat.py             # POST /api/chat/stream (SSE, dual-model)
+│   ├── main.py                 # App entry, CORS, router mounting, Phaser static files
+│   ├── config.py               # API keys, 23-model catalog, paths, VOX config
+│   ├── routers/                # 17 API routers
+│   │   ├── chat.py             # POST /api/chat/stream (SSE, dual-model, agentic loop)
 │   │   ├── coding.py           # POST /api/coding/stream (tool use)
 │   │   ├── agents.py           # NLKE agent CRUD + execution
 │   │   ├── playbooks.py        # Playbook search + retrieval
@@ -33,16 +33,24 @@ multi-ai-agentic-workspace/
 │   │   ├── experts.py          # Expert Builder + KG-OS (15 endpoints, KGOS routes before dynamic)
 │   │   ├── tools.py            # Tools playground (list, get, run, stream)
 │   │   ├── vox.py              # VOX voice agent (WebSocket + REST, 34 functions, Claude tool_use)
-│   │   ├── media.py            # Image edit + video gen
+│   │   ├── media.py            # Image edit/gen, video gen, TTS, music (9 endpoints)
+│   │   ├── memory.py           # Conversation memory: CRUD, search, stats (7 endpoints)
+│   │   ├── integrations.py     # Platform integrations (webhooks, Spotify, Calendar)
 │   │   ├── interchange.py      # JSON import/export, mode toggle
-│   │   └── kg.py               # KG Studio (33 endpoints, CRUD, search, analytics, RAG)
+│   │   ├── kg.py               # KG Studio (33 endpoints, CRUD, search, analytics, RAG)
+│   │   ├── games.py            # Games Studio (20 endpoints: CRUD, interview, GDD, generate, refine, chat, LLM, versions, export)
+│   │   └── agent.py            # Claude Agent SDK (run, sessions, session status)
 │   ├── data/                   # Static data
 │   │   └── vox_tours.json      # 11 guided tour definitions
-│   ├── services/               # Business logic (22 services)
-│   │   ├── gemini_service.py   # google-genai SDK wrapper (lazy init)
+│   ├── services/               # Business logic (31 services)
+│   │   ├── gemini_service.py   # google-genai SDK wrapper (lazy init, image/video/TTS/music gen)
 │   │   ├── claude_service.py   # anthropic SDK wrapper (streaming + tool_use)
 │   │   ├── model_router.py     # Intelligent model selection
+│   │   ├── agentic_loop.py     # Unified 8-stage pipeline (intake→memory→skills→context→infer→tools→stream→persist)
+│   │   ├── memory_service.py   # Persistent conversation memory (KG-backed, FTS5, hybrid retrieval)
+│   │   ├── skill_injector.py   # Intent classification + playbook/KG context injection (10 categories)
 │   │   ├── agent_bridge.py     # NLKE agent system bridge
+│   │   ├── agent_sdk_service.py # Claude Agent SDK wrapper (autonomous file operations)
 │   │   ├── playbook_index.py   # Playbook file parser + search
 │   │   ├── studio_service.py   # Studio SQLite CRUD, versions, ZIP export
 │   │   ├── openapi_extractor.py # FastAPI code → OpenAPI spec (AST + regex)
@@ -59,31 +67,62 @@ multi-ai-agentic-workspace/
 │   │   ├── embedding_service.py # Hybrid search (numpy cosine + BM25 + graph boost)
 │   │   ├── analytics_service.py # NetworkX graph algorithms
 │   │   ├── ingestion_service.py # AI entity extraction from text
-│   │   └── rag_chat_service.py  # RAG chat with streaming + source citations
+│   │   ├── rag_chat_service.py  # RAG chat with streaming + source citations
+│   │   ├── game_service.py     # Game project CRUD, 18-question interview, GDD synthesis, versions
+│   │   ├── game_generator.py   # GDD → Phaser 3 code (AI + templates, ### FILE: markers)
+│   │   ├── game_llm_service.py # Local LLM NPC dialogue (llama-cpp: DeepSeek, Gemma, Qwen)
+│   │   ├── messaging_gateway.py # Inbound message routing through agentic loop
+│   │   ├── platform_adapters.py # 7 platform adapters (Telegram, WhatsApp, Discord, Slack, Gmail, Spotify, Calendar)
+│   │   └── workflow_service.py  # Workflow persistence (SQLite CRUD)
 │   ├── mcp_server.py           # MCP server: 58+ tools via JSON-RPC stdio
 │   └── tests/                  # API integration tests
 │
 ├── frontend/                   # React 19 + TypeScript + Vite
 │   ├── src/
-│   │   ├── App.tsx             # Router + layout shell
-│   │   ├── context/AppContext   # Global state (projects, models, personas)
-│   │   ├── context/StudioContext # Studio state (files, mode, streaming, versions)
-│   │   ├── context/VoxContext   # VOX voice agent state
-│   │   ├── pages/              # 11 route pages (inc. ExpertsPage, ToolsPage, VoxPage)
+│   │   ├── App.tsx             # Router + layout shell (14 routes)
+│   │   ├── context/AppContext.tsx  # Global state (projects, models, personas)
+│   │   ├── context/StudioContext.tsx # Studio state (files, mode, streaming, versions)
+│   │   ├── context/VoxContext.tsx # VOX voice agent state
+│   │   ├── pages/              # 14 route pages
+│   │   │   ├── ChatPage.tsx    # Dual-model streaming chat + 5 slash commands
+│   │   │   ├── CodingPage.tsx  # IDE with file explorer + AI coding
+│   │   │   ├── AgentsPage.tsx  # 33 NLKE agents + pipeline builder
+│   │   │   ├── PlaybooksPage.tsx # 53 playbooks search + reader
+│   │   │   ├── WorkflowsPage.tsx # Visual workflow designer + executor
+│   │   │   ├── KGStudioPage.tsx # Graph-RAG KG workspace (10 tabs, 57 DBs)
+│   │   │   ├── StudioPage.tsx  # AI Studio: chat→generate→preview
+│   │   │   ├── BuilderPage.tsx # Legacy web app builder
+│   │   │   ├── ExpertsPage.tsx # KG-OS Expert Builder
+│   │   │   ├── ToolsPage.tsx   # 58+ Python tools playground
+│   │   │   ├── VoxPage.tsx     # VOX voice control center
+│   │   │   ├── GamesPage.tsx   # Games Studio: interview→generate→preview→refine
+│   │   │   ├── IntegrationsPage.tsx # Platform integrations management
+│   │   │   └── SettingsPage.tsx # Mode toggle, themes, export/import
 │   │   ├── components/         # Reusable UI components
-│   │   ├── components/studio/  # 28 Studio components (panels, editors, overlays)
-│   │   ├── components/experts/ # 6 Expert components (Card, List, Builder, Chat, Config, Analytics)
-│   │   ├── components/VoxOverlay.tsx # Floating VOX pill + transcript
-│   │   ├── components/VoxTourOverlay.tsx # Guided tour spotlight + navigation
+│   │   │   ├── NavBar.tsx      # Navigation with 13 links + theme switcher + settings
+│   │   │   ├── ModelSelector.tsx # Grouped model dropdown (23 models by category)
+│   │   │   ├── ThemeSwitcher.tsx # NavBar theme dropdown
+│   │   │   ├── ToastContainer.tsx # Toast notifications
+│   │   │   ├── VoxOverlay.tsx  # Floating VOX pill + transcript
+│   │   │   ├── VoxTourOverlay.tsx # Guided tour spotlight + navigation
+│   │   │   ├── chat/           # 8 chat components (AssistantMessage, ChatPanel, CodeBlock, ConversationSidebar, LoadingIndicator, MessageItem, ToolMessage, UserMessage)
+│   │   │   ├── studio/         # 28 Studio components (panels, editors, overlays)
+│   │   │   ├── experts/        # 6 Expert components (Card, List, Builder, Chat, Config, Analytics)
+│   │   │   ├── games/          # 7 Games components (GameChat, GameCodeEditor, GameDesignView, GameInterview, GameList, GamePreview, GameVersions)
+│   │   │   ├── agents/         # Agent pipeline components
+│   │   │   ├── builders/       # Builder components
+│   │   │   ├── kg/             # KG Studio components
+│   │   │   ├── playbooks/      # Playbook components
+│   │   │   └── workflows/      # Workflow components
 │   │   ├── themes/             # 5 theme definitions (CSS variable maps)
-│   │   ├── hooks/              # useChat, useTheme, useToast, useVox
-│   │   ├── services/           # API + localStorage + studioApiService
-│   │   └── types/              # TypeScript interfaces (studio, tools, vox, expert)
+│   │   ├── hooks/              # useChat (slash commands), useTheme, useToast, useVox
+│   │   ├── services/           # apiService, storageService, studioApiService
+│   │   └── types/              # 11 TypeScript type files (ai, chat, expert, game, index, kg, memory, project, studio, tools, vox)
 │   └── package.json
 │
 ├── agents -> NLKE/agents       # Symlink to 33 NLKE agents
 ├── playbooks -> playbooks-v2   # Symlink to 53 playbooks
-└── docs/                       # API docs, system atlas, user guide
+└── docs/                       # API docs, system atlas, user guide, Phaser runtime
 ```
 
 ## Dual-Mode Architecture
@@ -99,11 +138,28 @@ multi-ai-agentic-workspace/
 - 33 NLKE agents invocable via CLI by Claude Code
 - Toggle via Settings page or `POST /api/mode`
 
+## Unified Agentic Loop (8 Stages)
+
+All chat/coding/studio/RAG/messaging streams flow through a single `AgenticLoop` pipeline:
+
+| Stage | Name | Purpose |
+|-------|------|---------|
+| 1 | **Intake** | Parse request, resolve model, create/resume conversation |
+| 2 | **Memory** | Recall relevant past conversations via hybrid search |
+| 3 | **Skills** | Intent classification + playbook/KG context injection |
+| 4 | **Context** | Build system prompt with persona, memories, skills |
+| 5 | **Infer** | Call Gemini or Claude with streaming |
+| 6 | **Tools** | Handle tool calls (file ops, code execution) |
+| 7 | **Stream** | Yield SSE events (tokens, thinking, tool calls, grounding) |
+| 8 | **Persist** | Save assistant response + extracted entities to memory KG |
+
+Modes: `chat`, `coding`, `studio`, `rag`, `messaging`
+
 ## Key API Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| POST | /api/chat/stream | SSE streaming chat (Gemini or Claude) |
+| POST | /api/chat/stream | SSE streaming chat (Gemini or Claude, agentic loop) |
 | POST | /api/coding/stream | Coding with tool use |
 | GET | /api/agents | List 33 NLKE agents |
 | POST | /api/agents/{name}/run | Execute an agent |
@@ -130,7 +186,7 @@ multi-ai-agentic-workspace/
 | POST | /api/import | Import workspace JSON |
 | GET | /api/kg/databases | List 57 KG databases with stats |
 | GET | /api/kg/databases/{id}/nodes | Paginated nodes (search, filter) |
-| POST | /api/kg/databases/{id}/search | Hybrid semantic search (0.40*embedding + 0.45*BM25 + 0.15*graph) |
+| POST | /api/kg/databases/{id}/search | Hybrid semantic search (0.40*emb + 0.45*BM25 + 0.15*graph) |
 | POST | /api/kg/search/multi | Cross-KG search across multiple databases |
 | POST | /api/kg/databases/{id}/chat | RAG chat with streaming + source citations |
 | GET | /api/kg/databases/{id}/analytics/* | Graph metrics, centrality, communities, paths |
@@ -169,36 +225,149 @@ multi-ai-agentic-workspace/
 | POST | /api/vox/macros/{id}/run | Execute a voice macro |
 | GET | /api/vox/thermal | Device temperature + battery status |
 | WS | /ws/vox | VOX bidirectional voice WebSocket |
+| POST | /api/media/image/generate | Generate images (Nano Banana Pro / Imagen 4) |
+| POST | /api/media/video/generate | Generate video (Veo 3.1) |
+| POST | /api/media/tts/generate | Text-to-speech (Gemini TTS, 24 voices) |
+| POST | /api/media/music/generate | Generate music (Lyria) |
+| POST | /api/image/edit | Edit image (legacy, multimodal) |
+| POST | /api/video/generate | Start video gen (legacy) |
+| GET | /api/video/status | Poll video status (legacy) |
+| POST | /api/agent/run | Run autonomous Claude agent (SSE stream) |
+| GET | /api/agent/sessions | List recent agent sessions |
+| GET | /api/agent/sessions/{id} | Get agent session status |
+| GET | /api/memory/conversations | List conversations (filter by mode/source) |
+| GET | /api/memory/conversations/{id} | Get conversation |
+| GET | /api/memory/conversations/{id}/messages | Get messages (paginated) |
+| DELETE | /api/memory/conversations/{id} | Delete conversation |
+| POST | /api/memory/search | Search memory (hybrid retrieval) |
+| GET | /api/memory/stats | Memory + injection statistics |
+| GET | /api/games | List game projects |
+| POST | /api/games | Create game project |
+| GET | /api/games/{id} | Get game project |
+| PUT | /api/games/{id} | Update game project |
+| DELETE | /api/games/{id} | Delete game project |
+| GET | /api/games/interview/questions | Get 18 interview questions |
+| POST | /api/games/{id}/interview | Submit interview answer |
+| POST | /api/games/{id}/synthesize | Synthesize GDD from answers |
+| POST | /api/games/{id}/generate | Generate Phaser 3 code (SSE) |
+| POST | /api/games/{id}/refine | Refine game code (SSE) |
+| POST | /api/games/{id}/chat | Expert game chat (SSE) |
+| POST | /api/games/{id}/save | Save version snapshot |
+| GET | /api/games/{id}/versions | List versions |
+| POST | /api/games/{id}/versions/{ver}/restore | Restore version |
+| GET | /api/games/{id}/export | Export game as ZIP |
+| POST | /api/games/{id}/extract-patterns | Extract gameplay patterns |
+| GET | /api/games/llm/status | Local LLM status |
+| POST | /api/games/llm/load | Load local LLM model |
+| POST | /api/games/llm/unload | Unload local LLM |
+| POST | /api/games/llm/chat | Chat with NPC via local LLM |
+| GET | /api/integrations/* | Platform integrations (Telegram, WhatsApp, Discord, Slack, Gmail, Spotify, Calendar) |
 | GET | /api/health | Health check + mode |
-| GET | /api/models | Available model catalog |
+| GET | /api/models | Available model catalog (23 models) |
 
-## Model Catalog
+## Model Catalog (23 Models)
 
-| Provider | Model | Use Case |
-|----------|-------|----------|
-| Gemini | gemini-2.5-flash | Fast coding, default |
-| Gemini | gemini-2.5-pro | Deep reasoning |
-| Gemini | gemini-3-pro | Flagship |
-| Claude | claude-haiku-4.5 | Budget routing |
-| Claude | claude-sonnet-4.6 | Fast + capable |
-| Claude | claude-opus-4.6 | Most intelligent |
+### Text Models (7)
 
-## Frontend Pages
+| Provider | Model ID | Name | Context | Use Case |
+|----------|----------|------|---------|----------|
+| Gemini | gemini-3-pro-preview | Gemini 3 Pro | 1M | Flagship reasoning |
+| Gemini | gemini-3.1-pro-preview | Gemini 3.1 Pro | 1M | Better thinking, token efficiency, agentic |
+| Gemini | gemini-3.1-pro-preview-customtools | Gemini 3.1 Pro Custom Tools | 1M | Prioritizes custom tools over bash |
+| Gemini | gemini-3-flash-preview | Gemini 3 Flash | 1M | Fast next-gen flash |
+| Gemini | gemini-2.5-flash | Gemini 2.5 Flash | 1M | Fast coding/streaming (default) |
+| Gemini | gemini-2.5-pro | Gemini 2.5 Pro | 1M | Deep reasoning |
+| Gemini | gemini-2.5-flash-lite | Gemini 2.5 Flash Lite | 1M | Cheapest Gemini, bulk tasks |
+
+### Image Models (3)
+
+| Provider | Model ID | Name | Use Case |
+|----------|----------|------|----------|
+| Gemini | gemini-2.5-flash-image | Gemini 2.5 Flash Image | Fast image generation/editing |
+| Gemini | gemini-3-pro-image-preview | Nano Banana Pro | High-quality image generation |
+| Gemini | imagen-4.0-generate-preview-05-20 | Imagen 4 | Dedicated image generation (non-chat) |
+
+### Video Models (3)
+
+| Provider | Model ID | Name | Use Case |
+|----------|----------|------|----------|
+| Gemini | veo-2.0-generate-001 | Veo 2.0 | Video generation (legacy) |
+| Gemini | veo-3.1-generate-preview | Veo 3.1 | Video generation with audio |
+| Gemini | veo-3.1-fast-generate-preview | Veo 3.1 Fast | Fast video generation |
+
+### Audio/TTS Models (3)
+
+| Provider | Model ID | Name | Use Case |
+|----------|----------|------|----------|
+| Gemini | gemini-2.5-flash-native-audio-preview | Gemini Flash Audio | Native audio understanding/generation |
+| Gemini | gemini-2.5-flash-preview-tts | Gemini Flash TTS | Text-to-speech (24 voices) |
+| Gemini | gemini-2.5-pro-preview-tts | Gemini Pro TTS | High-quality text-to-speech |
+
+### Music, Embedding, Agent Models (4)
+
+| Provider | Model ID | Name | Use Case |
+|----------|----------|------|----------|
+| Gemini | lyria-realtime-exp | Lyria | AI music generation |
+| Gemini | gemini-embedding-001 | Gemini Embedding | RAG/embeddings |
+| Gemini | gemini-2.5-computer-use-preview | Gemini Computer Use | Autonomous computer control |
+| Gemini | deep-research-pro-preview | Deep Research | Multi-step web research |
+
+### Claude Models (3)
+
+| Provider | Model ID | Name | Context | Use Case |
+|----------|----------|------|---------|----------|
+| Claude | claude-opus-4-6 | Claude Opus 4.6 | 200K | Most intelligent |
+| Claude | claude-sonnet-4-6 | Claude Sonnet 4.6 | 200K | Fast + capable (default) |
+| Claude | claude-haiku-4-5-20251001 | Claude Haiku 4.5 | 200K | Cheapest, routing |
+
+## Frontend Pages (14 Routes)
 
 | Route | Page | Purpose |
 |-------|------|---------|
-| /chat | ChatPage | Dual-model streaming chat |
+| /chat | ChatPage | Dual-model streaming chat + 5 slash commands (/image, /tts, /video, /agent, /help) |
 | /coding | CodingPage | IDE with file explorer + AI coding |
 | /agents | AgentsPage | 33 NLKE agents + pipeline builder |
 | /playbooks | PlaybooksPage | 53 playbooks search + reader |
 | /workflows | WorkflowsPage | Visual workflow designer + executor |
 | /kg-studio | KGStudioPage | Graph-RAG KG workspace (10 tabs, 57 DBs, React Flow + d3-force, edge browser, multi-KG search) |
-| /builder | StudioPage | AI Studio: chat→generate→preview, 3 modes, version history |
+| /builder | StudioPage | AI Studio: chat, generate, preview, 3 modes, version history |
 | /experts | ExpertsPage | KG-OS Expert Builder: create AI experts backed by KGs, 4-weight scoring, source citations |
 | /tools | ToolsPage | 58+ Python tools playground (11 categories, dynamic param form, output panel) |
 | /vox | VoxPage | VOX voice control center: 16 voices, 34 functions, macros panel, transcript, function log |
-| /integrations | IntegrationsPage | Platform integrations management |
+| /games | GamesPage | Games Studio: 18-question interview, GDD synthesis, Phaser 3 generation, live preview, code editor, expert chat, local LLM NPC dialogue, versions |
+| /integrations | IntegrationsPage | Platform integrations management (Telegram, WhatsApp, Discord, Slack, Gmail, Spotify, Calendar) |
 | /settings | SettingsPage | Mode toggle, themes, export/import |
+
+Note: BuilderPage exists as a legacy route but /builder renders StudioPage in the router.
+
+## Chat Page Slash Commands
+
+The Chat page supports 5 slash commands processed client-side via `useChat.ts`:
+
+| Command | Example | Description |
+|---------|---------|-------------|
+| `/image <prompt>` | `/image a sunset over mountains` | Generate an image via Nano Banana Pro |
+| `/tts <text>` | `/tts Hello, welcome to the workspace` | Text-to-speech via Gemini TTS |
+| `/video <prompt>` | `/video a mountain lake at sunrise` | Start video generation via Veo 3.1 |
+| `/agent <prompt>` | `/agent list all Python files in backend` | Run autonomous Claude agent task |
+| `/help` | `/help` | Show available commands |
+
+## Games Studio
+
+AI-powered Phaser 3 RPG game generator with a structured interview-to-playable pipeline:
+
+| Phase | Description |
+|-------|-------------|
+| **Interview** | 18 questions across 3 story arcs (Player, World, Systems) with select/multi-select/text inputs |
+| **GDD Synthesis** | AI synthesizes interview answers into a structured Game Design Document |
+| **Generation** | AI generates complete Phaser 3.90.0 code (ES6 classes, Arcade Physics, programmatic sprites) |
+| **Preview** | Live in-browser Phaser preview with local phaser.min.js runtime |
+| **Refine** | Chat-based refinement — describe changes, AI regenerates affected files |
+| **Expert Chat** | GameForge expert backed by game-dev KG for design advice |
+| **Local LLM** | On-device NPC dialogue via llama-cpp-python (DeepSeek R1, Gemma 3 1B, Gemma 2 2B, Qwen) |
+| **Versions** | Save/restore version snapshots, export as ZIP |
+
+Frontend components: GameInterview, GamePreview, GameCodeEditor, GameChat, GameDesignView, GameList, GameVersions (6 tabs: Interview, Preview, Code, Chat, GDD, Versions)
 
 ## Theme System
 
@@ -235,6 +404,7 @@ python tests/run_all.py
 
 ## Security Notes
 
-- API keys are in config.py with env var overrides
+- API keys loaded from `.env` files via `python-dotenv` with env var overrides
+- Runtime key updates via `POST /api/config/keys`
 - CORS allows all origins (dev mode)
 - No authentication (local/trusted environment)
