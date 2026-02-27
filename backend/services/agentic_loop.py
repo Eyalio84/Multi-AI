@@ -3,7 +3,7 @@ import json
 import logging
 from typing import AsyncGenerator, Optional
 
-from config import MODE, DEFAULT_GEMINI_MODEL, DEFAULT_CLAUDE_MODEL
+from config import MODE, DEFAULT_GEMINI_MODEL, DEFAULT_CLAUDE_MODEL, DEFAULT_OPENAI_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,14 @@ class AgenticLoop:
         from services.memory_service import memory_service
 
         # ── Stage 1: INTAKE ──────────────────────────────────────────
-        target_model = model or (DEFAULT_CLAUDE_MODEL if provider == "claude" else DEFAULT_GEMINI_MODEL)
+        if model:
+            target_model = model
+        elif provider == "claude":
+            target_model = DEFAULT_CLAUDE_MODEL
+        elif provider == "openai":
+            target_model = DEFAULT_OPENAI_MODEL
+        else:
+            target_model = DEFAULT_GEMINI_MODEL
 
         # Create or resume conversation
         if not conversation_id:
@@ -124,6 +131,14 @@ class AgenticLoop:
                 async for chunk in self._stream_claude(
                     messages, target_model, assembled_prompt,
                     active_tools_claude, thinking_budget
+                ):
+                    if chunk.get("type") == "token":
+                        accumulated_text += chunk.get("content", "")
+                    yield chunk
+            elif provider == "openai":
+                async for chunk in self._stream_openai(
+                    messages, target_model, assembled_prompt,
+                    active_tools
                 ):
                     if chunk.get("type") == "token":
                         accumulated_text += chunk.get("content", "")
@@ -273,6 +288,31 @@ class AgenticLoop:
             )
         else:
             gen = claude_service.stream_chat(
+                messages=messages,
+                model=model,
+                system=system_prompt,
+            )
+        async for chunk in gen:
+            yield chunk
+
+    async def _stream_openai(
+        self,
+        messages: list[dict],
+        model: str,
+        system_prompt: str | None,
+        tools: list[dict] | None,
+    ) -> AsyncGenerator[dict, None]:
+        from services import openai_service
+
+        if tools:
+            gen = openai_service.stream_with_tools(
+                messages=messages,
+                tools=tools,
+                model=model,
+                system=system_prompt,
+            )
+        else:
+            gen = openai_service.stream_chat(
                 messages=messages,
                 model=model,
                 system=system_prompt,

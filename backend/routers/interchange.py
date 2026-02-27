@@ -44,6 +44,7 @@ async def get_keys_status():
     return {
         "gemini": bool(config.GEMINI_API_KEY),
         "anthropic": bool(config.ANTHROPIC_API_KEY),
+        "openai": bool(config.OPENAI_API_KEY),
         "mode": config.MODE,
     }
 
@@ -54,19 +55,22 @@ async def set_keys(request: Request):
     body = await request.json()
     gemini_key = body.get("gemini_key")
     anthropic_key = body.get("anthropic_key")
+    openai_key = body.get("openai_key")
 
-    if not gemini_key and not anthropic_key:
-        return JSONResponse(status_code=400, content={"error": "Provide at least one key: gemini_key or anthropic_key."})
+    if not gemini_key and not anthropic_key and not openai_key:
+        return JSONResponse(status_code=400, content={"error": "Provide at least one key: gemini_key, anthropic_key, or openai_key."})
 
     config.update_api_keys(
         gemini_key=gemini_key if gemini_key else None,
         anthropic_key=anthropic_key if anthropic_key else None,
+        openai_key=openai_key if openai_key else None,
     )
 
     return {
         "updated": True,
         "gemini_configured": bool(config.GEMINI_API_KEY),
         "anthropic_configured": bool(config.ANTHROPIC_API_KEY),
+        "openai_configured": bool(config.OPENAI_API_KEY),
     }
 
 

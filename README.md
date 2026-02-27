@@ -4,16 +4,16 @@
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://python.org)
-[![Models](https://img.shields.io/badge/AI_Models-23-blueviolet)]()
+[![Models](https://img.shields.io/badge/AI_Models-43-blueviolet)]()
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A professional agentic workflow orchestrator combining **Gemini + Claude** intelligence. 23 AI models across 7 categories, dual-model streaming, an AI-powered app Studio, Knowledge Graph workspace, Expert Builder, voice agent, game studio, 58+ tools, and 5 visual themes -- all in one interface.
+A professional agentic workflow orchestrator combining **Gemini + Claude + OpenAI** intelligence. 44 AI models across 8 categories from 3 providers, tri-model streaming, an AI-powered app Studio, Knowledge Graph workspace, Expert Builder, voice agent, game studio, 58+ tools, and 5 visual themes -- all in one interface.
 
 ---
 
 ## Features
 
-- **Dual-Model AI Chat** -- Stream responses from Gemini or Claude with a 23-model selector and slash commands (`/image`, `/tts`, `/video`, `/agent`)
+- **Tri-Model AI Chat** -- Stream responses from Gemini, Claude, or OpenAI with a 44-model selector and slash commands (`/image`, `/tts`, `/video`, `/agent`)
 - **AI Studio** -- Generate full-stack React apps from a prompt with live Sandpack preview, 3 editing modes, SQLite project persistence, version history, and ZIP export
 - **KG-OS Expert Builder** -- Create AI experts backed by structured knowledge graphs with intent-driven retrieval, 4-weight scoring formula, and 56 semantic dimensions
 - **KG Studio** -- Graph-RAG workspace: 57 SQLite KGs, 6 schema profiles, hybrid search (embedding + BM25 + graph boost), d3-force visualization, NetworkX analytics, RAG chat with source citations, and multi-KG cross-search
@@ -45,7 +45,7 @@ A professional agentic workflow orchestrator combining **Gemini + Claude** intel
 | **Backend** | Python 3.11+, FastAPI 0.115+, Uvicorn |
 | **Frontend** | React 19, TypeScript 5.4, Vite 5 |
 | **Styling** | Tailwind CSS 3.4, CSS custom properties (5 themes) |
-| **AI SDKs** | `google-genai` (Gemini), `anthropic` (Claude) |
+| **AI SDKs** | `google-genai` (Gemini), `anthropic` (Claude), `openai` (OpenAI) |
 | **Graph/Search** | SQLite + FTS5, NetworkX, numpy, model2vec, LightRAG |
 | **Visualization** | React Flow, d3-force |
 | **App Preview** | Sandpack (CodeSandbox runtime) |
@@ -60,7 +60,7 @@ A professional agentic workflow orchestrator combining **Gemini + Claude** intel
 
 - Python 3.11+
 - Node.js 18+
-- API keys for [Google AI Studio](https://aistudio.google.com/) and/or [Anthropic Console](https://console.anthropic.com/)
+- API keys for [Google AI Studio](https://aistudio.google.com/), [Anthropic Console](https://console.anthropic.com/), and/or [OpenAI Platform](https://platform.openai.com/)
 
 ### Backend
 
@@ -71,6 +71,7 @@ pip install -r requirements.txt
 # Set API keys (or configure at runtime via the Settings page)
 export GEMINI_API_KEY="your-gemini-key"
 export ANTHROPIC_API_KEY="your-anthropic-key"  # optional for Claude Code mode
+export OPENAI_API_KEY="your-openai-key"        # optional, enables OpenAI models
 
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
@@ -104,21 +105,20 @@ Open [http://localhost:5173](http://localhost:5173). The Vite dev server proxies
 │                  Proxy /api -> :8000                         │
 ├─────────────────────────────────────────────────────────────┤
 │                  FastAPI Backend (:8000)                     │
-│  17 Routers | 28 Services | Model Router | Agent Bridge     │
+│  17 Routers | 31 Services | Model Router | Agent Bridge     │
 ├─────────────────────────────────────────────────────────────┤
 │                     External APIs                           │
-│  Gemini API (20 models) | Claude API (3 models)            │
-│  33 NLKE Agents         | 53 Playbooks                     │
-│  57 SQLite KGs          | 58+ Python Tools                 │
+│  Gemini (20) | Claude (3) | OpenAI (20) = 43 models        │
+│  33 NLKE Agents  | 53 Playbooks  | 57 SQLite KGs           │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Dual-Mode Operation
+### Tri-Provider Architecture
 
 | Mode | Description |
 |------|-------------|
-| **Standalone** (default) | Both `GEMINI_API_KEY` and `ANTHROPIC_API_KEY` active. Full dual-model UI with all 23 models. |
-| **Claude Code** | Only `GEMINI_API_KEY` active. Claude tasks return structured JSON for CLI sessions. |
+| **Standalone** (default) | All three API keys active. Full tri-model UI with all 43 models. |
+| **Claude Code** | Only `GEMINI_API_KEY` active. Claude/OpenAI tasks return structured JSON for CLI sessions. |
 
 Toggle via the Settings page or `POST /api/mode`.
 
@@ -128,7 +128,7 @@ Toggle via the Settings page or `POST /api/mode`.
 
 | Route | Page | Description |
 |-------|------|-------------|
-| `/chat` | Chat | Dual-model streaming chat with 23-model selector and slash commands |
+| `/chat` | Chat | Tri-model streaming chat with 44-model selector and slash commands |
 | `/coding` | Coding | IDE with file explorer and AI-assisted coding via tool use |
 | `/builder` | Studio | AI app generator with live Sandpack preview, version history, ZIP export |
 | `/experts` | Experts | KG-OS Expert Builder -- AI experts backed by knowledge graphs |
@@ -144,7 +144,7 @@ Toggle via the Settings page or `POST /api/mode`.
 
 ---
 
-## Model Catalog
+## Model Catalog (44 Models, 3 Providers, 8 Categories)
 
 ### Gemini (20 models)
 
@@ -176,7 +176,32 @@ Toggle via the Settings page or `POST /api/mode`.
 |-------|---------|----------------------|----------|
 | Claude Opus 4.6 | 200K | $5.00 / $25.00 | Most intelligent |
 | Claude Sonnet 4.6 | 200K | $3.00 / $15.00 | Fast + capable (default) |
-| Claude Haiku 4.5 | 200K | $1.00 / $5.00 | Budget routing |
+| Claude Haiku 4.5 | 200K | $0.25 / $1.25 | Budget routing |
+
+### OpenAI (20 models)
+
+| Model | Category | Context | Cost (in/out $/MTok) | Use Case |
+|-------|----------|---------|----------------------|----------|
+| GPT-5.2 | Text | 400K | $1.75 / $14.00 | Latest flagship |
+| GPT-5.1 | Text | 1M | $1.00 / $4.00 | Agentic coding (1M context) |
+| GPT-5 | Text | 128K | $2.00 / $8.00 | Original GPT-5 |
+| GPT-5 Mini | Text | 128K | $0.40 / $1.60 | Balanced (default) |
+| GPT-5 Nano | Text | 128K | $0.10 / $0.40 | Budget |
+| GPT-4.1 | Text | 1M | $2.00 / $8.00 | Long-context |
+| GPT-4.1 Mini | Text | 1M | $0.40 / $1.60 | Fast long-context |
+| GPT-4.1 Nano | Text | 1M | $0.10 / $0.40 | Cheapest long-context |
+| o3 | Reasoning | 200K | $2.00 / $8.00 | Deep reasoning |
+| o4-mini | Reasoning | 200K | $1.10 / $4.40 | Fast reasoning |
+| o3-pro | Reasoning | 200K | $20.00 / $80.00 | Highest quality reasoning |
+| GPT Image 1.5 | Image | -- | $0 / $0.02 | Latest image generation |
+| GPT Image 1 | Image | -- | $0 / $0.04 | Image generation |
+| Sora 2 | Video | -- | $0 / $0.10/sec | Video generation |
+| Sora 2 Pro | Video | -- | $0 / $0.30/sec | High-quality video |
+| GPT-4o Mini TTS | Audio | -- | -- | Text-to-speech |
+| Whisper | Audio | -- | -- | Speech-to-text |
+| Embedding 3 Large | Embedding | 8K | $0.13 / -- | High-quality embeddings |
+| Embedding 3 Small | Embedding | 8K | $0.02 / -- | Budget embeddings |
+| Codex (GPT-5.2) | Agent | 400K | $1.75 / $14.00 | Autonomous coding agent |
 
 ---
 
@@ -211,7 +236,7 @@ Interactive API docs are available at `/docs` (FastAPI Swagger UI) when the back
 multi-ai-agentic-workspace/
 ├── backend/
 │   ├── main.py                    # FastAPI entry, CORS, 17 router mounts
-│   ├── config.py                  # API keys, 23-model catalog, paths
+│   ├── config.py                  # API keys, 44-model catalog, paths
 │   ├── routers/                   # 17 API routers
 │   │   ├── chat.py                #   Dual-model SSE streaming
 │   │   ├── coding.py              #   IDE tool use
@@ -227,7 +252,7 @@ multi-ai-agentic-workspace/
 │   │   ├── media.py               #   Image/video/TTS/music generation
 │   │   ├── agent.py               #   Claude Agent SDK
 │   │   └── ...                    #   builder, memory, integrations, interchange
-│   ├── services/                  # 28 business logic services (~12,400 lines)
+│   ├── services/                  # 31 business logic services
 │   ├── data/                      # Static data (tour definitions, etc.)
 │   ├── mcp_server.py              # Standalone MCP server (JSON-RPC stdio)
 │   └── tests/                     # Integration tests
@@ -273,6 +298,7 @@ All components use `style={{ background: 'var(--t-surface)' }}` for theming whil
 |----------|---------|-------------|
 | `GEMINI_API_KEY` | -- | Google AI API key (required) |
 | `ANTHROPIC_API_KEY` | -- | Anthropic API key (optional, enables Claude models) |
+| `OPENAI_API_KEY` | -- | OpenAI API key (optional, enables OpenAI models) |
 | `WORKSPACE_MODE` | `standalone` | `"standalone"` or `"claude-code"` |
 | `KGS_DIR` | `docs/KGS` | Path to KG SQLite databases |
 

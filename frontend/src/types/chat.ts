@@ -38,7 +38,7 @@ export interface Message {
   id: string;
   author: MessageAuthor;
   parts: MessagePart[];
-  provider?: 'gemini' | 'claude';
+  provider?: 'gemini' | 'claude' | 'openai';
   toolCall?: ToolCall;
   toolResponse?: ToolResponse;
   groundingMetadata?: GroundingMetadata[];

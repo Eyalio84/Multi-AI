@@ -6,7 +6,7 @@ import * as apiService from '../services/apiService';
 export const useChat = (
   projects: Project[],
   persona: Persona,
-  provider: 'gemini' | 'claude',
+  provider: 'gemini' | 'claude' | 'openai',
   model: string,
   useWebSearch: boolean,
   customStyles: CustomAiStyle[],

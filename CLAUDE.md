@@ -1,8 +1,8 @@
-# CLAUDE.md — Multi-AI Agentic Workspace v2.5.0
+# CLAUDE.md — Multi-AI Agentic Workspace v3.0.0
 
 ## What This Is
 
-A professional agentic workflow orchestrator combining Gemini + Claude intelligence. Built as a FastAPI backend + React 19 frontend with dual-model streaming, 33 NLKE agents, 53 playbooks, **58+ Python tools (11 categories)**, visual workflow execution, a full Graph-RAG Knowledge Graph workspace (57 SQLite KGs, 6 schema profiles, live hybrid search with numpy cosine similarity, d3-force graph visualization, NetworkX analytics, RAG chat, edge browser with edit/delete, multi-KG cross-search), an **AI-powered Studio** for generating full-stack React apps with live Sandpack preview, 3 editing modes, SQLite project persistence, and version history, a **KG-OS Expert Builder** for creating AI experts backed by structured knowledge graphs with intent-driven retrieval, a 4-weight scoring formula, and 56 semantic dimensions, a **VOX voice agent** (Gemini Live API + Claude tool_use, **34 function declarations**, 16 voices, Google Search grounding, awareness layer, guided tours, voice macros, thermal monitoring, auto-reconnect), a **Games Studio** for AI-generated Phaser 3 RPG games with structured interview, GDD synthesis, live preview, local LLM NPC dialogue, and expert chat, a **23-model catalog** (20 Gemini + 3 Claude across 7 categories: text, image, video, audio, music, embedding, agent), **5 slash commands** (/image, /tts, /video, /agent, /help) in the Chat page, **Claude Agent SDK** integration for autonomous tasks, **media generation endpoints** (image, video, TTS, music), a unified **8-stage agentic loop** (intake, memory, skills, context, infer, tools, stream, persist), **persistent conversation memory** stored as a KG with hybrid retrieval, **skill injection** (intent classification + playbook/KG context enrichment), a **messaging gateway** with 7 platform adapters, and a standalone **MCP server** exposing all tools via JSON-RPC.
+A professional agentic workflow orchestrator combining Gemini + Claude + OpenAI intelligence. Built as a FastAPI backend + React 19 frontend with tri-model streaming, 33 NLKE agents, 53 playbooks, **58+ Python tools (11 categories)**, visual workflow execution, a full Graph-RAG Knowledge Graph workspace (57 SQLite KGs, 6 schema profiles, live hybrid search with numpy cosine similarity, d3-force graph visualization, NetworkX analytics, RAG chat, edge browser with edit/delete, multi-KG cross-search), an **AI-powered Studio** for generating full-stack React apps with live Sandpack preview, 3 editing modes, SQLite project persistence, and version history, a **KG-OS Expert Builder** for creating AI experts backed by structured knowledge graphs with intent-driven retrieval, a 4-weight scoring formula, and 56 semantic dimensions, a **VOX voice agent** (Gemini Live API + Claude tool_use, **34 function declarations**, 16 voices, Google Search grounding, awareness layer, guided tours, voice macros, thermal monitoring, auto-reconnect), a **Games Studio** for AI-generated Phaser 3 RPG games with structured interview, GDD synthesis, live preview, local LLM NPC dialogue, and expert chat, a **43-model catalog** (20 Gemini + 3 Claude + 20 OpenAI across 8 categories: text, reasoning, image, video, audio, music, embedding, agent), **5 slash commands** (/image, /tts, /video, /agent, /help) in the Chat page, **Claude Agent SDK** integration for autonomous tasks, **media generation endpoints** (image, video, TTS, music), a unified **8-stage agentic loop** (intake, memory, skills, context, infer, tools, stream, persist), **persistent conversation memory** stored as a KG with hybrid retrieval, **skill injection** (intent classification + playbook/KG context enrichment), a **messaging gateway** with 7 platform adapters, and a standalone **MCP server** exposing all tools via JSON-RPC.
 
 ## Quick Start
 
@@ -21,9 +21,9 @@ cd frontend && npm install && npm run dev
 multi-ai-agentic-workspace/
 ├── backend/                    # FastAPI (Python)
 │   ├── main.py                 # App entry, CORS, router mounting, Phaser static files
-│   ├── config.py               # API keys, 23-model catalog, paths, VOX config
+│   ├── config.py               # API keys, 44-model catalog (3 providers), paths, VOX config
 │   ├── routers/                # 17 API routers
-│   │   ├── chat.py             # POST /api/chat/stream (SSE, dual-model, agentic loop)
+│   │   ├── chat.py             # POST /api/chat/stream (SSE, tri-model, agentic loop)
 │   │   ├── coding.py           # POST /api/coding/stream (tool use)
 │   │   ├── agents.py           # NLKE agent CRUD + execution
 │   │   ├── playbooks.py        # Playbook search + retrieval
@@ -45,7 +45,8 @@ multi-ai-agentic-workspace/
 │   ├── services/               # Business logic (31 services)
 │   │   ├── gemini_service.py   # google-genai SDK wrapper (lazy init, image/video/TTS/music gen)
 │   │   ├── claude_service.py   # anthropic SDK wrapper (streaming + tool_use)
-│   │   ├── model_router.py     # Intelligent model selection
+│   │   ├── openai_service.py   # openai SDK wrapper (Responses API, streaming, image gen, TTS)
+│   │   ├── model_router.py     # Intelligent model selection (tri-provider)
 │   │   ├── agentic_loop.py     # Unified 8-stage pipeline (intake→memory→skills→context→infer→tools→stream→persist)
 │   │   ├── memory_service.py   # Persistent conversation memory (KG-backed, FTS5, hybrid retrieval)
 │   │   ├── skill_injector.py   # Intent classification + playbook/KG context injection (10 categories)
@@ -84,7 +85,7 @@ multi-ai-agentic-workspace/
 │   │   ├── context/StudioContext.tsx # Studio state (files, mode, streaming, versions)
 │   │   ├── context/VoxContext.tsx # VOX voice agent state
 │   │   ├── pages/              # 14 route pages
-│   │   │   ├── ChatPage.tsx    # Dual-model streaming chat + 5 slash commands
+│   │   │   ├── ChatPage.tsx    # Tri-model streaming chat + 5 slash commands
 │   │   │   ├── CodingPage.tsx  # IDE with file explorer + AI coding
 │   │   │   ├── AgentsPage.tsx  # 33 NLKE agents + pipeline builder
 │   │   │   ├── PlaybooksPage.tsx # 53 playbooks search + reader
@@ -100,7 +101,7 @@ multi-ai-agentic-workspace/
 │   │   │   └── SettingsPage.tsx # Mode toggle, themes, export/import
 │   │   ├── components/         # Reusable UI components
 │   │   │   ├── NavBar.tsx      # Navigation with 13 links + theme switcher + settings
-│   │   │   ├── ModelSelector.tsx # Grouped model dropdown (23 models by category)
+│   │   │   ├── ModelSelector.tsx # Grouped model dropdown (43 models by category, 3 provider filters)
 │   │   │   ├── ThemeSwitcher.tsx # NavBar theme dropdown
 │   │   │   ├── ToastContainer.tsx # Toast notifications
 │   │   │   ├── VoxOverlay.tsx  # Floating VOX pill + transcript
@@ -125,16 +126,16 @@ multi-ai-agentic-workspace/
 └── docs/                       # API docs, system atlas, user guide, Phaser runtime
 ```
 
-## Dual-Mode Architecture
+## Tri-Provider Architecture
 
 ### Standalone Mode (default)
-- Both `GEMINI_API_KEY` and `ANTHROPIC_API_KEY` active
-- Backend calls both APIs directly
-- Full dual-model UI with provider selector
+- All three API keys active: `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`
+- Backend calls all three APIs directly
+- Full tri-model UI with provider selector (Gemini / Claude / OpenAI)
 
 ### Claude Code Mode
 - Only `GEMINI_API_KEY` active
-- Claude tasks return structured JSON for Claude Code sessions
+- Claude/OpenAI tasks return structured JSON for Claude Code sessions
 - 33 NLKE agents invocable via CLI by Claude Code
 - Toggle via Settings page or `POST /api/mode`
 
@@ -263,11 +264,11 @@ Modes: `chat`, `coding`, `studio`, `rag`, `messaging`
 | POST | /api/games/llm/chat | Chat with NPC via local LLM |
 | GET | /api/integrations/* | Platform integrations (Telegram, WhatsApp, Discord, Slack, Gmail, Spotify, Calendar) |
 | GET | /api/health | Health check + mode |
-| GET | /api/models | Available model catalog (23 models) |
+| GET | /api/models | Available model catalog (43 models, 3 providers) |
 
-## Model Catalog (23 Models)
+## Model Catalog (44 Models, 3 Providers, 8 Categories)
 
-### Text Models (7)
+### Gemini Text Models (7)
 
 | Provider | Model ID | Name | Context | Use Case |
 |----------|----------|------|---------|----------|
@@ -279,7 +280,7 @@ Modes: `chat`, `coding`, `studio`, `rag`, `messaging`
 | Gemini | gemini-2.5-pro | Gemini 2.5 Pro | 1M | Deep reasoning |
 | Gemini | gemini-2.5-flash-lite | Gemini 2.5 Flash Lite | 1M | Cheapest Gemini, bulk tasks |
 
-### Image Models (3)
+### Gemini Image Models (3)
 
 | Provider | Model ID | Name | Use Case |
 |----------|----------|------|----------|
@@ -287,7 +288,7 @@ Modes: `chat`, `coding`, `studio`, `rag`, `messaging`
 | Gemini | gemini-3-pro-image-preview | Nano Banana Pro | High-quality image generation |
 | Gemini | imagen-4.0-generate-preview-05-20 | Imagen 4 | Dedicated image generation (non-chat) |
 
-### Video Models (3)
+### Gemini Video Models (3)
 
 | Provider | Model ID | Name | Use Case |
 |----------|----------|------|----------|
@@ -295,7 +296,7 @@ Modes: `chat`, `coding`, `studio`, `rag`, `messaging`
 | Gemini | veo-3.1-generate-preview | Veo 3.1 | Video generation with audio |
 | Gemini | veo-3.1-fast-generate-preview | Veo 3.1 Fast | Fast video generation |
 
-### Audio/TTS Models (3)
+### Gemini Audio/TTS Models (3)
 
 | Provider | Model ID | Name | Use Case |
 |----------|----------|------|----------|
@@ -303,7 +304,7 @@ Modes: `chat`, `coding`, `studio`, `rag`, `messaging`
 | Gemini | gemini-2.5-flash-preview-tts | Gemini Flash TTS | Text-to-speech (24 voices) |
 | Gemini | gemini-2.5-pro-preview-tts | Gemini Pro TTS | High-quality text-to-speech |
 
-### Music, Embedding, Agent Models (4)
+### Gemini Music, Embedding, Agent Models (4)
 
 | Provider | Model ID | Name | Use Case |
 |----------|----------|------|----------|
@@ -320,11 +321,46 @@ Modes: `chat`, `coding`, `studio`, `rag`, `messaging`
 | Claude | claude-sonnet-4-6 | Claude Sonnet 4.6 | 200K | Fast + capable (default) |
 | Claude | claude-haiku-4-5-20251001 | Claude Haiku 4.5 | 200K | Cheapest, routing |
 
+### OpenAI Text Models (8)
+
+| Provider | Model ID | Name | Context | Use Case |
+|----------|----------|------|---------|----------|
+| OpenAI | gpt-5.2 | GPT-5.2 | 400K | Latest flagship |
+| OpenAI | gpt-5.1 | GPT-5.1 | 1M | Agentic coding (1M context) |
+| OpenAI | gpt-5 | GPT-5 | 128K | Original GPT-5 |
+| OpenAI | gpt-5-mini | GPT-5 Mini | 128K | Balanced (default) |
+| OpenAI | gpt-5-nano | GPT-5 Nano | 128K | Budget |
+| OpenAI | gpt-4.1 | GPT-4.1 | 1M | Long-context |
+| OpenAI | gpt-4.1-mini | GPT-4.1 Mini | 1M | Fast long-context |
+| OpenAI | gpt-4.1-nano | GPT-4.1 Nano | 1M | Cheapest long-context |
+
+### OpenAI Reasoning Models (3)
+
+| Provider | Model ID | Name | Context | Use Case |
+|----------|----------|------|---------|----------|
+| OpenAI | o3 | o3 | 200K | Deep reasoning |
+| OpenAI | o4-mini | o4-mini | 200K | Fast reasoning |
+| OpenAI | o3-pro | o3-pro | 200K | Highest quality reasoning |
+
+### OpenAI Image, Video, Audio, Embedding, Agent Models (10)
+
+| Provider | Model ID | Name | Category | Use Case |
+|----------|----------|------|----------|----------|
+| OpenAI | gpt-image-1.5 | GPT Image 1.5 | image | Latest image generation |
+| OpenAI | gpt-image-1 | GPT Image 1 | image | Image generation |
+| OpenAI | sora-2 | Sora 2 | video | Video generation |
+| OpenAI | sora-2-pro | Sora 2 Pro | video | High-quality video |
+| OpenAI | gpt-4o-mini-tts | GPT-4o Mini TTS | audio | Text-to-speech |
+| OpenAI | whisper-1 | Whisper | audio | Speech-to-text |
+| OpenAI | text-embedding-3-large | Embedding 3 Large | embedding | High-quality embeddings |
+| OpenAI | text-embedding-3-small | Embedding 3 Small | embedding | Budget embeddings |
+| OpenAI | gpt-5.2-codex | Codex (GPT-5.2) | agent | Autonomous coding agent |
+
 ## Frontend Pages (14 Routes)
 
 | Route | Page | Purpose |
 |-------|------|---------|
-| /chat | ChatPage | Dual-model streaming chat + 5 slash commands (/image, /tts, /video, /agent, /help) |
+| /chat | ChatPage | Tri-model streaming chat + 5 slash commands (/image, /tts, /video, /agent, /help) |
 | /coding | CodingPage | IDE with file explorer + AI coding |
 | /agents | AgentsPage | 33 NLKE agents + pipeline builder |
 | /playbooks | PlaybooksPage | 53 playbooks search + reader |

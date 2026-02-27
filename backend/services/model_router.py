@@ -35,6 +35,8 @@ def route(
     if task_type == "music":
         return {"provider": "gemini", "model": "lyria-realtime-exp", "reason": "Music generation via Lyria"}
     if task_type == "embedding":
+        if budget_preference == "cheap":
+            return {"provider": "openai", "model": "text-embedding-3-small", "reason": "Budget embeddings via OpenAI"}
         return {"provider": "gemini", "model": "gemini-embedding-001", "reason": "Embeddings via Gemini"}
     if task_type == "agent":
         if MODE == "standalone":
@@ -63,9 +65,11 @@ def route(
         return {"provider": "gemini", "model": "gemini-2.5-flash", "reason": "Fast coding with Gemini Flash"}
 
     if task_type == "reasoning":
+        if complexity == "high" and budget_preference == "quality":
+            return {"provider": "openai", "model": "o3-pro", "reason": "Highest quality reasoning via o3-pro"}
         if complexity == "high":
-            return {"provider": "claude", "model": "claude-opus-4-6", "reason": "Claude Opus for deep reasoning"}
-        return {"provider": "claude", "model": "claude-sonnet-4-6", "reason": "Claude Sonnet for reasoning"}
+            return {"provider": "openai", "model": "o3", "reason": "Deep reasoning via OpenAI o3"}
+        return {"provider": "openai", "model": "o4-mini", "reason": "Fast reasoning via OpenAI o4-mini"}
 
     if budget_preference == "quality":
         return {"provider": "claude", "model": "claude-opus-4-6", "reason": "Highest quality model"}

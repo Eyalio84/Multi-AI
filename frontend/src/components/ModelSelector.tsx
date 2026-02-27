@@ -2,9 +2,9 @@ import React, { useMemo, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import type { ModelCatalogEntry } from '../context/AppContext';
 
-const CATEGORY_ORDER = ['text', 'image', 'video', 'audio', 'agent', 'embedding'];
+const CATEGORY_ORDER = ['text', 'reasoning', 'image', 'video', 'audio', 'agent', 'embedding'];
 const CATEGORY_LABELS: Record<string, string> = {
-  text: 'Text', image: 'Image', video: 'Video',
+  text: 'Text', reasoning: 'Reasoning', image: 'Image', video: 'Video',
   audio: 'Audio', agent: 'Agent', embedding: 'Embedding',
 };
 
@@ -15,7 +15,7 @@ const FALLBACK_MODELS: Record<string, { name: string; category: string }> = {
   'gemini-3-pro-preview': { name: 'Gemini 3 Pro', category: 'text' },
 };
 
-type ProviderFilter = 'all' | 'gemini' | 'claude';
+type ProviderFilter = 'all' | 'gemini' | 'claude' | 'openai';
 
 const ModelSelector: React.FC = () => {
   const {
@@ -27,13 +27,13 @@ const ModelSelector: React.FC = () => {
 
   // Flatten catalog into grouped entries: { provider, modelId, entry }
   const allModels = useMemo(() => {
-    const items: { provider: 'gemini' | 'claude'; modelId: string; entry: ModelCatalogEntry }[] = [];
+    const items: { provider: 'gemini' | 'claude' | 'openai'; modelId: string; entry: ModelCatalogEntry }[] = [];
     const hasCatalog = Object.keys(modelCatalog).length > 0;
 
     if (hasCatalog) {
       for (const [prov, models] of Object.entries(modelCatalog)) {
         for (const [modelId, entry] of Object.entries(models)) {
-          items.push({ provider: prov as 'gemini' | 'claude', modelId, entry });
+          items.push({ provider: prov as 'gemini' | 'claude' | 'openai', modelId, entry });
         }
       }
     } else {
@@ -83,13 +83,17 @@ const ModelSelector: React.FC = () => {
     }
   };
 
-  const providerBadge = (prov: string) => prov === 'claude' ? 'C' : 'G';
+  const providerBadge = (prov: string) => prov === 'claude' ? 'C' : prov === 'openai' ? 'O' : 'G';
+
+  // Check if current model is a reasoning model (o3/o4)
+  const isReasoningModel = activeModel.startsWith('o3') || activeModel.startsWith('o4');
+  const [reasoningEffort, setReasoningEffort] = useState<'low' | 'medium' | 'high'>('medium');
 
   return (
     <div className="t-card flex flex-col sm:flex-row items-start sm:items-center gap-2 p-2 rounded-lg" style={{ background: 'var(--t-surface)' }}>
       {/* Provider filter */}
       <div className="flex rounded-md overflow-hidden border" style={{ borderColor: 'var(--t-border)' }}>
-        {(['all', 'gemini', 'claude'] as ProviderFilter[]).map(f => (
+        {(['all', 'gemini', 'claude', 'openai'] as ProviderFilter[]).map(f => (
           <button
             key={f}
             onClick={() => setProviderFilter(f)}
@@ -100,7 +104,7 @@ const ModelSelector: React.FC = () => {
               color: providerFilter === f ? 'var(--t-text)' : 'var(--t-muted)',
             }}
           >
-            {f === 'all' ? 'All' : f === 'gemini' ? 'Gemini' : 'Claude'}
+            {f === 'all' ? 'All' : f === 'gemini' ? 'Gemini' : f === 'openai' ? 'OpenAI' : 'Claude'}
           </button>
         ))}
       </div>
@@ -152,6 +156,23 @@ const ModelSelector: React.FC = () => {
               title={`${(thinkingBudget / 1024).toFixed(0)}K tokens`}
             />
           )}
+        </div>
+      )}
+
+      {/* Reasoning effort (OpenAI o-series only) */}
+      {isReasoningModel && (
+        <div className="flex items-center gap-2">
+          <label className="text-xs" style={{ color: 'var(--t-muted)' }}>Effort</label>
+          <select
+            value={reasoningEffort}
+            onChange={e => setReasoningEffort(e.target.value as 'low' | 'medium' | 'high')}
+            className="text-xs rounded px-2 py-1 border"
+            style={{ background: 'var(--t-surface2)', color: 'var(--t-text)', borderColor: 'var(--t-border)' }}
+          >
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
         </div>
       )}
     </div>

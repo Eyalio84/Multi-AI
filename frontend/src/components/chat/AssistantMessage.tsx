@@ -76,8 +76,12 @@ const AssistantMessage: React.FC<Props> = ({ message, onUseImage }) => {
 
       {/* Provider badge */}
       <div className="mt-2 flex justify-end">
-        <span className={`text-[10px] px-1.5 py-0.5 rounded ${message.provider === 'claude' ? 'bg-orange-800/50 text-orange-300' : 'bg-blue-800/50 text-blue-300'}`}>
-          {message.provider === 'claude' ? 'Claude' : 'Gemini'}
+        <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+          message.provider === 'claude' ? 'bg-orange-800/50 text-orange-300' :
+          message.provider === 'openai' ? 'bg-green-800/50 text-green-300' :
+          'bg-blue-800/50 text-blue-300'
+        }`}>
+          {message.provider === 'claude' ? 'Claude' : message.provider === 'openai' ? 'OpenAI' : 'Gemini'}
         </span>
       </div>
     </div>

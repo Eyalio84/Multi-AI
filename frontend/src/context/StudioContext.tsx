@@ -67,15 +67,15 @@ interface StudioContextType {
   setSelectedElement: (sel: StudioSelection | null) => void;
 
   // Provider/model
-  provider: 'gemini' | 'claude';
+  provider: 'gemini' | 'claude' | 'openai';
   model: string;
-  setProvider: (p: 'gemini' | 'claude') => void;
+  setProvider: (p: 'gemini' | 'claude' | 'openai') => void;
   setModel: (m: string) => void;
 }
 
 const StudioContext = createContext<StudioContextType | undefined>(undefined);
 
-export const StudioProvider: React.FC<{ children: ReactNode; initialProvider: 'gemini' | 'claude'; initialModel: string }> = ({
+export const StudioProvider: React.FC<{ children: ReactNode; initialProvider: 'gemini' | 'claude' | 'openai'; initialModel: string }> = ({
   children, initialProvider, initialModel,
 }) => {
   // Mode
@@ -112,7 +112,7 @@ export const StudioProvider: React.FC<{ children: ReactNode; initialProvider: 'g
   const [selectedElement, setSelectedElement] = useState<StudioSelection | null>(null);
 
   // Provider/model
-  const [provider, setProvider] = useState<'gemini' | 'claude'>(initialProvider);
+  const [provider, setProvider] = useState<'gemini' | 'claude' | 'openai'>(initialProvider);
   const [model, setModel] = useState(initialModel);
 
   // --- File operations ---

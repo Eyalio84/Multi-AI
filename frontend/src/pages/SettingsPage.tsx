@@ -16,31 +16,38 @@ const SettingsPage: React.FC = () => {
   // API key state
   const [geminiKey, setGeminiKey] = useState('');
   const [anthropicKey, setAnthropicKey] = useState('');
+  const [openaiKey, setOpenaiKey] = useState('');
   const [geminiConfigured, setGeminiConfigured] = useState(false);
   const [anthropicConfigured, setAnthropicConfigured] = useState(false);
+  const [openaiConfigured, setOpenaiConfigured] = useState(false);
   const [keySaveStatus, setKeySaveStatus] = useState('');
   const [showGeminiKey, setShowGeminiKey] = useState(false);
   const [showAnthropicKey, setShowAnthropicKey] = useState(false);
+  const [showOpenaiKey, setShowOpenaiKey] = useState(false);
 
   useEffect(() => {
     apiService.getKeysStatus().then(s => {
       setGeminiConfigured(s.gemini);
       setAnthropicConfigured(s.anthropic);
+      setOpenaiConfigured(s.openai);
     }).catch(() => {});
   }, [workspaceMode]);
 
   const handleSaveKeys = async () => {
-    if (!geminiKey && !anthropicKey) return;
+    if (!geminiKey && !anthropicKey && !openaiKey) return;
     setKeySaveStatus('Saving...');
     try {
       const res = await apiService.setApiKeys(
         geminiKey || undefined,
         anthropicKey || undefined,
+        openaiKey || undefined,
       );
       setGeminiConfigured(res.gemini_configured);
       setAnthropicConfigured(res.anthropic_configured);
+      setOpenaiConfigured(res.openai_configured);
       setGeminiKey('');
       setAnthropicKey('');
+      setOpenaiKey('');
       setKeySaveStatus('Saved!');
       setTimeout(() => setKeySaveStatus(''), 3000);
     } catch (e: any) {
@@ -218,6 +225,12 @@ const SettingsPage: React.FC = () => {
               Anthropic API: {workspaceMode === 'claude-code' ? 'Disabled (Claude Code mode)' : anthropicConfigured ? 'Configured' : 'Not configured'}
             </span>
           </div>
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full" style={{ background: openaiConfigured ? 'var(--t-success)' : 'var(--t-error)' }} />
+            <span style={{ color: 'var(--t-text2)' }}>
+              OpenAI API: {openaiConfigured ? 'Configured' : 'Not configured'}
+            </span>
+          </div>
         </div>
 
         {/* Gemini key input */}
@@ -270,15 +283,39 @@ const SettingsPage: React.FC = () => {
             </div>
           </div>
 
+          {/* OpenAI key input */}
+          <div>
+            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--t-muted)' }}>OpenAI API Key</label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type={showOpenaiKey ? 'text' : 'password'}
+                  value={openaiKey}
+                  onChange={e => setOpenaiKey(e.target.value)}
+                  placeholder={openaiConfigured ? 'Key set (enter new to replace)' : 'sk-proj-...'}
+                  className="t-btn w-full px-3 py-2 rounded text-sm"
+                  style={{ background: 'var(--t-bg)', color: 'var(--t-text)', border: '1px solid var(--t-border)' }}
+                />
+                <button
+                  onClick={() => setShowOpenaiKey(!showOpenaiKey)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-xs"
+                  style={{ color: 'var(--t-muted)' }}
+                >
+                  {showOpenaiKey ? 'Hide' : 'Show'}
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div className="flex items-center gap-3">
             <button
               onClick={handleSaveKeys}
-              disabled={!geminiKey && !anthropicKey}
+              disabled={!geminiKey && !anthropicKey && !openaiKey}
               className="t-btn px-4 py-2 rounded text-sm"
               style={{
-                background: (geminiKey || anthropicKey) ? 'var(--t-primary)' : 'var(--t-surface2)',
-                color: (geminiKey || anthropicKey) ? '#fff' : 'var(--t-muted)',
-                cursor: (geminiKey || anthropicKey) ? 'pointer' : 'default',
+                background: (geminiKey || anthropicKey || openaiKey) ? 'var(--t-primary)' : 'var(--t-surface2)',
+                color: (geminiKey || anthropicKey || openaiKey) ? '#fff' : 'var(--t-muted)',
+                cursor: (geminiKey || anthropicKey || openaiKey) ? 'pointer' : 'default',
               }}
             >
               Save Keys
@@ -289,7 +326,7 @@ const SettingsPage: React.FC = () => {
 
         <p className="text-xs mt-3" style={{ color: 'var(--t-muted)' }}>
           Keys are stored in server memory only (not written to disk). They reset when the server restarts.
-          You can also set keys via environment variables: GEMINI_API_KEY and ANTHROPIC_API_KEY.
+          You can also set keys via environment variables: GEMINI_API_KEY, ANTHROPIC_API_KEY, and OPENAI_API_KEY.
         </p>
       </section>
 

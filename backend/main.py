@@ -48,19 +48,22 @@ if _phaser_dir.exists():
 
 @app.get("/api/health")
 async def health():
-    from config import MODE, GEMINI_API_KEY, ANTHROPIC_API_KEY
+    from config import MODE, GEMINI_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY
     return {
         "status": "ok",
         "mode": MODE,
         "gemini_configured": bool(GEMINI_API_KEY),
         "claude_configured": bool(ANTHROPIC_API_KEY),
+        "openai_configured": bool(OPENAI_API_KEY),
     }
 
 
 @app.get("/api/models")
 async def list_models():
-    from config import MODELS, MODE
+    from config import MODELS, MODE, OPENAI_API_KEY
     result = {"gemini": MODELS["gemini"]}
     if MODE == "standalone":
         result["claude"] = MODELS["claude"]
+    if OPENAI_API_KEY:
+        result["openai"] = MODELS["openai"]
     return result

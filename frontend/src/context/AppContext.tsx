@@ -60,7 +60,7 @@ interface AppContextType {
   personas: Persona[];
   useWebSearch: boolean;
   // Model
-  activeProvider: 'gemini' | 'claude';
+  activeProvider: 'gemini' | 'claude' | 'openai';
   activeModel: string;
   thinkingEnabled: boolean;
   thinkingBudget: number;
@@ -78,7 +78,7 @@ interface AppContextType {
   theme: ThemeDefinition;
   switchTheme: (id: ThemeId) => void;
   // Actions
-  setActiveProvider: (p: 'gemini' | 'claude') => void;
+  setActiveProvider: (p: 'gemini' | 'claude' | 'openai') => void;
   setActiveModel: (m: string) => void;
   setThinkingEnabled: (b: boolean) => void;
   setThinkingBudget: (n: number) => void;
@@ -142,16 +142,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Model state
   const settings = storageService.getSettings();
-  const [activeProvider, _setActiveProvider] = useState<'gemini' | 'claude'>(settings.mode === 'claude-code' ? 'gemini' : 'gemini');
+  const [activeProvider, _setActiveProvider] = useState<'gemini' | 'claude' | 'openai'>(settings.mode === 'claude-code' ? 'gemini' : 'gemini');
   const [activeModel, _setActiveModel] = useState(settings.defaultGeminiModel);
   const [thinkingEnabled, setThinkingEnabled] = useState(false);
   const [thinkingBudget, setThinkingBudget] = useState(settings.thinkingBudget);
   const [workspaceMode, _setWorkspaceMode] = useState<'standalone' | 'claude-code'>(settings.mode);
   const [modelCatalog, setModelCatalog] = useState<ModelCatalog>({});
 
-  const setActiveProvider = (p: 'gemini' | 'claude') => {
+  const setActiveProvider = (p: 'gemini' | 'claude' | 'openai') => {
     _setActiveProvider(p);
     if (p === 'gemini') _setActiveModel(settings.defaultGeminiModel);
+    else if (p === 'openai') _setActiveModel('gpt-5-mini');
     else _setActiveModel(settings.defaultClaudeModel);
   };
   const setActiveModel = (m: string) => _setActiveModel(m);

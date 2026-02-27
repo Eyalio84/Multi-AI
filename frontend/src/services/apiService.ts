@@ -5,7 +5,7 @@ const BASE = '/api';
 // --- Chat Streaming ---
 export const streamChat = async (
   messages: Message[],
-  provider: 'gemini' | 'claude',
+  provider: 'gemini' | 'claude' | 'openai',
   model: string,
   persona?: Persona,
   customStyles?: CustomAiStyle[],
@@ -29,7 +29,7 @@ export const streamCoding = async (
   history: Message[],
   projects: Project[],
   persona: Persona,
-  provider: 'gemini' | 'claude',
+  provider: 'gemini' | 'claude' | 'openai',
   model: string,
   useWebSearch: boolean,
   customStyles: CustomAiStyle[],
@@ -595,7 +595,7 @@ export const getIntegrationSetup = async (platform: string) => {
 };
 
 // --- API Key Configuration ---
-export const getKeysStatus = async (): Promise<{ gemini: boolean; anthropic: boolean; mode: string }> => {
+export const getKeysStatus = async (): Promise<{ gemini: boolean; anthropic: boolean; openai: boolean; mode: string }> => {
   const res = await fetch(`${BASE}/config/keys/status`);
   return res.json();
 };
@@ -756,10 +756,11 @@ export const runVoxFunction = async (fnName: string, args: Record<string, any> =
   return res.json();
 };
 
-export const setApiKeys = async (geminiKey?: string, anthropicKey?: string) => {
+export const setApiKeys = async (geminiKey?: string, anthropicKey?: string, openaiKey?: string) => {
   const body: Record<string, string> = {};
   if (geminiKey) body.gemini_key = geminiKey;
   if (anthropicKey) body.anthropic_key = anthropicKey;
+  if (openaiKey) body.openai_key = openaiKey;
   const res = await fetch(`${BASE}/config/keys`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

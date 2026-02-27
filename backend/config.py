@@ -20,15 +20,18 @@ ANTHROPIC_API_KEY = (
     if MODE == "standalone"
     else None
 )
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 
-def update_api_keys(gemini_key: str = None, anthropic_key: str = None):
+def update_api_keys(gemini_key: str = None, anthropic_key: str = None, openai_key: str = None):
     """Update API keys at runtime (called from /api/config/keys)."""
-    global GEMINI_API_KEY, ANTHROPIC_API_KEY
+    global GEMINI_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY
     if gemini_key is not None:
         GEMINI_API_KEY = gemini_key
     if anthropic_key is not None:
         ANTHROPIC_API_KEY = anthropic_key
+    if openai_key is not None:
+        OPENAI_API_KEY = openai_key
 
 # --- Paths ---
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -234,10 +237,180 @@ MODELS = {
             "use_case": "Cheapest, routing",
         },
     },
+    "openai": {
+        # --- Text models ---
+        "gpt-5.2": {
+            "name": "GPT-5.2",
+            "category": "text",
+            "context": 400000,
+            "cost_in": 1.75,
+            "cost_out": 14.0,
+            "use_case": "Latest flagship",
+        },
+        "gpt-5.1": {
+            "name": "GPT-5.1",
+            "category": "text",
+            "context": 1000000,
+            "cost_in": 1.0,
+            "cost_out": 4.0,
+            "use_case": "Agentic coding (1M context)",
+        },
+        "gpt-5": {
+            "name": "GPT-5",
+            "category": "text",
+            "context": 128000,
+            "cost_in": 2.0,
+            "cost_out": 8.0,
+            "use_case": "Original GPT-5",
+        },
+        "gpt-5-mini": {
+            "name": "GPT-5 Mini",
+            "category": "text",
+            "context": 128000,
+            "cost_in": 0.40,
+            "cost_out": 1.60,
+            "use_case": "Balanced",
+        },
+        "gpt-5-nano": {
+            "name": "GPT-5 Nano",
+            "category": "text",
+            "context": 128000,
+            "cost_in": 0.10,
+            "cost_out": 0.40,
+            "use_case": "Budget",
+        },
+        "gpt-4.1": {
+            "name": "GPT-4.1",
+            "category": "text",
+            "context": 1000000,
+            "cost_in": 2.0,
+            "cost_out": 8.0,
+            "use_case": "Long-context",
+        },
+        "gpt-4.1-mini": {
+            "name": "GPT-4.1 Mini",
+            "category": "text",
+            "context": 1000000,
+            "cost_in": 0.40,
+            "cost_out": 1.60,
+            "use_case": "Fast long-context",
+        },
+        "gpt-4.1-nano": {
+            "name": "GPT-4.1 Nano",
+            "category": "text",
+            "context": 1000000,
+            "cost_in": 0.10,
+            "cost_out": 0.40,
+            "use_case": "Cheapest long-context",
+        },
+        # --- Reasoning models ---
+        "o3": {
+            "name": "o3",
+            "category": "reasoning",
+            "context": 200000,
+            "cost_in": 2.0,
+            "cost_out": 8.0,
+            "use_case": "Deep reasoning",
+        },
+        "o4-mini": {
+            "name": "o4-mini",
+            "category": "reasoning",
+            "context": 200000,
+            "cost_in": 1.10,
+            "cost_out": 4.40,
+            "use_case": "Fast reasoning",
+        },
+        "o3-pro": {
+            "name": "o3-pro",
+            "category": "reasoning",
+            "context": 200000,
+            "cost_in": 20.0,
+            "cost_out": 80.0,
+            "use_case": "Highest quality reasoning",
+        },
+        # --- Image models ---
+        "gpt-image-1.5": {
+            "name": "GPT Image 1.5",
+            "category": "image",
+            "context": 0,
+            "cost_in": 0,
+            "cost_out": 0.02,
+            "use_case": "Latest image generation",
+        },
+        "gpt-image-1": {
+            "name": "GPT Image 1",
+            "category": "image",
+            "context": 0,
+            "cost_in": 0,
+            "cost_out": 0.04,
+            "use_case": "Image generation",
+        },
+        # --- Video models ---
+        "sora-2": {
+            "name": "Sora 2",
+            "category": "video",
+            "context": 0,
+            "cost_in": 0,
+            "cost_out": 0.10,
+            "use_case": "Video generation ($0.10/sec)",
+        },
+        "sora-2-pro": {
+            "name": "Sora 2 Pro",
+            "category": "video",
+            "context": 0,
+            "cost_in": 0,
+            "cost_out": 0.30,
+            "use_case": "High-quality video ($0.30/sec)",
+        },
+        # --- Audio models ---
+        "gpt-4o-mini-tts": {
+            "name": "GPT-4o Mini TTS",
+            "category": "audio",
+            "context": 0,
+            "cost_in": 0,
+            "cost_out": 0,
+            "use_case": "Text-to-speech",
+        },
+        "whisper-1": {
+            "name": "Whisper",
+            "category": "audio",
+            "context": 0,
+            "cost_in": 0,
+            "cost_out": 0,
+            "use_case": "Speech-to-text",
+        },
+        # --- Embedding models ---
+        "text-embedding-3-large": {
+            "name": "Embedding 3 Large",
+            "category": "embedding",
+            "context": 8192,
+            "cost_in": 0.13,
+            "cost_out": 0,
+            "use_case": "High-quality embeddings",
+        },
+        "text-embedding-3-small": {
+            "name": "Embedding 3 Small",
+            "category": "embedding",
+            "context": 8192,
+            "cost_in": 0.02,
+            "cost_out": 0,
+            "use_case": "Budget embeddings",
+        },
+        # --- Agent models ---
+        "gpt-5.2-codex": {
+            "name": "Codex (GPT-5.2)",
+            "category": "agent",
+            "context": 400000,
+            "cost_in": 1.75,
+            "cost_out": 14.0,
+            "use_case": "Autonomous coding agent",
+        },
+    },
 }
 
 DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 DEFAULT_CLAUDE_MODEL = "claude-sonnet-4-6"
+DEFAULT_OPENAI_MODEL = "gpt-5-mini"
 
 # --- VOX Voice Configuration ---
 VOX_AUDIO_SAMPLE_RATE_IN = 16000   # PCM capture rate from mic

@@ -1,4 +1,4 @@
-# API Endpoints Reference — v2.5.0
+# API Endpoints Reference — v3.0.0
 
 Base URL: `http://localhost:8000/api`
 
@@ -41,7 +41,8 @@ Health check with mode and API status.
   "status": "ok",
   "mode": "standalone",
   "gemini_configured": true,
-  "claude_configured": true
+  "claude_configured": true,
+  "openai_configured": true
 }
 ```
 
@@ -58,6 +59,11 @@ List available models per provider. In `claude-code` mode, only Gemini models ar
   },
   "claude": {
     "claude-opus-4-6": { "name": "Claude Opus 4.6", "category": "text", "context": 200000, "cost_in": 5.0, "cost_out": 25.0, "use_case": "Most intelligent" },
+    ...
+  },
+  "openai": {
+    "gpt-5-mini": { "name": "GPT-5 Mini", "category": "text", "context": 128000, "cost_in": 0.40, "cost_out": 1.60, "use_case": "Balanced" },
+    "o3": { "name": "o3", "category": "reasoning", "context": 200000, "cost_in": 2.0, "cost_out": 8.0, "use_case": "Deep reasoning" },
     ...
   }
 }
@@ -1490,6 +1496,7 @@ Check which API keys are configured (never exposes actual keys).
 {
   "gemini": true,
   "anthropic": true,
+  "openai": true,
   "mode": "standalone"
 }
 ```
@@ -1501,7 +1508,8 @@ Set API keys at runtime (stored in memory only, not written to disk).
 ```json
 {
   "gemini_key": "AIza...",
-  "anthropic_key": "sk-ant-..."
+  "anthropic_key": "sk-ant-...",
+  "openai_key": "sk-proj-..."
 }
 ```
 
@@ -1545,7 +1553,7 @@ python3 backend/mcp_server.py --json    # Dump tool schemas as JSON
 
 ## Model Catalog
 
-23 models across 7 categories from 2 providers.
+43 models across 8 categories from 3 providers.
 
 ### Gemini Models (20)
 
@@ -1580,6 +1588,31 @@ python3 backend/mcp_server.py --json    # Dump tool schemas as JSON
 | claude-sonnet-4-6 | Claude Sonnet 4.6 | text | 200K | $3.00 / $15.00 |
 | claude-haiku-4.5 | Claude Haiku 4.5 | text | 200K | $0.25 / $1.25 |
 
+### OpenAI Models (21)
+
+| Model ID | Name | Category | Context | Cost In/Out ($/1M) |
+|----------|------|----------|---------|---------------------|
+| gpt-5.2 | GPT-5.2 | text | 400K | $1.75 / $14.00 |
+| gpt-5.1 | GPT-5.1 | text | 1M | $1.00 / $4.00 |
+| gpt-5 | GPT-5 | text | 128K | $2.00 / $8.00 |
+| gpt-5-mini | GPT-5 Mini | text | 128K | $0.40 / $1.60 |
+| gpt-5-nano | GPT-5 Nano | text | 128K | $0.10 / $0.40 |
+| gpt-4.1 | GPT-4.1 | text | 1M | $2.00 / $8.00 |
+| gpt-4.1-mini | GPT-4.1 Mini | text | 1M | $0.40 / $1.60 |
+| gpt-4.1-nano | GPT-4.1 Nano | text | 1M | $0.10 / $0.40 |
+| o3 | o3 | reasoning | 200K | $2.00 / $8.00 |
+| o4-mini | o4-mini | reasoning | 200K | $1.10 / $4.40 |
+| o3-pro | o3-pro | reasoning | 200K | $20.00 / $80.00 |
+| gpt-image-1.5 | GPT Image 1.5 | image | - | free / $0.02 |
+| gpt-image-1 | GPT Image 1 | image | - | free / $0.04 |
+| sora-2 | Sora 2 | video | - | $0.10/sec |
+| sora-2-pro | Sora 2 Pro | video | - | $0.30/sec |
+| gpt-4o-mini-tts | GPT-4o Mini TTS | audio | - | free |
+| whisper-1 | Whisper | audio | - | free |
+| text-embedding-3-large | Embedding 3 Large | embedding | 8K | $0.13 / free |
+| text-embedding-3-small | Embedding 3 Small | embedding | 8K | $0.02 / free |
+| gpt-5.2-codex | Codex (GPT-5.2) | agent | 400K | $1.75 / $14.00 |
+
 ---
 
 ## Notes
@@ -1591,7 +1624,7 @@ Theme switching is handled entirely client-side via CSS custom properties. No ba
 All chat, coding, KG RAG, and expert conversations are automatically persisted via the memory service. The `conversationId` field enables multi-turn continuity across page reloads.
 
 ### Agentic Loop
-Chat, coding, and KG RAG endpoints all route through a unified agentic loop (`services/agentic_loop.py`) that handles provider abstraction, tool execution, and streaming normalization.
+Chat, coding, and KG RAG endpoints all route through a unified agentic loop (`services/agentic_loop.py`) that handles tri-provider abstraction (Gemini, Claude, OpenAI), tool execution, and streaming normalization.
 
 ### Phaser Static Files
 Game preview uses Phaser 3 runtime served from `/docs/phaser/` via FastAPI static file mount (not an API endpoint).

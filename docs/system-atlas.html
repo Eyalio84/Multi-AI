@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>System Atlas — Multi-AI Agentic Workspace v2.5.0</title>
+<title>System Atlas — Multi-AI Agentic Workspace v3.0.0</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; overflow-x: hidden; }
@@ -41,12 +41,13 @@
 
 <div class="header">
   <h1>System Atlas</h1>
-  <p>Interactive architecture map — Multi-AI Agentic Workspace v2.5.0</p>
+  <p>Interactive architecture map — Multi-AI Agentic Workspace v3.0.0</p>
   <div class="stats">
     <div class="stat"><b>14</b> Pages</div>
     <div class="stat"><b>17</b> Routers</div>
-    <div class="stat"><b>28+</b> Services</div>
-    <div class="stat"><b>23</b> Models</div>
+    <div class="stat"><b>31</b> Services</div>
+    <div class="stat"><b>43</b> Models</div>
+    <div class="stat"><b>3</b> Providers</div>
     <div class="stat"><b>57</b> KGs</div>
     <div class="stat"><b>100+</b> Endpoints</div>
     <div class="stat"><b>5</b> Themes</div>
@@ -60,7 +61,7 @@
   <button class="btn" onclick="showLayer('services')">Services</button>
   <button class="btn" onclick="showLayer('external')">External</button>
   <button class="btn" onclick="showLayer('data')">Data Flow</button>
-  <button class="btn" onclick="showLayer('new')">New in v2.5</button>
+  <button class="btn" onclick="showLayer('new')">New in v3.0</button>
 </div>
 
 <div class="canvas">
@@ -80,11 +81,11 @@
   <!-- Layer labels -->
   <text x="20" y="30" fill="#475569" font-size="12" font-weight="700">FRONTEND (14 pages)</text>
   <text x="20" y="230" fill="#475569" font-size="12" font-weight="700">API LAYER (17 routers)</text>
-  <text x="20" y="500" fill="#475569" font-size="12" font-weight="700">SERVICES (28+)</text>
+  <text x="20" y="500" fill="#475569" font-size="12" font-weight="700">SERVICES (31)</text>
   <text x="20" y="780" fill="#475569" font-size="12" font-weight="700">EXTERNAL</text>
 
   <!-- ============ FRONTEND PAGES (Row 1: 7 pages) ============ -->
-  <g class="node" data-layer="frontend" data-tip="ChatPage|Dual-model streaming chat: 23 models grouped by category, 5 slash commands (/image /tts /video /agent /help), extended thinking, grounding sources, audio player|Route: /chat" onclick="showTip(this, event)">
+  <g class="node" data-layer="frontend" data-tip="ChatPage|Tri-model streaming chat: 43 models from 3 providers (Gemini/Claude/OpenAI), 5 slash commands (/image /tts /video /agent /help), extended thinking, grounding sources, audio player|Route: /chat" onclick="showTip(this, event)">
     <rect x="40" y="50" width="110" height="50" fill="#1e3a5f" stroke="#3b82f6" />
     <text x="95" y="72" text-anchor="middle">ChatPage</text>
     <text x="95" y="86" text-anchor="middle" class="subtitle">/chat</text>
@@ -144,7 +145,7 @@
   </g>
 
   <!-- Row 3: Settings + Integrations + Shared Components -->
-  <g class="node" data-layer="frontend" data-tip="SettingsPage|Theme switcher (5 themes), mode toggle, export/import, runtime API key config|Route: /settings" onclick="showTip(this, event)">
+  <g class="node" data-layer="frontend" data-tip="SettingsPage|Theme switcher (5 themes), mode toggle, export/import, runtime API key config (Gemini/Claude/OpenAI)|Route: /settings" onclick="showTip(this, event)">
     <rect x="40" y="120" width="120" height="40" fill="#1e3a5f" stroke="#3b82f6" />
     <text x="100" y="144" text-anchor="middle">SettingsPage</text>
   </g>
@@ -158,15 +159,15 @@
   </g>
 
   <!-- Shared Components -->
-  <g class="node" data-layer="frontend" data-tip="AppContext|Global state: projects, models (23), personas, agents, theme|Context API + localStorage" onclick="showTip(this, event)">
+  <g class="node" data-layer="frontend" data-tip="AppContext|Global state: projects, models (43), personas, agents, theme, tri-provider|Context API + localStorage" onclick="showTip(this, event)">
     <rect x="500" y="120" width="160" height="40" fill="#1a2744" stroke="#6366f1" />
     <text x="580" y="144" text-anchor="middle">AppContext (State)</text>
   </g>
-  <g class="node" data-layer="frontend" data-tip="ModelSelector|Provider toggle (Gemini/Claude) + grouped model picker (23 models, 7 categories) + thinking budget slider|Used in ChatPanel" onclick="showTip(this, event)">
+  <g class="node" data-layer="frontend" data-tip="ModelSelector|Provider filter (Gemini/Claude/OpenAI) + grouped model picker (43 models, 8 categories) + thinking budget + reasoning effort|Used in ChatPanel" onclick="showTip(this, event)">
     <rect x="670" y="120" width="160" height="40" fill="#1a2744" stroke="#6366f1" />
     <text x="750" y="144" text-anchor="middle">ModelSelector</text>
   </g>
-  <g class="node" data-layer="frontend" data-tip="useChat Hook|Dual-model SSE streaming, 5 slash commands, tool call handling, processAgentStream for /agent|Core chat logic" onclick="showTip(this, event)">
+  <g class="node" data-layer="frontend" data-tip="useChat Hook|Tri-model SSE streaming, 5 slash commands, tool call handling, processAgentStream for /agent|Core chat logic" onclick="showTip(this, event)">
     <rect x="840" y="120" width="140" height="40" fill="#1a2744" stroke="#6366f1" />
     <text x="910" y="144" text-anchor="middle">useChat Hook</text>
   </g>
@@ -180,7 +181,7 @@
   </g>
 
   <!-- ============ BACKEND ROUTERS (Row 1: 9 routers) ============ -->
-  <g class="node" data-layer="backend" data-tip="chat.py|POST /api/chat/stream — SSE streaming via 8-stage agentic loop, memory injection, skill injection, persona composition|Handles Gemini + Claude routing" onclick="showTip(this, event)">
+  <g class="node" data-layer="backend" data-tip="chat.py|POST /api/chat/stream — SSE streaming via 8-stage agentic loop, memory injection, skill injection, persona composition|Handles Gemini + Claude + OpenAI routing" onclick="showTip(this, event)">
     <rect x="40" y="250" width="120" height="50" fill="#1a3320" stroke="#22c55e" />
     <text x="100" y="272" text-anchor="middle">chat.py</text>
     <text x="100" y="286" text-anchor="middle" class="subtitle">/chat/stream</text>
@@ -278,11 +279,16 @@
     <text x="335" y="542" text-anchor="middle">claude_service.py</text>
     <text x="335" y="556" text-anchor="middle" class="subtitle">anthropic SDK</text>
   </g>
-  <g class="node" data-layer="services new" data-tip="agentic_loop.py|8-stage unified pipeline: intake → memory → skills → context → infer → tools → stream → persist|Core orchestration — NEW in v2.4.0" onclick="showTip(this, event)">
+  <g class="node" data-layer="services new" data-tip="openai_service.py|openai SDK wrapper: Responses API streaming, tool calling, image generation, TTS|NEW in v3.0.0 — OpenAI integration" onclick="showTip(this, event)">
+    <rect x="240" y="460" width="190" height="50" fill="#0a2a0a" stroke="#4ade80" stroke-width="3" />
+    <text x="335" y="482" text-anchor="middle">openai_service.py</text>
+    <text x="335" y="492" text-anchor="middle" class="badge-new">NEW</text>
+    <text x="335" y="502" text-anchor="middle" class="subtitle">openai SDK (Responses API)</text>
+  </g>
+  <g class="node" data-layer="services new" data-tip="agentic_loop.py|8-stage unified pipeline: intake → memory → skills → context → infer → tools → stream → persist|Core orchestration — tri-provider routing (Gemini/Claude/OpenAI)" onclick="showTip(this, event)">
     <rect x="440" y="520" width="190" height="50" fill="#2a1a3b" stroke="#4ade80" stroke-width="3" />
     <text x="535" y="542" text-anchor="middle">agentic_loop.py</text>
-    <text x="535" y="552" text-anchor="middle" class="badge-new">NEW</text>
-    <text x="535" y="562" text-anchor="middle" class="subtitle">8-stage pipeline</text>
+    <text x="535" y="556" text-anchor="middle" class="subtitle">8-stage pipeline</text>
   </g>
   <g class="node" data-layer="services" data-tip="model_router.py|Intelligent model selection based on task_type, complexity, budget, context_length|Routes to optimal model" onclick="showTip(this, event)">
     <rect x="640" y="520" width="170" height="50" fill="#2a1a3b" stroke="#a855f7" />
@@ -394,6 +400,12 @@
     <text x="350" y="825" text-anchor="middle" font-size="13">Claude API (3 models)</text>
     <text x="350" y="845" text-anchor="middle" class="subtitle">Opus • Sonnet • Haiku</text>
   </g>
+  <g class="node" data-layer="external new" data-tip="OpenAI API|20 OpenAI models: GPT-5.x, o3/o4 reasoning, GPT Image, Sora, TTS, Whisper, Embeddings, Codex|NEW in v3.0.0 — Responses API streaming" onclick="showTip(this, event)">
+    <rect x="260" y="870" width="180" height="60" fill="#0a2a0a" stroke="#4ade80" stroke-width="3" />
+    <text x="350" y="895" text-anchor="middle" font-size="13">OpenAI API (20 models)</text>
+    <text x="350" y="905" text-anchor="middle" class="badge-new">NEW</text>
+    <text x="350" y="915" text-anchor="middle" class="subtitle">Text • Reasoning • Image • Video</text>
+  </g>
   <g class="node" data-layer="external" data-tip="57 SQLite KGs|docs/KGS/ — 350MB total, 6 auto-detected schema profiles|Hybrid search: 0.40*emb + 0.45*BM25 + 0.15*graph" onclick="showTip(this, event)">
     <rect x="460" y="800" width="200" height="60" fill="#0c2a2a" stroke="#06b6d4" stroke-width="3" />
     <text x="560" y="825" text-anchor="middle" font-size="13">57 SQLite KGs</text>
@@ -474,6 +486,9 @@
   <!-- New: Agent SDK → Claude API -->
   <line class="edge new" data-layer="data new" x1="815" y1="760" x2="350" y2="800" marker-end="url(#arrowhead-new)" />
 
+  <!-- New: OpenAI Service → OpenAI API -->
+  <line class="edge new" data-layer="data new" x1="335" y1="510" x2="350" y2="870" marker-end="url(#arrowhead-new)" />
+
   <!-- New: Integrations → Platform -->
   <line class="edge new" data-layer="data new" x1="1010" y1="370" x2="1170" y2="800" marker-end="url(#arrowhead-new)" />
 </svg>
@@ -491,7 +506,8 @@
   <div class="legend-item"><div class="legend-dot" style="background:#06b6d4"></div> KG Services (5)</div>
   <div class="legend-item"><div class="legend-dot" style="background:#0ea5e9"></div> External APIs</div>
   <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div> Studio (18+ endpoints)</div>
-  <div class="legend-item"><div class="legend-dot" style="background:#4ade80"></div> New in v2.5.0</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> OpenAI Service</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#4ade80"></div> New in v3.0.0</div>
   <div class="legend-item"><div class="legend-dot" style="background:#6366f1"></div> Theme System (5)</div>
 </div>
 

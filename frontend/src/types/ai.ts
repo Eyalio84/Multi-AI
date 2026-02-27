@@ -25,7 +25,7 @@ export interface Agent {
 }
 
 export interface ModelConfig {
-  provider: 'gemini' | 'claude';
+  provider: 'gemini' | 'claude' | 'openai';
   model: string;
   thinkingBudget?: number;
 }

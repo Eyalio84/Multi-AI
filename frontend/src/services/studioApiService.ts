@@ -68,7 +68,7 @@ export const streamStudio = async (
   prompt: string,
   files: Record<string, { path: string; content: string }>,
   chatHistory: any[],
-  provider: 'gemini' | 'claude',
+  provider: 'gemini' | 'claude' | 'openai',
   model: string,
   mode: 'generate' | 'refine',
 ): Promise<ReadableStream<Uint8Array>> => {

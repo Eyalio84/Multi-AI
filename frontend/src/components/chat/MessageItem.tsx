@@ -14,7 +14,7 @@ const AuthorIcon: React.FC<{ author: MessageAuthor; provider?: string }> = ({ au
   const textStyle = { color: 'var(--t-text)' };
   if (author === MessageAuthor.USER) return <div className={`${base}`} style={{ ...textStyle, background: 'var(--t-primary)' }}>U</div>;
   if (author === MessageAuthor.TOOL) return <div className={`${base}`} style={{ ...textStyle, background: 'var(--t-success)' }}>T</div>;
-  return <div className={`${base}`} style={{ ...textStyle, background: provider === 'claude' ? 'var(--t-accent2)' : 'var(--t-accent1)' }}>AI</div>;
+  return <div className={`${base}`} style={{ ...textStyle, background: provider === 'claude' ? 'var(--t-accent2)' : provider === 'openai' ? '#16a34a' : 'var(--t-accent1)' }}>AI</div>;
 };
 
 const MessageItem: React.FC<Props> = ({ message, onUseImage }) => {

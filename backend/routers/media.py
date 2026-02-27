@@ -67,14 +67,22 @@ class ImageGenRequest(BaseModel):
 
 @router.post("/media/image/generate")
 async def generate_image(request: ImageGenRequest):
-    """Generate images from text using Nano Banana Pro / Imagen 4."""
+    """Generate images from text using Nano Banana Pro / Imagen 4 / GPT Image."""
     try:
-        results = await gemini_service.generate_image(
-            prompt=request.prompt,
-            model=request.model,
-            aspect_ratio=request.aspect_ratio,
-            num_images=request.num_images,
-        )
+        if request.model.startswith("gpt-image"):
+            from services import openai_service
+            results = await openai_service.generate_image(
+                prompt=request.prompt,
+                model=request.model,
+                n=request.num_images,
+            )
+        else:
+            results = await gemini_service.generate_image(
+                prompt=request.prompt,
+                model=request.model,
+                aspect_ratio=request.aspect_ratio,
+                num_images=request.num_images,
+            )
         return results
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": str(e)})
@@ -111,14 +119,23 @@ class TTSRequest(BaseModel):
 
 @router.post("/media/tts/generate")
 async def generate_tts(request: TTSRequest):
-    """Text-to-speech using Gemini TTS models."""
+    """Text-to-speech using Gemini or OpenAI TTS models."""
     try:
-        result = await gemini_service.generate_tts(
-            text=request.text,
-            model=request.model,
-            voice=request.voice,
-            speed=request.speed,
-        )
+        if request.model.startswith("gpt-4o-mini-tts"):
+            from services import openai_service
+            result = await openai_service.generate_tts(
+                text=request.text,
+                model=request.model,
+                voice=request.voice,
+                speed=request.speed,
+            )
+        else:
+            result = await gemini_service.generate_tts(
+                text=request.text,
+                model=request.model,
+                voice=request.voice,
+                speed=request.speed,
+            )
         return result
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": str(e)})
