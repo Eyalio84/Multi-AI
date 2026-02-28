@@ -73,7 +73,17 @@ class AgenticLoop:
         memory_section = ""
         if user_text and mode != "rag":  # RAG has its own context
             try:
-                memories = memory_service.recall(user_text, limit=5)
+                # Mode-based intent hint for better memory retrieval
+                _mode_intent = {
+                    "coding": "debugging",
+                    "rag": "semantic",
+                    "messaging": "goal_based",
+                    "studio": "workflow",
+                }
+                memories = memory_service.recall(
+                    user_text, limit=5,
+                    intent_hint=_mode_intent.get(mode),
+                )
                 memory_section = memory_service.format_memories_for_prompt(memories)
             except Exception as e:
                 logger.debug(f"Memory recall failed: {e}")

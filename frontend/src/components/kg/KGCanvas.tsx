@@ -101,9 +101,11 @@ interface Props {
   selectedNodeId: string | null;
   onNodeClick: (nodeId: string) => void;
   loading: boolean;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }
 
-const KGCanvas: React.FC<Props> = ({ subgraph, selectedNodeId, onNodeClick, loading }) => {
+const KGCanvas: React.FC<Props> = ({ subgraph, selectedNodeId, onNodeClick, loading, isFullscreen, onToggleFullscreen }) => {
   const [rfNodes, setRfNodes, onNodesChange] = useNodesState<Node>([]);
   const [rfEdges, setRfEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -149,9 +151,21 @@ const KGCanvas: React.FC<Props> = ({ subgraph, selectedNodeId, onNodeClick, load
     onNodeClick(node.id);
   }, [onNodeClick]);
 
+  const fullscreenBtn = onToggleFullscreen ? (
+    <button
+      onClick={onToggleFullscreen}
+      className="absolute top-2 right-2 z-10 t-btn px-2 py-1 rounded text-xs"
+      style={{ background: 'var(--t-surface2)', color: 'var(--t-text2)', border: '1px solid var(--t-border)' }}
+      title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+    >
+      {isFullscreen ? '\u2716 Exit' : '\u26F6 Full'}
+    </button>
+  ) : null;
+
   if (!subgraph && !loading) {
     return (
-      <div ref={containerRef} className="flex-1 flex items-center justify-center" style={{ background: 'var(--t-bg)' }}>
+      <div ref={containerRef} className="flex-1 flex items-center justify-center relative" style={{ background: 'var(--t-bg)', minHeight: '40vh' }}>
+        {fullscreenBtn}
         <div className="text-center" style={{ color: 'var(--t-muted)' }}>
           <p className="text-lg">KG Studio</p>
           <p className="text-sm mt-1">Select a database and click a node to explore</p>
@@ -162,14 +176,16 @@ const KGCanvas: React.FC<Props> = ({ subgraph, selectedNodeId, onNodeClick, load
 
   if (loading) {
     return (
-      <div ref={containerRef} className="flex-1 flex items-center justify-center" style={{ background: 'var(--t-bg)' }}>
+      <div ref={containerRef} className="flex-1 flex items-center justify-center relative" style={{ background: 'var(--t-bg)', minHeight: '40vh' }}>
+        {fullscreenBtn}
         <div className="text-sm" style={{ color: 'var(--t-muted)' }}>Loading graph...</div>
       </div>
     );
   }
 
   return (
-    <div ref={containerRef} className="flex-1" style={{ background: 'var(--t-bg)' }}>
+    <div ref={containerRef} className="flex-1 relative" style={{ background: 'var(--t-bg)', minHeight: '40vh' }}>
+      {fullscreenBtn}
       <ReactFlow
         nodes={rfNodes}
         edges={rfEdges}

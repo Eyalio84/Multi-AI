@@ -14,13 +14,20 @@ interface Props {
 }
 
 const KGInspector: React.FC<Props> = ({ node, edges, allNodes, onNavigate, onEdit, onDelete, onEditEdge, onDeleteEdge }) => {
-  if (!node) return null;
+  if (!node) {
+    return (
+      <div className="w-full lg:w-72 max-h-[25vh] lg:max-h-none border-t lg:border-t-0 lg:border-l p-3 flex items-center justify-center"
+        style={{ borderColor: 'var(--t-border)' }}>
+        <p className="text-xs" style={{ color: 'var(--t-muted)' }}>Click a node to inspect</p>
+      </div>
+    );
+  }
 
   const connected = edges.filter(e => e.source === node.id || e.target === node.id);
   const nodeMap = Object.fromEntries(allNodes.map(n => [n.id, n]));
 
   return (
-    <div className="w-full lg:w-72 border-t lg:border-t-0 lg:border-l p-3 overflow-y-auto"
+    <div className="w-full lg:w-72 max-h-[30vh] lg:max-h-none border-t lg:border-t-0 lg:border-l p-3 overflow-y-auto"
       style={{ borderColor: 'var(--t-border)' }}>
       {/* Header */}
       <div className="flex items-center gap-2 mb-2">

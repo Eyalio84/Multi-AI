@@ -1,18 +1,28 @@
-"""Embedding service — multi-strategy search: FTS5, sqlite-vec, Gemini API, Model2Vec."""
+"""Embedding service — multi-strategy search: FTS5, sqlite-vec, Gemini API, Model2Vec.
+
+KG-OS Retrieval Upgrade: Intent-adaptive weights, BM25 stemming, 5x keyword boost,
+edge-type graph boost, PageRank authority, 4-weight formula, query caching, community diversity.
+"""
 import sqlite3
 import json
 import struct
 import math
 import re
+import time
+import hashlib
+import logging
 from pathlib import Path
 from typing import Any
 
 from services.kg_service import kg_service
 
+logger = logging.getLogger(__name__)
+
 # Optional imports with graceful fallback
 _HAS_SQLITE_VEC = False
 _HAS_NUMPY = False
 _HAS_MODEL2VEC = False
+_HAS_NETWORKX = False
 
 try:
     import sqlite_vec
@@ -32,6 +42,12 @@ try:
 except ImportError:
     pass
 
+try:
+    import networkx as nx
+    _HAS_NETWORKX = True
+except ImportError:
+    pass
+
 
 def _serialize_f32(vec: list[float]) -> bytes:
     return struct.pack(f"{len(vec)}f", *vec)
@@ -42,14 +58,140 @@ def _deserialize_f32(data: bytes) -> list[float]:
     return list(struct.unpack(f"{n}f", data))
 
 
+# ── Intent-Adaptive Weight Profiles ────────────────────────────────
+# Source: agents/shared/retrieval/weight_profiles.py + docs/rag-graph/REPORT-WEIGHTS-GRAPHRAG-EMBEDDINGS.md
+# Extended with delta (intent edge score) for 4-weight formula.
+INTENT_WEIGHT_PROFILES = {
+    "exact_match":      {"alpha": 0.15, "beta": 0.65, "gamma": 0.10, "delta": 0.10},
+    "capability_check": {"alpha": 0.30, "beta": 0.55, "gamma": 0.10, "delta": 0.05},
+    "debugging":        {"alpha": 0.30, "beta": 0.45, "gamma": 0.20, "delta": 0.05},
+    "workflow":         {"alpha": 0.30, "beta": 0.25, "gamma": 0.30, "delta": 0.15},
+    "comparison":       {"alpha": 0.35, "beta": 0.30, "gamma": 0.25, "delta": 0.10},
+    "goal_based":       {"alpha": 0.40, "beta": 0.25, "gamma": 0.15, "delta": 0.20},
+    "exploratory":      {"alpha": 0.45, "beta": 0.20, "gamma": 0.25, "delta": 0.10},
+    "semantic":         {"alpha": 0.55, "beta": 0.15, "gamma": 0.15, "delta": 0.15},
+}
+DEFAULT_PROFILE = {"alpha": 0.40, "beta": 0.45, "gamma": 0.15, "delta": 0.0}
+
+# ── Intent Classification Patterns ────────────────────────────────
+# Source: agents/shared/retrieval/intent_router.py + kgos_query_engine.py
+_INTENT_PATTERNS = [
+    ("exact_match", [
+        r'^"[^"]+"$',                          # Quoted string
+        r"^[A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*$",  # PascalCase
+        r"^[a-z]+[-_][a-z]+",                  # kebab/snake_case identifier
+        r"^\w+\.\w+$",                         # file.ext
+    ]),
+    ("debugging", [
+        r"\b(?:error|fail|debug|fix|broken|issue|crash|bug|exception|traceback)\b",
+    ]),
+    ("capability_check", [
+        r"\bcan\s+(?:it|you|this)\b",
+        r"\bdoes\s+\w+\s+support\b",
+        r"\bis\s+\w+\s+(?:able|capable|compatible)\b",
+    ]),
+    ("workflow", [
+        r"\b(?:pipeline|workflow|step.by.step|automat|chain|sequenc)\b",
+        r"^how\s+(?:to|do\s+I)\b",
+    ]),
+    ("comparison", [
+        r"\b(?:vs|versus|compar|differ|which\s+is\s+better|alternative)\b",
+    ]),
+    ("goal_based", [
+        r"\b(?:I\s+want\s+to|how\s+do\s+I|reduc|improv|achiev|optim)\b",
+        r"\b(?:increase|decrease|minimize|maximize)\b",
+    ]),
+    ("exploratory", [
+        r"\b(?:explor|brows|list|show\s+me|what\s+are|overview)\b",
+        r"^tell\s+me\s+about\b",
+    ]),
+]
+
+# ── BM25 Intent Keyword Boost Sets ────────────────────────────────
+# Source: docs/rag-graph/REPORT-WEIGHTS-GRAPHRAG-EMBEDDINGS.md
+# Keywords are stemmed forms for matching against stemmed tokens.
+INTENT_KEYWORDS = {
+    "exact_match": set(),
+    "debugging": {"error", "fail", "debug", "fix", "broken", "issu", "crash", "bug", "except", "traceback"},
+    "goal_based": {"cost", "reduc", "improv", "optim", "fast", "cheap", "save", "effici", "increas", "decreas"},
+    "workflow": {"step", "pipelin", "flow", "chain", "sequenc", "automat", "process", "how"},
+    "capability_check": {"support", "compat", "handl", "enabl", "provid", "capabl"},
+    "comparison": {"compar", "differ", "vs", "better", "altern", "versus"},
+    "exploratory": {"explor", "brows", "list", "show", "discov", "overview"},
+    "semantic": set(),
+}
+
+# ── BM25 Stemming Suffixes ────────────────────────────────────────
+_STEM_SUFFIXES = [
+    "ation", "tion", "sion", "ment", "ness", "able", "ible",
+    "ful", "less", "ous", "ive", "ing", "ed", "er", "est",
+    "ly", "al", "ity",
+]
+
+# ── Edge Type Weights for Graph Boost ─────────────────────────────
+# Source: agents/shared/retrieval/graph_scorer.py + kgos_query_engine.py
+EDGE_TYPE_WEIGHTS = {
+    "implements": 1.0, "provides": 1.0, "enables": 0.9,
+    "used_for": 0.9, "depends_on": 0.8, "requires": 0.8,
+    "feeds_into": 0.8, "followed_by": 0.7, "part_of": 0.7,
+    "relates_to": 0.5, "similar_to": 0.6, "alternative_to": 0.4,
+    "has_limitation": 0.3, "has_workaround": 0.4, "complements": 0.6,
+}
+
+# ── Intent → Edge Type Mapping for Delta Scoring ──────────────────
+# Source: kgos_query_engine.py lines 790-804
+INTENT_EDGE_MAP = {
+    "exact_match": [],
+    "capability_check": ["supports", "has_capability", "enables", "has_limitation"],
+    "debugging": ["has_limitation", "has_workaround", "causes", "fixes"],
+    "workflow": ["feeds_into", "requires", "followed_by", "depends_on", "enables"],
+    "comparison": ["similar_to", "alternative_to", "complements"],
+    "goal_based": ["enables", "supports", "implements", "provides", "solves", "used_for"],
+    "exploratory": ["relates_to", "contains", "part_of"],
+    "semantic": ["relates_to", "similar_to", "part_of"],
+}
+
+
 class EmbeddingService:
     """Multi-strategy semantic search across knowledge graphs."""
 
     def __init__(self):
         self._model2vec_model = None
-        self._bm25_indices: dict[str, dict] = {}  # db_id -> {doc_freqs, doc_count, ...}
+        self._bm25_indices: dict[str, dict] = {}
+        self._pagerank_cache: dict[str, dict[str, float]] = {}
+        self._community_cache: dict[str, list[set]] = {}
+        self._query_cache: dict[str, tuple[dict, float]] = {}
+        self._cache_ttl = 300  # 5 minutes
 
-    # ── BM25 implementation (pure Python) ───────────────────────────
+    # ── Stemming ──────────────────────────────────────────────────
+    @staticmethod
+    def _stem(word: str) -> str:
+        """Lightweight suffix-stripping stemmer for BM25 parity with FTS5 Porter."""
+        for suffix in _STEM_SUFFIXES:
+            if word.endswith(suffix) and len(word) - len(suffix) >= 3:
+                return word[:-len(suffix)]
+        return word
+
+    # ── Intent Classification ─────────────────────────────────────
+    def _classify_search_intent(self, query: str) -> str:
+        """Classify query into one of 8 retrieval intent profiles."""
+        q = query.strip()
+        q_lower = q.lower()
+
+        # Pattern matching (strongest signal)
+        for intent_name, patterns in _INTENT_PATTERNS:
+            for pattern in patterns:
+                target = q if intent_name == "exact_match" else q_lower
+                if re.search(pattern, target):
+                    return intent_name
+
+        # Long queries → semantic (embedding-heavy)
+        if len(q_lower.split()) > 10:
+            return "semantic"
+
+        return "goal_based"  # Default: most users ask goal-oriented questions
+
+    # ── BM25 implementation (with stemming + 5x keyword boost) ────
     def _build_bm25_index(self, db_id: str) -> dict:
         if db_id in self._bm25_indices:
             return self._bm25_indices[db_id]
@@ -62,7 +204,7 @@ class EmbeddingService:
         for r in rows:
             nid = str(r[0])
             text = f"{r[1]} {r[2]}".lower()
-            tokens = re.findall(r'\w+', text)
+            tokens = [self._stem(t) for t in re.findall(r'\w+', text) if len(t) >= 2]
             tf: dict[str, int] = {}
             for t in tokens:
                 tf[t] = tf.get(t, 0) + 1
@@ -75,8 +217,18 @@ class EmbeddingService:
         self._bm25_indices[db_id] = idx
         return idx
 
-    def _bm25_score(self, idx: dict, query: str, k1: float = 1.5, b: float = 0.75) -> dict[str, float]:
-        tokens = re.findall(r'\w+', query.lower())
+    def _bm25_score(self, idx: dict, query: str, k1: float = 1.5, b: float = 0.75,
+                    intent_keywords: set | None = None) -> dict[str, float]:
+        raw_tokens = [self._stem(t) for t in re.findall(r'\w+', query.lower()) if len(t) >= 2]
+
+        # 5x boost for intent-relevant keywords
+        if intent_keywords:
+            tokens = []
+            for t in raw_tokens:
+                tokens.extend([t] * (5 if t in intent_keywords else 1))
+        else:
+            tokens = raw_tokens
+
         scores: dict[str, float] = {}
         n = idx["n"]
         avg_dl = idx["avg_dl"]
@@ -109,7 +261,6 @@ class EmbeddingService:
                 f"SELECT rowid, rank FROM {fts_table} WHERE {fts_table} MATCH ? ORDER BY rank LIMIT ?",
                 (f'"{fts_q}"', limit),
             ).fetchall()
-            # Convert rowid to node_id
             result = {}
             for r in rows:
                 node_row = conn.execute(
@@ -117,47 +268,261 @@ class EmbeddingService:
                     (r[0],),
                 ).fetchone()
                 if node_row:
-                    result[str(node_row[0])] = abs(r[1])  # rank is negative
+                    result[str(node_row[0])] = abs(r[1])
             return result
         except sqlite3.OperationalError:
             return {}
 
-    # ── Graph neighbor boost ────────────────────────────────────────
-    def _graph_boost(self, db_id: str, top_ids: set[str]) -> dict[str, float]:
+    # ── Graph neighbor boost (type-aware + 2-hop + PageRank) ──────
+    def _graph_boost(self, db_id: str, top_ids: set[str], intent: str | None = None) -> dict[str, float]:
         if not top_ids:
             return {}
         p = kg_service._detect_profile(db_id)
         conn = kg_service._get_conn(db_id)
         boost: dict[str, float] = {}
         placeholders = ",".join("?" for _ in top_ids)
+        id_list = list(top_ids)
+
+        # Check if edge table has a type column
+        has_edge_type = p.get("edge_type") is not None
+
         try:
-            rows = conn.execute(
-                f"SELECT {p['edge_target']} FROM {p['edge_table']} WHERE {p['edge_source']} IN ({placeholders})",
-                list(top_ids),
-            ).fetchall()
-            for r in rows:
-                nid = str(r[0])
-                boost[nid] = boost.get(nid, 0) + 0.5
-            rows = conn.execute(
-                f"SELECT {p['edge_source']} FROM {p['edge_table']} WHERE {p['edge_target']} IN ({placeholders})",
-                list(top_ids),
-            ).fetchall()
-            for r in rows:
-                nid = str(r[0])
-                boost[nid] = boost.get(nid, 0) + 0.3
+            # 1-hop outgoing
+            if has_edge_type:
+                rows = conn.execute(
+                    f"SELECT {p['edge_target']}, {p['edge_type']} FROM {p['edge_table']} WHERE {p['edge_source']} IN ({placeholders})",
+                    id_list,
+                ).fetchall()
+                for r in rows:
+                    nid = str(r[0])
+                    etype = str(r[1]).lower() if r[1] else "relates_to"
+                    weight = EDGE_TYPE_WEIGHTS.get(etype, 0.5) * 1.0  # outgoing direction factor
+                    boost[nid] = boost.get(nid, 0) + weight
+            else:
+                rows = conn.execute(
+                    f"SELECT {p['edge_target']} FROM {p['edge_table']} WHERE {p['edge_source']} IN ({placeholders})",
+                    id_list,
+                ).fetchall()
+                for r in rows:
+                    nid = str(r[0])
+                    boost[nid] = boost.get(nid, 0) + 0.5
+
+            # 1-hop incoming
+            if has_edge_type:
+                rows = conn.execute(
+                    f"SELECT {p['edge_source']}, {p['edge_type']} FROM {p['edge_table']} WHERE {p['edge_target']} IN ({placeholders})",
+                    id_list,
+                ).fetchall()
+                for r in rows:
+                    nid = str(r[0])
+                    etype = str(r[1]).lower() if r[1] else "relates_to"
+                    weight = EDGE_TYPE_WEIGHTS.get(etype, 0.5) * 0.7  # incoming direction factor
+                    boost[nid] = boost.get(nid, 0) + weight
+            else:
+                rows = conn.execute(
+                    f"SELECT {p['edge_source']} FROM {p['edge_table']} WHERE {p['edge_target']} IN ({placeholders})",
+                    id_list,
+                ).fetchall()
+                for r in rows:
+                    nid = str(r[0])
+                    boost[nid] = boost.get(nid, 0) + 0.3
+
+            # 2-hop for workflow/exploratory intents (decay 0.3x)
+            if intent in ("workflow", "exploratory") and boost:
+                hop1_ids = list(boost.keys())[:20]
+                if hop1_ids:
+                    ph2 = ",".join("?" for _ in hop1_ids)
+                    rows2 = conn.execute(
+                        f"SELECT {p['edge_target']} FROM {p['edge_table']} WHERE {p['edge_source']} IN ({ph2})",
+                        hop1_ids,
+                    ).fetchall()
+                    for r in rows2:
+                        nid = str(r[0])
+                        if nid not in top_ids:
+                            boost[nid] = boost.get(nid, 0) + 0.15  # 0.5 * 0.3 decay
+
         except sqlite3.OperationalError:
             pass
-        # Normalize
-        max_b = max(boost.values()) if boost else 1
-        return {k: v / max_b for k, v in boost.items()}
 
-    # ── Embedding search (numpy cosine similarity, sqlite-vec when available) ──
+        # Blend with PageRank authority (30% PageRank, 70% proximity)
+        pr = self._get_pagerank_scores(db_id)
+        if pr:
+            all_boosted = set(boost.keys()) | set(pr.keys())
+            for nid in all_boosted:
+                prox = boost.get(nid, 0)
+                authority = pr.get(nid, 0)
+                boost[nid] = prox * 0.7 + authority * 0.3
+
+        # Normalize
+        if boost:
+            max_b = max(boost.values())
+            if max_b > 0:
+                boost = {k: v / max_b for k, v in boost.items()}
+        return boost
+
+    # ── PageRank authority scores (lazy-cached) ───────────────────
+    def _get_pagerank_scores(self, db_id: str) -> dict[str, float]:
+        if db_id in self._pagerank_cache:
+            return self._pagerank_cache[db_id]
+        if not _HAS_NETWORKX:
+            return {}
+        try:
+            p = kg_service._detect_profile(db_id)
+            conn = kg_service._get_conn(db_id)
+            edge_count = conn.execute(f"SELECT COUNT(*) FROM {p['edge_table']}").fetchone()[0]
+            if edge_count < 20:
+                self._pagerank_cache[db_id] = {}
+                return {}
+
+            G = nx.DiGraph()
+            rows = conn.execute(
+                f"SELECT {p['edge_source']}, {p['edge_target']} FROM {p['edge_table']}"
+            ).fetchall()
+            for r in rows:
+                G.add_edge(str(r[0]), str(r[1]))
+
+            try:
+                pr = nx.pagerank(G, alpha=0.85, max_iter=100)
+            except nx.PowerIterationFailedConvergence:
+                pr = nx.pagerank(G, alpha=0.85, max_iter=200, tol=1e-4)
+
+            # Normalize to [0, 1]
+            max_pr = max(pr.values()) if pr else 1
+            pr = {k: v / max_pr for k, v in pr.items()}
+            self._pagerank_cache[db_id] = pr
+            return pr
+        except Exception:
+            self._pagerank_cache[db_id] = {}
+            return {}
+
+    # ── Intent edge scoring (delta component) ─────────────────────
+    def _intent_edge_score(self, db_id: str, intent: str, seed_ids: set[str]) -> dict[str, float]:
+        edge_types = INTENT_EDGE_MAP.get(intent, [])
+        if not edge_types or not seed_ids:
+            return {}
+        p = kg_service._detect_profile(db_id)
+        has_edge_type = p.get("edge_type") is not None
+        if not has_edge_type:
+            return {}
+
+        conn = kg_service._get_conn(db_id)
+        scores: dict[str, float] = {}
+        placeholders = ",".join("?" for _ in seed_ids)
+        type_placeholders = ",".join("?" for _ in edge_types)
+        id_list = list(seed_ids)
+
+        try:
+            # Forward: seed → target via intent-relevant edge types (+1.0)
+            rows = conn.execute(
+                f"SELECT {p['edge_target']} FROM {p['edge_table']} "
+                f"WHERE {p['edge_source']} IN ({placeholders}) AND LOWER({p['edge_type']}) IN ({type_placeholders})",
+                id_list + edge_types,
+            ).fetchall()
+            for r in rows:
+                nid = str(r[0])
+                scores[nid] = scores.get(nid, 0) + 1.0
+
+            # Backward: source → seed via intent-relevant edge types (+0.7)
+            rows = conn.execute(
+                f"SELECT {p['edge_source']} FROM {p['edge_table']} "
+                f"WHERE {p['edge_target']} IN ({placeholders}) AND LOWER({p['edge_type']}) IN ({type_placeholders})",
+                id_list + edge_types,
+            ).fetchall()
+            for r in rows:
+                nid = str(r[0])
+                scores[nid] = scores.get(nid, 0) + 0.7
+        except sqlite3.OperationalError:
+            pass
+
+        # Normalize
+        if scores:
+            max_s = max(scores.values())
+            if max_s > 0:
+                scores = {k: v / max_s for k, v in scores.items()}
+        return scores
+
+    # ── Community diversity (lazy-cached) ─────────────────────────
+    def _get_communities(self, db_id: str) -> list[set]:
+        if db_id in self._community_cache:
+            return self._community_cache[db_id]
+        if not _HAS_NETWORKX:
+            return []
+        try:
+            p = kg_service._detect_profile(db_id)
+            conn = kg_service._get_conn(db_id)
+            edge_count = conn.execute(f"SELECT COUNT(*) FROM {p['edge_table']}").fetchone()[0]
+            if edge_count < 10:
+                self._community_cache[db_id] = []
+                return []
+
+            G = nx.Graph()
+            rows = conn.execute(
+                f"SELECT {p['edge_source']}, {p['edge_target']} FROM {p['edge_table']}"
+            ).fetchall()
+            for r in rows:
+                G.add_edge(str(r[0]), str(r[1]))
+
+            try:
+                comms = list(nx.community.greedy_modularity_communities(G))
+            except Exception:
+                comms = [set(c) for c in nx.weakly_connected_components(nx.DiGraph(G))]
+
+            self._community_cache[db_id] = comms
+            return comms
+        except Exception:
+            self._community_cache[db_id] = []
+            return []
+
+    def _diversify_results(self, db_id: str, results: list[dict]) -> list[dict]:
+        """Rerank results for community diversity (MMR-style)."""
+        if len(results) <= 3:
+            return results
+        comms = self._get_communities(db_id)
+        if not comms or len(comms) < 2:
+            return results
+
+        # Map node_id → community index
+        node_to_comm = {}
+        for i, comm in enumerate(comms):
+            for nid in comm:
+                node_to_comm[nid] = i
+
+        # Boost results from under-represented communities
+        seen = set()
+        for r in results:
+            nid = str(r["node"].get("id", ""))
+            comm = node_to_comm.get(nid, -1)
+            if comm >= 0 and comm not in seen:
+                r["score"] *= 1.05  # 5% novelty boost
+            seen.add(comm)
+
+        results.sort(key=lambda x: x["score"], reverse=True)
+        return results
+
+    # ── Query cache ───────────────────────────────────────────────
+    def _cache_key(self, db_id: str, query: str, mode: str, intent: str | None) -> str:
+        return hashlib.md5(f"{db_id}:{query}:{mode}:{intent}".encode()).hexdigest()
+
+    def invalidate_cache(self, db_id: str | None = None):
+        """Invalidate query cache. Call after KG modifications."""
+        if db_id:
+            prefix = hashlib.md5(db_id.encode()).hexdigest()[:8]
+            self._query_cache = {k: v for k, v in self._query_cache.items() if not k.startswith(prefix)}
+            self._bm25_indices.pop(db_id, None)
+            self._pagerank_cache.pop(db_id, None)
+            self._community_cache.pop(db_id, None)
+        else:
+            self._query_cache.clear()
+            self._bm25_indices.clear()
+            self._pagerank_cache.clear()
+            self._community_cache.clear()
+
+    # ── Embedding search (numpy cosine similarity) ────────────────
     def _embedding_search(self, db_id: str, query: str, limit: int = 50) -> dict[str, float]:
         if not _HAS_NUMPY:
             return {}
         conn = kg_service._get_conn(db_id)
         tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
-        # Find embeddings table
         emb_table = None
         for t in ["embeddings", "node_embeddings", "vec_embeddings"]:
             if t in tables:
@@ -165,7 +530,6 @@ class EmbeddingService:
                 break
         if not emb_table:
             return {}
-        # Load stored embeddings
         try:
             rows = conn.execute(f"SELECT node_id, embedding FROM {emb_table}").fetchall()
         except sqlite3.OperationalError:
@@ -192,15 +556,12 @@ class EmbeddingService:
         if not vecs:
             return {}
 
-        # Compute query embedding
         query_vec = self._get_query_embedding(query, len(vecs[0]))
         if query_vec is None:
             return {}
 
-        # Cosine similarity: query vs all stored embeddings
         mat = np.array(vecs, dtype=np.float32)
         qvec = np.array(query_vec, dtype=np.float32)
-        # Normalize
         mat_norms = np.linalg.norm(mat, axis=1)
         mat_norms[mat_norms == 0] = 1.0
         q_norm = np.linalg.norm(qvec)
@@ -208,7 +569,6 @@ class EmbeddingService:
             return {}
         similarities = (mat @ qvec) / (mat_norms * q_norm)
 
-        # Top-k
         top_indices = np.argsort(similarities)[::-1][:limit]
         result = {}
         for idx in top_indices:
@@ -218,7 +578,6 @@ class EmbeddingService:
         return result
 
     def _load_model2vec(self):
-        """Load Model2Vec model with graceful failure."""
         if self._model2vec_model is not None:
             return self._model2vec_model
         if not _HAS_MODEL2VEC:
@@ -230,15 +589,12 @@ class EmbeddingService:
             return None
 
     def _get_query_embedding(self, query: str, expected_dims: int) -> list[float] | None:
-        """Generate embedding for a search query, matching the stored embedding dimensions."""
-        # Strategy 1: Model2Vec (fast, offline, 256-dim) — best match for 256-dim stored embeddings
         if expected_dims == 256:
             model = self._load_model2vec()
             if model is not None:
                 vec = model.encode([query])[0]
                 return vec.tolist()
 
-        # Strategy 2: Gemini API (matches whatever Gemini generated)
         try:
             from config import GEMINI_API_KEY
             if GEMINI_API_KEY:
@@ -252,7 +608,6 @@ class EmbeddingService:
         except Exception:
             pass
 
-        # Strategy 3: Model2Vec fallback even if dims don't match (pad/truncate)
         model = self._load_model2vec()
         if model is not None:
             vec = model.encode([query])[0]
@@ -265,10 +620,35 @@ class EmbeddingService:
 
         return None
 
-    # ── Hybrid search (88.5% recall formula) ────────────────────────
+    # ── Hybrid search (4-weight intent-adaptive formula) ──────────
     def search(self, db_id: str, query: str, mode: str = "hybrid",
-               limit: int = 20, alpha: float = 0.40, beta: float = 0.45,
-               gamma: float = 0.15) -> dict:
+               limit: int = 20, alpha: float | None = None, beta: float | None = None,
+               gamma: float | None = None, intent: str | None = None) -> dict:
+
+        # Intent-adaptive weights when no explicit weights passed
+        if alpha is None and beta is None and gamma is None:
+            detected_intent = intent or self._classify_search_intent(query)
+            profile = INTENT_WEIGHT_PROFILES.get(detected_intent, DEFAULT_PROFILE)
+            alpha = profile["alpha"]
+            beta = profile["beta"]
+            gamma = profile["gamma"]
+            delta = profile.get("delta", 0)
+        else:
+            alpha = alpha if alpha is not None else 0.40
+            beta = beta if beta is not None else 0.45
+            gamma = gamma if gamma is not None else 0.15
+            delta = 0
+            detected_intent = intent or self._classify_search_intent(query)
+
+        # Check query cache
+        cache_key = self._cache_key(db_id, query, mode, detected_intent)
+        if cache_key in self._query_cache:
+            cached, ts = self._query_cache[cache_key]
+            if time.time() - ts < self._cache_ttl:
+                return cached
+
+        # Get intent keywords for BM25 5x boost
+        kw = INTENT_KEYWORDS.get(detected_intent, set()) if detected_intent else set()
 
         bm25_scores = {}
         fts_scores = {}
@@ -276,7 +656,7 @@ class EmbeddingService:
 
         if mode in ("hybrid", "fts"):
             bm25_idx = self._build_bm25_index(db_id)
-            bm25_scores = self._bm25_score(bm25_idx, query)
+            bm25_scores = self._bm25_score(bm25_idx, query, intent_keywords=kw)
             fts_scores = self._fts_search(db_id, query, limit * 3)
 
         if mode in ("hybrid", "embedding"):
@@ -298,20 +678,26 @@ class EmbeddingService:
             max_emb = max(emb_scores.values()) if emb_scores else 1
             emb_scores = {k: v / max_emb for k, v in emb_scores.items()}
 
-        # Graph boost from top text AND embedding results
+        # Graph boost from top text AND embedding results (type-aware + PageRank)
         top_text_ids = sorted(text_scores, key=text_scores.get, reverse=True)[:10]
         top_emb_ids = sorted(emb_scores, key=emb_scores.get, reverse=True)[:10] if emb_scores else []
         boost_seed_ids = set(top_text_ids) | set(top_emb_ids)
-        graph_scores = self._graph_boost(db_id, boost_seed_ids)
+        graph_scores = self._graph_boost(db_id, boost_seed_ids, intent=detected_intent)
 
-        # Combine: score = alpha*embedding + beta*text + gamma*graph
-        all_ids = set(text_scores) | set(emb_scores) | set(graph_scores)
+        # Intent edge scoring (delta component)
+        intent_scores: dict[str, float] = {}
+        if delta > 0 and detected_intent:
+            intent_scores = self._intent_edge_score(db_id, detected_intent, boost_seed_ids)
+
+        # Combine: score = alpha*embedding + beta*text + gamma*graph + delta*intent
+        all_ids = set(text_scores) | set(emb_scores) | set(graph_scores) | set(intent_scores)
         final_scores: dict[str, float] = {}
         for nid in all_ids:
             score = (
                 alpha * emb_scores.get(nid, 0) +
                 beta * text_scores.get(nid, 0) +
-                gamma * graph_scores.get(nid, 0)
+                gamma * graph_scores.get(nid, 0) +
+                delta * intent_scores.get(nid, 0)
             )
             if score > 0:
                 final_scores[nid] = score
@@ -329,18 +715,29 @@ class EmbeddingService:
                     method_parts.append("embedding")
                 if nid in graph_scores:
                     method_parts.append("graph")
+                if nid in intent_scores:
+                    method_parts.append("intent")
                 results.append({
                     "node": node,
                     "score": final_scores[nid],
                     "method": "+".join(method_parts),
                 })
 
-        return {
+        # Community-aware diversity reranking
+        results = self._diversify_results(db_id, results)
+
+        result = {
             "results": results,
             "query": query,
             "mode": mode,
             "total": len(results),
+            "intent": detected_intent,
+            "weights": {"alpha": alpha, "beta": beta, "gamma": gamma, "delta": delta},
         }
+
+        # Cache result
+        self._query_cache[cache_key] = (result, time.time())
+        return result
 
     # ── Status ──────────────────────────────────────────────────────
     def get_status(self, db_id: str) -> dict:
@@ -361,7 +758,6 @@ class EmbeddingService:
                         has_emb = True
                         row = conn.execute(f"SELECT * FROM {t} LIMIT 1").fetchone()
                         if row:
-                            # Try to detect dimensions
                             for val in dict(row).values():
                                 if isinstance(val, bytes):
                                     dims = len(val) // 4
@@ -419,13 +815,13 @@ class EmbeddingService:
         ids = [str(r[0]) for r in rows]
         embeddings = model.encode(texts)
 
-        # Store in embeddings table
         conn.execute("CREATE TABLE IF NOT EXISTS embeddings (node_id TEXT PRIMARY KEY, embedding BLOB)")
         for nid, emb in zip(ids, embeddings):
             blob = _serialize_f32(emb.tolist())
             conn.execute("INSERT OR REPLACE INTO embeddings (node_id, embedding) VALUES (?, ?)", (nid, blob))
         conn.commit()
 
+        self.invalidate_cache(db_id)
         return {"strategy": "model2vec", "count": len(ids), "dimensions": embeddings.shape[1]}
 
     async def _generate_gemini(self, db_id: str, conn, rows, p) -> dict:
@@ -439,7 +835,6 @@ class EmbeddingService:
         texts = [f"{r[1]} {r[2]}" for r in rows]
         ids = [str(r[0]) for r in rows]
 
-        # Batch embed (Gemini supports batching)
         conn.execute("CREATE TABLE IF NOT EXISTS embeddings (node_id TEXT PRIMARY KEY, embedding BLOB)")
         dims = None
         batch_size = 100
@@ -460,6 +855,7 @@ class EmbeddingService:
             total += len(batch_ids)
 
         conn.commit()
+        self.invalidate_cache(db_id)
         return {"strategy": "gemini", "count": total, "dimensions": dims}
 
     # ── Projection (2D) ─────────────────────────────────────────────
@@ -467,7 +863,6 @@ class EmbeddingService:
         conn = kg_service._get_conn(db_id)
         p = kg_service._detect_profile(db_id)
 
-        # Read embeddings
         try:
             rows = conn.execute("SELECT node_id, embedding FROM embeddings LIMIT ?", (max_points,)).fetchall()
         except sqlite3.OperationalError:
@@ -483,7 +878,6 @@ class EmbeddingService:
 
         mat = np.array(vecs)
 
-        # PCA (simple, no sklearn needed)
         if method == "pca":
             centered = mat - mat.mean(axis=0)
             cov = np.cov(centered.T)
@@ -492,7 +886,6 @@ class EmbeddingService:
             top2 = eigenvectors[:, idx_sorted[:2]]
             projected = centered @ top2
         else:
-            # Simple t-SNE approximation (random init + neighbor attraction)
             n = len(vecs)
             projected = np.random.randn(n, 2) * 10
             for _ in range(50):
@@ -505,7 +898,6 @@ class EmbeddingService:
                         projected[j] -= diff * 0.01
             projected -= projected.mean(axis=0)
 
-        # Fetch node info
         points = []
         for i, nid in enumerate(ids[:len(projected)]):
             node = kg_service.get_node(db_id, nid)
@@ -535,7 +927,6 @@ class EmbeddingService:
             return {"coverage": round(emb_count / max(total_nodes, 1) * 100, 1), "count": emb_count,
                     "total_nodes": total_nodes}
 
-        # Sample cosine similarities
         rows = conn.execute("SELECT embedding FROM embeddings LIMIT 100").fetchall()
         vecs = [_deserialize_f32(r[0]) for r in rows if isinstance(r[0], bytes)]
         if len(vecs) < 2:

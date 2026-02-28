@@ -7,7 +7,10 @@ import { showToast } from '../../hooks/useToast';
 const NODE_COLORS: Record<string, string> = {
   tool: '#3b82f6', capability: '#10b981', parameter: '#f59e0b', pattern: '#8b5cf6',
   use_case: '#ef4444', config: '#06b6d4', command: '#f97316', entity: '#818cf8',
-  concept: '#a78bfa', category: '#34d399', default: '#6b7280',
+  concept: '#a78bfa', category: '#34d399',
+  model: '#ec4899', provider: '#f43f5e', pricing: '#14b8a6',
+  api_endpoint: '#6366f1', code_example: '#a855f7', limitation: '#fb923c',
+  default: '#6b7280',
 };
 
 interface Props {
@@ -55,7 +58,7 @@ const KGSidebar: React.FC<Props> = ({
   const nodeTypes: KGTypeCount[] = stats?.node_types || [];
 
   return (
-    <div className="w-full lg:w-64 border-b lg:border-b-0 lg:border-r flex flex-col" style={{ borderColor: 'var(--t-border)' }}>
+    <div className="w-full lg:w-64 max-h-[35vh] lg:max-h-none border-b lg:border-b-0 lg:border-r flex flex-col" style={{ borderColor: 'var(--t-border)' }}>
       <KGDatabaseSelector
         databases={databases}
         selected={selectedDb}

@@ -85,7 +85,7 @@ const StudioPipelineConfig: React.FC = () => {
   };
 
   return (
-    <div className="overflow-y-auto p-3" style={{ background: 'var(--t-surface)', color: 'var(--t-text)' }}>
+    <div className="h-full overflow-y-auto p-3 pb-32" style={{ background: 'var(--t-surface)', color: 'var(--t-text)' }}>
       {/* Strategy Selector */}
       <div className="mb-4">
         <h4 className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--t-muted)' }}>

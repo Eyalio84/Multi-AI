@@ -363,13 +363,15 @@ class MemoryService:
 
     # ── Memory recall ────────────────────────────────────────────────
 
-    def recall(self, query: str, limit: int = 5, min_score: float = 0.1) -> list[dict]:
-        """Search memory KG using hybrid retrieval."""
+    def recall(self, query: str, limit: int = 5, min_score: float = 0.1,
+               intent_hint: str | None = None) -> list[dict]:
+        """Search memory KG using hybrid retrieval with optional intent hint."""
         self._register_with_kg_service()
         try:
             from services.embedding_service import embedding_service
             results = embedding_service.search(
-                self.MEMORY_DB_ID, query, mode="hybrid", limit=limit
+                self.MEMORY_DB_ID, query, mode="hybrid", limit=limit,
+                intent=intent_hint,
             )
             memories = []
             for r in results.get("results", []):

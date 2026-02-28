@@ -42,6 +42,7 @@ const KGStudioPage: React.FC = () => {
   const [editingNode, setEditingNode] = useState<KGNode | null | undefined>(undefined);
   const [showEdgeEditor, setShowEdgeEditor] = useState(false);
   const [editingEdge, setEditingEdge] = useState<KGEdge | null>(null);
+  const [canvasFullscreen, setCanvasFullscreen] = useState(false);
   // Edge browser state
   const [edgeBrowserEdges, setEdgeBrowserEdges] = useState<KGEdge[]>([]);
   const [edgeBrowserTotal, setEdgeBrowserTotal] = useState(0);
@@ -197,17 +198,21 @@ const KGStudioPage: React.FC = () => {
               selectedNodeId={selectedNode?.id || null}
               onNodeClick={handleCanvasNodeClick}
               loading={loading}
+              isFullscreen={canvasFullscreen}
+              onToggleFullscreen={() => setCanvasFullscreen(f => !f)}
             />
-            <KGInspector
-              node={selectedNode}
-              edges={subgraph?.edges || []}
-              allNodes={subgraph?.nodes || []}
-              onNavigate={handleCanvasNodeClick}
-              onEdit={(n) => setEditingNode(n)}
-              onDelete={handleDeleteNode}
-              onEditEdge={handleEditEdge}
-              onDeleteEdge={handleDeleteEdge}
-            />
+            {!canvasFullscreen && (
+              <KGInspector
+                node={selectedNode}
+                edges={subgraph?.edges || []}
+                allNodes={subgraph?.nodes || []}
+                onNavigate={handleCanvasNodeClick}
+                onEdit={(n) => setEditingNode(n)}
+                onDelete={handleDeleteNode}
+                onEditEdge={handleEditEdge}
+                onDeleteEdge={handleDeleteEdge}
+              />
+            )}
           </div>
         );
       case 'search':
@@ -342,7 +347,7 @@ const KGStudioPage: React.FC = () => {
         {TABS.map(t => (
           <button
             key={t.id}
-            onClick={() => setTab(t.id)}
+            onClick={() => { setTab(t.id); setCanvasFullscreen(false); }}
             className="t-btn px-3 py-2 text-xs whitespace-nowrap border-b-2"
             style={{
               borderColor: tab === t.id ? 'var(--t-primary)' : 'transparent',
@@ -357,8 +362,8 @@ const KGStudioPage: React.FC = () => {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* Sidebar (always visible for explore/search/edit/analytics tabs) */}
-        {['explore', 'search', 'edit', 'analytics', 'chat', 'ingest', 'embeddings', 'batch'].includes(tab) && (
+        {/* Sidebar (hidden when canvas is fullscreen) */}
+        {!canvasFullscreen && ['explore', 'search', 'edit', 'analytics', 'chat', 'ingest', 'embeddings', 'batch'].includes(tab) && (
           <KGSidebar
             databases={databases}
             selectedDb={selectedDb}
