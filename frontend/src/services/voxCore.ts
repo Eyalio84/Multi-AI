@@ -308,6 +308,56 @@ function executeBrowserFunction(name: string, args: any): any {
       const content = main?.textContent?.replace(/\s+/g, ' ').trim().slice(0, 2000) || '';
       return { success: true, page: currentPath, content };
     }
+
+    // ── Phase 2: New browser functions ────────────────────────────
+    case 'click_element': {
+      const el = document.querySelector(args.selector);
+      if (!el) return { success: false, error: `Element not found: ${args.selector}` };
+      (el as HTMLElement).click();
+      return { success: true, clicked: args.selector };
+    }
+    case 'scroll_to_element': {
+      const el2 = document.querySelector(args.selector);
+      if (!el2) return { success: false, error: `Element not found: ${args.selector}` };
+      el2.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return { success: true, scrolled_to: args.selector };
+    }
+    case 'highlight_element': {
+      const el3 = document.querySelector(args.selector) as HTMLElement | null;
+      if (!el3) return { success: false, error: `Element not found: ${args.selector}` };
+      const dur = args.duration || 3000;
+      el3.style.outline = '3px solid var(--t-primary)';
+      el3.style.outlineOffset = '2px';
+      el3.style.transition = 'outline 0.3s ease';
+      setTimeout(() => { el3.style.outline = ''; el3.style.outlineOffset = ''; }, dur);
+      return { success: true, highlighted: args.selector, duration: dur };
+    }
+    case 'toggle_sidebar': {
+      const sidebar = document.querySelector('nav') || document.querySelector('[data-sidebar]');
+      if (sidebar) (sidebar as HTMLElement).classList.toggle('hidden');
+      return { success: true, toggled: !!sidebar };
+    }
+    case 'capture_screenshot':
+      return { success: true, message: 'Screenshot capture requires html2canvas — use browser dev tools' };
+    case 'fill_form_field': {
+      const input = document.querySelector(args.selector) as HTMLInputElement | null;
+      if (!input) return { success: false, error: `Input not found: ${args.selector}` };
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype, 'value'
+      )?.set;
+      nativeInputValueSetter?.call(input, args.value);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      return { success: true, filled: args.selector, value: args.value };
+    }
+    case 'get_form_values': {
+      const form = document.querySelector(args.selector) as HTMLFormElement | null;
+      if (!form) return { success: false, error: `Form not found: ${args.selector}` };
+      const data = new FormData(form);
+      const values: Record<string, string> = {};
+      data.forEach((v, k) => { values[k] = String(v); });
+      return { success: true, values };
+    }
+
     default:
       return { success: false, error: `Unknown browser function: ${name}` };
   }

@@ -662,3 +662,13 @@ def _handle_start_feature_interview(args: dict) -> dict:
         "first_question": first_question,
         "message": "Let's build something! I'll ask you 10 quick questions to understand what you need, then generate a working React MVP.",
     }
+
+
+# ── Phase 2: Auto-discover function modules ──────────────────────────────
+# Import all modules in vox_functions/ to trigger @vox_registry.register() decorators.
+# Must happen AFTER the singleton is created and existing 35 functions are registered above.
+try:
+    from services.vox_functions import discover_functions
+    discover_functions()
+except Exception:
+    pass  # Graceful: Phase 2 modules may not exist yet

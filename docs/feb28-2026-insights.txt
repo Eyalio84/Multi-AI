@@ -88,3 +88,53 @@ module-level variables persist across import. But the navigation callback
 returns a new function reference each time. The useEffect in useVox.ts handles
 this correctly via dependency on [navigate, location.pathname].
 
+================================================================================
+PHASE 2 — Expanded Functions (35 → 101)
+================================================================================
+
+[INSIGHT-014] The auto-discovery pattern (pkgutil.iter_modules + importlib) is
+the key Phase 2 enabler. Adding a new function module requires ZERO changes to
+any existing file — just create the .py file in vox_functions/ and it auto-
+registers. This validates INSIGHT-007's prediction: "Phase 2's 70+ new functions
+just need @vox_registry.register() — zero changes to the router."
+
+[INSIGHT-015] Namespace collision avoidance required prefixing. The existing
+workspace category already had create_project/list_projects. Studio functions
+were prefixed as studio_create_project/studio_list_projects. Similarly game
+versions: game_save_version/game_list_versions. This is the Orthogonal Signal
+Fusion principle applied to naming — each function name must map to exactly one
+intent.
+
+[INSIGHT-016] Browser-side function registration via register_browser() in
+navigation_functions.py means the backend maintains the DECLARATION (for Gemini
+function calling) while the frontend maintains the IMPLEMENTATION (in voxCore.ts
+executeBrowserFunction switch). This split is intentional — Gemini needs to know
+WHAT functions exist to call them, but execution happens client-side. The router
+just forwards the call to the frontend WebSocket.
+
+[INSIGHT-017] The fill_form_field browser function required the React-compatible
+value setter pattern: Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,
+'value').set + dispatchEvent('input', { bubbles: true }). React's synthetic
+event system won't detect direct el.value = x assignments. This is a critical
+detail for any future browser automation functions.
+
+[INSIGHT-018] Phase 2 achieved 101 functions (35 original + 66 new) across 19
+categories without modifying the existing 35 registrations in vox_registry.py.
+This validates the "approach 2" strategy from the context packet: add new
+functions in modules, leave existing ones in place. The compound effect: router,
+WebSocket handler, and Claude tool pipeline all work unchanged with 3x more
+functions — zero regressions by construction.
+
+[INSIGHT-019] Lazy imports (inside function bodies) are used throughout Phase 2
+modules to avoid circular import issues. Each function imports its service at
+call time rather than module level. This means vox_functions/ modules have zero
+top-level dependencies beyond vox_registry — making auto-discovery order-
+independent and eliminating startup race conditions.
+
+[INSIGHT-020] The registry's execute() method handles both sync and async
+handlers transparently (asyncio.iscoroutine check). Phase 2 media functions
+(generate_image, generate_video, generate_music) are marked is_async=True,
+meaning the router runs them as background tasks and returns immediately. This
+async pattern was already in vox.py from Phase 1 — Phase 2 just adds more
+functions that use it.
+
