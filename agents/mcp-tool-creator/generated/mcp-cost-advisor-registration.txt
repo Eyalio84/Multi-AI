@@ -1,0 +1,17 @@
+# MCP Tool Registration: mcp-cost-advisor
+# MCP server wrapping Cost Optimization Advisor Agent
+# Tools: 1
+#
+# To register with Claude Code, add to ~/.claude/.mcp.json:
+#
+# {
+#   "mcpServers": {
+#     "mcp-cost-advisor": {
+#       "command": "python3",
+#       "args": ["/storage/self/primary/Download/44nlke/NLKE/agents/mcp-tool-creator/generated/mcp_tool_cost_advisor.py", "--stdio"]
+#     }
+#   }
+# }
+#
+# Or register via CLI:
+#   claude mcp add mcp-cost-advisor python3 /storage/self/primary/Download/44nlke/NLKE/agents/mcp-tool-creator/generated/mcp_tool_cost_advisor.py --stdio

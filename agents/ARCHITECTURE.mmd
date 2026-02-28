@@ -1,0 +1,170 @@
+%%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#7c3aed', 'secondaryColor': '#2563eb', 'tertiaryColor': '#059669'}}}%%
+
+graph TB
+    subgraph SHARED["Shared Infrastructure"]
+        direction LR
+        BASE["agent_base.py<br/>L1-L5 Pattern"]
+        SDK["agent_sdk.py<br/>35-Agent Registry<br/>Pipeline Composition"]
+    end
+
+    subgraph OPUS_TIER["Opus Tier — $0.015/call — 4 Agents"]
+        direction LR
+        OE["opus-expender<br/>Creative Expansion"]
+        CI["compound-intelligence<br/>3-Tier Cascade"]
+        MMO["multi-model-orchestrator<br/>Capability Matching"]
+        CGO["codegen-orchestrator<br/>Code Gen Routing"]
+    end
+
+    subgraph SONNET_TIER["Sonnet Tier — $0.003/call — 20 Agents"]
+        direction TB
+
+        subgraph S_FOUNDATION["Foundation"]
+            SCA["sonnet-code-analyzer"]
+        end
+
+        subgraph S_KG["KG Enhancement"]
+            RS["relationship-suggester"]
+            KGC["kg-completer"]
+        end
+
+        subgraph S_WORKFLOW["Workflow"]
+            WO["workflow-orchestrator"]
+            GA["generator-agent"]
+        end
+
+        subgraph S_EMERGENT["Emergent"]
+            CQF["cost-quality-frontier"]
+        end
+
+        subgraph S_MULTI["Multi-Model"]
+            GD["gemini-delegator"]
+            CE["context-engineer"]
+        end
+
+        subgraph S_RULES["Rule Engine"]
+            REA["rule-engine-agent"]
+        end
+
+        subgraph S_KNOWLEDGE["Knowledge"]
+            RKQ["rag-kg-query"]
+            IE["intent-engine"]
+            RA["refactoring-agent"]
+        end
+
+        subgraph S_TOOLS["Advanced + Cross-Provider"]
+            MTC["mcp-tool-creator"]
+            EE["embedding-engine"]
+            GC["gemini-compute"]
+            WR["web-research"]
+            ATR["agentic-tool-router"]
+        end
+
+        subgraph S_CODEGEN["Code Generation"]
+            CGP["codegen-python"]
+            CGJ["codegen-javascript"]
+            CGHC["codegen-html-css"]
+            CGG["codegen-gemini"]
+        end
+    end
+
+    subgraph HAIKU_TIER["Haiku Tier — $0.00025/call — 16 Agents"]
+        direction TB
+
+        subgraph H_FOUNDATION["Foundation"]
+            DU["doc-updater"]
+            MC["md-cat"]
+            PC["py-cat"]
+        end
+
+        subgraph H_COST["Cost Optimization"]
+            CA["cost-advisor"]
+            BO["batch-optimizer"]
+            TBO["thinking-budget"]
+        end
+
+        subgraph H_SUPPORT["Monitoring + Validation"]
+            KGH["kg-health-monitor"]
+            PA["progressive-assembly"]
+            SHD["self-healing-docs"]
+            APV["anti-pattern-validator"]
+            PBA["playbook-advisor"]
+            CIA["citation-analyzer"]
+            VR["visual-report"]
+        end
+
+        subgraph H_CODEGEN["Code Generation"]
+            CGS["codegen-sql"]
+            CGB["codegen-bash"]
+        end
+    end
+
+    subgraph OUTPUT_CONTRACT["Output Contract"]
+        direction LR
+        REC["recommendations[]"]
+        RULES["rules_applied[]"]
+        META["meta_insight"]
+    end
+
+    subgraph EXTERNAL["External Systems"]
+        direction LR
+        CLAUDE_API["Claude API<br/>Opus/Sonnet/Haiku"]
+        GEMINI_API["Gemini API<br/>Flash/Pro"]
+        AILAB["AI-LAB<br/>22 GGUF Models"]
+        SYNTH["Synthesis Rules<br/>647 Rules"]
+        KG_DB["Knowledge Graphs<br/>8 JSON + SQLite"]
+    end
+
+    %% Infrastructure connections
+    BASE --> OPUS_TIER
+    BASE --> SONNET_TIER
+    BASE --> HAIKU_TIER
+    SDK --> OPUS_TIER
+    SDK --> SONNET_TIER
+    SDK --> HAIKU_TIER
+
+    %% All tiers produce output contract
+    OPUS_TIER --> OUTPUT_CONTRACT
+    SONNET_TIER --> OUTPUT_CONTRACT
+    HAIKU_TIER --> OUTPUT_CONTRACT
+
+    %% Cascade flow (compound intelligence)
+    H_COST -.->|"escalate"| S_EMERGENT
+    S_EMERGENT -.->|"escalate"| CI
+
+    %% Orchestration flows
+    CGO -->|"routes to"| S_CODEGEN
+    CGO -->|"routes to"| H_CODEGEN
+    MMO -->|"delegates"| GEMINI_API
+    ATR -->|"routes"| OPUS_TIER
+    ATR -->|"routes"| SONNET_TIER
+    ATR -->|"routes"| HAIKU_TIER
+
+    %% External connections
+    GD --> GEMINI_API
+    GC --> GEMINI_API
+    WR --> GEMINI_API
+    EE --> GEMINI_API
+    REA --> SYNTH
+    PBA --> SYNTH
+    KGH --> KG_DB
+    RS --> KG_DB
+    KGC --> KG_DB
+    RKQ --> KG_DB
+
+    %% AI-LAB integration
+    OUTPUT_CONTRACT -.->|"bridge"| AILAB
+
+    %% Styles
+    classDef opus fill:#7c3aed,stroke:#5b21b6,color:#fff,font-weight:bold
+    classDef sonnet fill:#2563eb,stroke:#1d4ed8,color:#fff
+    classDef haiku fill:#059669,stroke:#047857,color:#fff
+    classDef shared fill:#d97706,stroke:#b45309,color:#fff,font-weight:bold
+    classDef contract fill:#dc2626,stroke:#b91c1c,color:#fff,font-weight:bold
+    classDef external fill:#4b5563,stroke:#374151,color:#fff
+
+    class OE,CI,MMO,CGO opus
+    class SCA,RS,KGC,WO,GA,CQF,GD,CE,REA,RKQ,IE,RA,MTC,EE,GC,WR,ATR,CGP,CGJ,CGHC,CGG sonnet
+    class DU,MC,PC,CA,BO,TBO,KGH,PA,SHD,APV,PBA,CIA,VR,CGS,CGB haiku
+    class BASE,SDK shared
+    class REC,RULES,META contract
+    class CLAUDE_API,GEMINI_API,AILAB,SYNTH,KG_DB external

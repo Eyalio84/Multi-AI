@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "mcp-thinking-budget-optimizer": {
+      "command": "python3",
+      "args": [
+        "/storage/self/primary/Download/44nlke/NLKE/agents/mcp-tool-creator/generated/mcp_tool_thinking_budget_optimizer.py",
+        "--stdio"
+      ]
+    }
+  }
+}

@@ -1,0 +1,17 @@
+# MCP Tool Registration: mcp-batch-optimizer
+# MCP server wrapping Batch Optimizer Agent
+# Tools: 1
+#
+# To register with Claude Code, add to ~/.claude/.mcp.json:
+#
+# {
+#   "mcpServers": {
+#     "mcp-batch-optimizer": {
+#       "command": "python3",
+#       "args": ["/storage/self/primary/Download/44nlke/NLKE/agents/mcp-tool-creator/generated/mcp_tool_batch_optimizer.py", "--stdio"]
+#     }
+#   }
+# }
+#
+# Or register via CLI:
+#   claude mcp add mcp-batch-optimizer python3 /storage/self/primary/Download/44nlke/NLKE/agents/mcp-tool-creator/generated/mcp_tool_batch_optimizer.py --stdio
