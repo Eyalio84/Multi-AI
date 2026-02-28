@@ -1,0 +1,90 @@
+# VOX Jarvis-Mode Implementation — Compound Insights Log
+# Started: 2026-02-28
+# Protocol: Log insights during each phase. At phase completion, analyze with
+# extended thinking to evaluate which insights enhance the next phase.
+# Don't force connections — let insights emerge from the implementation process.
+
+================================================================================
+PHASE 0 — Context Preservation (Pre-Implementation)
+================================================================================
+
+[INSIGHT-001] Port inconsistency discovered: useVox.ts uses port 8088 while
+apiService.ts and other hooks use port 8000. This must be resolved in Phase 1
+during the voxCore.ts extraction. Decision: voxCore.ts should derive its port
+from the same base as apiService (8000 for backend, or configurable).
+
+[INSIGHT-002] networkx is in requirements.txt but NOT installed. The
+analytics_service.py that VOX KG functions will call in Phase 2 depends on it.
+Must install before Phase 2 function testing. Same for apscheduler (Phase 5)
+and feedparser (Phase 5).
+
+[INSIGHT-003] The current VoxSession dataclass has NO conversation_id field
+and NO persona field. Phase 1 adds these fields, but the WebSocket handler
+(`_gemini_receive_loop`, `_claude_text_pipeline`) references session.* fields
+extensively. Adding fields to VoxSession is safe (dataclass with defaults),
+but the system_instruction builder that reads session state needs updating too.
+
+[INSIGHT-004] The 6 browser functions in useVox.ts (navigate_page,
+get_current_page, get_workspace_state, switch_model, switch_theme,
+read_page_content) use React Router's useNavigate — which is a HOOK.
+Moving to voxCore.ts (plain module, not React) means we can't use hooks.
+Solution: voxCore.ts must accept a navigation callback during initialization,
+injected by the React layer. Pattern: `voxCore.setNavigator(navigate)` called
+from useVox.ts's useEffect.
+
+[INSIGHT-005] The BROWSER_FUNCTIONS set in vox.py (line 657) is used in the
+WebSocket handler to decide whether to forward function calls to the frontend
+or execute server-side. The registry needs to preserve this distinction.
+VoxFunction.is_browser_side flag needed, or keep BROWSER_FUNCTIONS as a
+separate set derived from registry metadata.
+
+[INSIGHT-006] The AI-LAB prototype uses Vue refs (reactive) at module scope.
+Our voxCore.ts will use plain JS variables. This means React components won't
+auto-re-render when voxCore state changes. The event emitter pattern (on/off)
+must trigger React setState in useVox.ts. This is the key architectural bridge:
+voxCore owns state, useVox subscribes to changes and forces React re-renders.
+
+================================================================================
+PHASE 1 — Core Refactor (Implementation)
+================================================================================
+
+[INSIGHT-007] The decorator-based registry pattern (vox_registry.py) is more
+powerful than initially planned. The VoxRegistry class holds VoxFunction objects
+with is_browser, is_async, and requires_kg flags, enabling dynamic set
+generation (get_browser_functions(), get_async_functions()) that replaces
+hardcoded constants. This means Phase 2's 70+ new functions just need
+@vox_registry.register() — zero changes to the router or WebSocket handler.
+
+[INSIGHT-008] vox.py went from 1086 lines to 575 lines (47% reduction) by
+removing the 288-line if/elif dispatch. The remaining code is pure WebSocket
+orchestration — session lifecycle, audio forwarding, reconnect logic. This
+clean separation means Phase 2 (expanded functions) and Phase 4 (error
+recovery) can modify different files without conflicts.
+
+[INSIGHT-009] The _execute_server_function thin wrapper was kept for backward
+compatibility (vox_macros.py calls it as an executor). But vox_registry.execute()
+is now the canonical entry point. Phase 2 should verify macro execution still
+works after adding 70+ functions, since macros pass the executor function.
+
+[INSIGHT-010] voxCore.ts uses relative URLs (API_BASE = '/api', WS derived
+from window.location.host) resolving INSIGHT-001. This means the app works
+with any reverse proxy configuration, not just port 8088. The old useVox.ts
+hardcoded port is eliminated.
+
+[INSIGHT-011] The event emitter to React bridge pattern works cleanly:
+voxCore emits 'state_change', useVox subscribes in useEffect, calls
+setState({...newState}). The on() function returns an unsubscribe function
+(closure pattern), which useEffect cleanup calls. This is more reliable than
+the previous stateRef.current synchronization pattern.
+
+[INSIGHT-012] VoxOverlay 3-state (dormant/listening/speaking) uses CSS
+@keyframes animations (vox-pulse, vox-wave) injected via style tag.
+The haptic feedback (navigator.vibrate) triggers on state transitions.
+Phase 4 (personas) can extend this with persona-specific colors/animations.
+
+[INSIGHT-013] The voxCore singleton survives React Router navigation because
+module-level variables persist across import. But the navigation callback
+(setNavigator) must be re-injected on every useVox mount because useNavigate
+returns a new function reference each time. The useEffect in useVox.ts handles
+this correctly via dependency on [navigate, location.pathname].
+

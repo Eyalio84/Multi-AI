@@ -11,6 +11,8 @@ export interface VoxState {
   functionLog: VoxFunctionEntry[];
   error: string | null;
   reconnecting: boolean;
+  persona: string;
+  conversationId: string | null;
 }
 
 export interface VoxTranscriptEntry {

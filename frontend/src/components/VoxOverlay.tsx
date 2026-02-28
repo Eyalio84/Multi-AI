@@ -1,6 +1,14 @@
 /**
- * VoxOverlay — Floating voice control pill visible on every page.
- * Sits in bottom-right corner. Expands to show controls + transcript.
+ * VoxOverlay — 3-state floating voice control.
+ *
+ * States:
+ * 1. Dormant — Small "V" pill, bottom-right, tap to expand
+ * 2. Listening — Pulsing ring animation, active mic, mini-transcript
+ * 3. Speaking — Wave animation, VOX response playing
+ *
+ * Always-visible mini-transcript (last 3 exchanges) when expanded.
+ * Text input field for typed queries.
+ * Haptic feedback on state transitions.
  */
 import React, { useState, useRef, useEffect } from 'react';
 import { useVoxContext } from '../context/VoxContext';
@@ -25,11 +33,16 @@ const VOICES: VoxVoice[] = [
   { id: 'Orbit', name: 'Orbit', gender: 'Male', style: 'Futuristic' },
 ];
 
+function haptic(ms = 50) {
+  try { navigator.vibrate?.(ms); } catch (_) {}
+}
+
 const VoxOverlay: React.FC = () => {
   const { state, connect, disconnect, toggleMic, sendText, setVoice, isAvailable } = useVoxContext();
   const [expanded, setExpanded] = useState(false);
   const [textInput, setTextInput] = useState('');
   const transcriptRef = useRef<HTMLDivElement>(null);
+  const prevStateRef = useRef({ listening: false, speaking: false, connected: false });
 
   // Auto-scroll transcript
   useEffect(() => {
@@ -37,6 +50,19 @@ const VoxOverlay: React.FC = () => {
       transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
     }
   }, [state.transcript]);
+
+  // Haptic feedback on state transitions
+  useEffect(() => {
+    const prev = prevStateRef.current;
+    if (!prev.connected && state.connected) haptic(100);
+    else if (!prev.listening && state.listening) haptic(50);
+    else if (!prev.speaking && state.speaking) haptic(30);
+    prevStateRef.current = {
+      listening: state.listening,
+      speaking: state.speaking,
+      connected: state.connected,
+    };
+  }, [state.connected, state.listening, state.speaking]);
 
   if (!isAvailable) return null;
 
@@ -52,30 +78,60 @@ const VoxOverlay: React.FC = () => {
     }
   };
 
-  // Collapsed pill
+  // Determine visual state
+  const voxState = state.speaking ? 'speaking' : state.listening ? 'listening' : 'dormant';
+
+  // Styles for V button based on state
+  const buttonStyles: Record<string, React.CSSProperties> = {
+    dormant: {
+      background: state.connected ? 'var(--t-primary)' : 'var(--t-surface)',
+      color: state.connected ? '#fff' : 'var(--t-text)',
+      border: `2px solid ${state.connected ? 'transparent' : 'var(--t-border)'}`,
+    },
+    listening: {
+      background: 'var(--t-primary)',
+      color: '#fff',
+      border: '2px solid var(--t-primary)',
+      boxShadow: '0 0 0 4px rgba(14, 165, 233, 0.3)',
+    },
+    speaking: {
+      background: '#22c55e',
+      color: '#fff',
+      border: '2px solid #22c55e',
+      boxShadow: '0 0 0 4px rgba(34, 197, 94, 0.3)',
+    },
+  };
+
+  // ── Collapsed: "V" button ──────────────────────────────────────────
   if (!expanded) {
     return (
       <button
-        onClick={() => setExpanded(true)}
-        className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-4 py-2 rounded-full shadow-lg transition-all hover:scale-105"
+        onClick={() => { setExpanded(true); haptic(50); }}
+        className="fixed bottom-4 right-4 z-50 flex items-center justify-center rounded-full shadow-lg transition-all hover:scale-110"
         style={{
-          background: state.connected ? 'var(--t-primary)' : 'var(--t-surface)',
-          color: state.connected ? '#fff' : 'var(--t-text)',
-          border: `1px solid ${state.connected ? 'transparent' : 'var(--t-border)'}`,
+          width: 48,
+          height: 48,
+          ...buttonStyles[voxState],
+          animation: voxState === 'listening' ? 'vox-pulse 2s ease-in-out infinite' :
+                     voxState === 'speaking' ? 'vox-wave 1s ease-in-out infinite' : undefined,
         }}
       >
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-        </svg>
-        <span className="text-xs font-bold">VOX</span>
-        {state.connected && (
-          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-        )}
+        <span className="font-black text-lg">V</span>
+        <style>{`
+          @keyframes vox-pulse {
+            0%, 100% { box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.3); }
+            50% { box-shadow: 0 0 0 10px rgba(14, 165, 233, 0.1); }
+          }
+          @keyframes vox-wave {
+            0%, 100% { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.3); }
+            50% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0.1); }
+          }
+        `}</style>
       </button>
     );
   }
 
-  // Expanded panel
+  // ── Expanded panel ─────────────────────────────────────────────────
   return (
     <div
       className="fixed bottom-4 right-4 z-50 rounded-xl shadow-2xl overflow-hidden"
@@ -86,17 +142,27 @@ const VoxOverlay: React.FC = () => {
         maxHeight: '80vh',
       }}
     >
-      {/* Header */}
+      {/* Header with state indicator */}
       <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: 'var(--t-border)' }}>
         <div className="flex items-center gap-2">
-          <span className="font-bold text-sm" style={{ color: 'var(--t-primary)' }}>VOX</span>
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black"
+            style={{
+              ...buttonStyles[voxState],
+              animation: voxState === 'listening' ? 'vox-pulse 2s ease-in-out infinite' :
+                         voxState === 'speaking' ? 'vox-wave 1s ease-in-out infinite' : undefined,
+            }}
+          >
+            V
+          </div>
+          <span className="font-bold text-sm" style={{ color: 'var(--t-text)' }}>VOX</span>
           {state.connected && (
-            <>
-              <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--t-surface2)', color: 'var(--t-muted)' }}>
-                {state.mode === 'gemini' ? 'Gemini' : 'Claude'}
-              </span>
-              <span className="w-2 h-2 rounded-full bg-green-400" />
-            </>
+            <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--t-surface2)', color: 'var(--t-muted)' }}>
+              {state.mode === 'gemini' ? 'Gemini' : 'Claude'}
+            </span>
+          )}
+          {state.reconnecting && (
+            <span className="text-xs text-yellow-400 animate-pulse">Reconnecting...</span>
           )}
         </div>
         <button onClick={() => setExpanded(false)} className="text-lg leading-none px-1" style={{ color: 'var(--t-muted)' }}>
@@ -110,14 +176,14 @@ const VoxOverlay: React.FC = () => {
           <div className="flex gap-2">
             <button
               onClick={() => handleConnect('gemini')}
-              className="flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-colors"
+              className="flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all hover:scale-[1.02]"
               style={{ background: 'var(--t-primary)', color: '#fff' }}
             >
               Gemini Voice
             </button>
             <button
               onClick={() => handleConnect('claude')}
-              className="flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-colors"
+              className="flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all hover:scale-[1.02]"
               style={{ background: '#9a3412', color: '#fff' }}
             >
               Claude Voice
@@ -147,11 +213,11 @@ const VoxOverlay: React.FC = () => {
       {/* Connected: transcript + controls */}
       {state.connected && (
         <>
-          {/* Transcript */}
+          {/* Mini-transcript */}
           <div
             ref={transcriptRef}
             className="overflow-y-auto px-3 py-2 space-y-1.5"
-            style={{ maxHeight: 240, minHeight: 120 }}
+            style={{ maxHeight: 240, minHeight: 100 }}
           >
             {state.transcript.length === 0 && (
               <p className="text-xs italic" style={{ color: 'var(--t-muted)' }}>
@@ -191,18 +257,18 @@ const VoxOverlay: React.FC = () => {
             </div>
           </form>
 
-          {/* Stats + controls */}
+          {/* State bar + controls */}
           <div className="px-3 pb-3 flex items-center justify-between border-t pt-2" style={{ borderColor: 'var(--t-border)' }}>
             <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--t-muted)' }}>
-              <span>Turns: {state.turnCount}</span>
-              <span>Fns: {state.functionCount}</span>
-              {state.speaking && <span className="text-green-400">Speaking...</span>}
-              {state.listening && <span className="text-blue-400">Listening...</span>}
+              <span>T:{state.turnCount}</span>
+              <span>F:{state.functionCount}</span>
+              {state.speaking && <span className="text-green-400 animate-pulse">Speaking</span>}
+              {state.listening && !state.speaking && <span className="text-blue-400 animate-pulse">Listening</span>}
             </div>
             <div className="flex gap-1">
               <button
-                onClick={toggleMic}
-                className="p-1.5 rounded"
+                onClick={() => { toggleMic(); haptic(50); }}
+                className="p-1.5 rounded transition-all"
                 style={{
                   background: state.listening ? 'var(--t-primary)' : 'var(--t-surface2)',
                   color: state.listening ? '#fff' : 'var(--t-muted)',
@@ -218,8 +284,8 @@ const VoxOverlay: React.FC = () => {
                 </svg>
               </button>
               <button
-                onClick={disconnect}
-                className="p-1.5 rounded"
+                onClick={() => { disconnect(); haptic(100); }}
+                className="p-1.5 rounded transition-all hover:scale-110"
                 style={{ background: '#ef4444', color: '#fff' }}
                 title="Disconnect"
               >

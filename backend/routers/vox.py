@@ -1,7 +1,7 @@
 """VOX voice router — WebSocket for bidirectional audio + REST helpers.
 
 Enhanced with:
-- ~35 function handlers (up from 17)
+- Function execution via vox_registry (decorator-based, replacing if/elif)
 - Awareness endpoints
 - Guided tours endpoints
 - Voice macro endpoints
@@ -20,8 +20,14 @@ from pydantic import BaseModel
 from typing import Optional
 
 from services.vox_service import vox_service, VoxSession, GEMINI_VOICES, build_function_declarations
+from services.vox_registry import vox_registry
 
 router = APIRouter()
+
+# ── Function execution via registry ───────────────────────────────────
+
+BROWSER_FUNCTIONS = vox_registry.get_browser_functions()
+ASYNC_FUNCTIONS = vox_registry.get_async_functions()
 
 # ── Async task queue for long-running operations ──────────────────────
 _async_tasks: dict[str, asyncio.Task] = {}
@@ -35,6 +41,11 @@ async def _run_with_timeout(coro, timeout=ASYNC_TASK_TIMEOUT):
         return await asyncio.wait_for(coro, timeout=timeout)
     except asyncio.TimeoutError:
         return {"success": False, "error": f"Task timed out after {timeout}s"}
+
+
+async def _execute_server_function(name: str, args: dict) -> dict:
+    """Delegate to vox_registry."""
+    return await vox_registry.execute(name, args)
 
 
 # ── REST endpoints ─────────────────────────────────────────────────────
@@ -69,7 +80,7 @@ class FunctionRunRequest(BaseModel):
 @router.post("/api/vox/function/{fn_name}")
 async def run_function(fn_name: str, req: FunctionRunRequest):
     """Execute a workspace function server-side (for tools, KG, agents)."""
-    result = await _execute_server_function(fn_name, req.args)
+    result = await vox_registry.execute(fn_name, req.args)
     return {"name": fn_name, "result": result}
 
 
@@ -194,7 +205,7 @@ async def delete_macro(macro_id: str):
 async def run_macro_endpoint(macro_id: str):
     """Execute a voice macro by ID."""
     from services.vox_macros import vox_macro_service
-    results = await vox_macro_service.execute_macro(macro_id, _execute_server_function)
+    results = await vox_macro_service.execute_macro(macro_id, vox_registry.execute)
     return {"success": True, "results": results}
 
 
@@ -343,321 +354,6 @@ async def interview_generate(req: InterviewGenerateRequest):
         yield f"data: {json.dumps({'type': 'complete', 'files': all_files, 'deps': all_deps})}\n\n"
 
     return StreamingResponse(stream(), media_type="text/event-stream")
-
-
-# ── Server-side function execution ─────────────────────────────────────
-
-# Functions that should run async (potentially slow)
-ASYNC_FUNCTIONS = {"ingest_to_kg", "run_workflow", "cross_kg_search", "run_agent"}
-
-
-async def _execute_server_function(name: str, args: dict) -> dict:
-    """Execute workspace functions that need backend access."""
-    try:
-        # ── Core tools ─────────────────────────────────────────────
-        if name == "run_tool":
-            from services.tools_service import tools_service
-            tool_id = args.get("tool_id", "")
-            params = args.get("params", {})
-            result = await tools_service.run_tool(tool_id, params)
-            return {"success": True, "result": _safe_serialize(result)}
-
-        elif name == "list_tools":
-            from services.tools_service import tools_service
-            tools_data = tools_service.list_tools()
-            summary = []
-            for cat_tools in tools_data.get("tools", {}).values():
-                for t in cat_tools:
-                    summary.append({"id": t["id"], "name": t["name"], "category": t["category"]})
-            return {"success": True, "tools": summary, "count": len(summary)}
-
-        elif name == "query_kg":
-            from services.embedding_service import EmbeddingService
-            db_id = args.get("database_id", "")
-            query = args.get("query", "")
-            svc = EmbeddingService(db_id)
-            results = svc.hybrid_search(query, limit=5)
-            return {"success": True, "results": results[:5], "database": db_id}
-
-        elif name == "list_kgs":
-            from services.kg_service import kg_service
-            dbs = kg_service.list_databases()
-            summary = [{"id": d["id"], "name": d.get("name", d["id"]), "nodes": d.get("node_count", 0)} for d in dbs]
-            return {"success": True, "databases": summary, "count": len(summary)}
-
-        elif name == "run_agent":
-            from services.agent_bridge import run_agent
-            agent_name = args.get("agent_name", "")
-            agent_input = args.get("input", "")
-            result = await asyncio.to_thread(run_agent, agent_name, {"text": agent_input})
-            return {"success": True, "result": _safe_serialize(result)}
-
-        elif name == "list_agents":
-            from services.agent_bridge import list_agents
-            agents = list_agents()
-            return {"success": True, "agents": agents, "count": len(agents)}
-
-        # ── Direct developer tool shortcuts ────────────────────────
-        elif name == "generate_react_component":
-            from services.tools_service import tools_service
-            params = {
-                "name": args.get("name", "MyComponent"),
-                "description": args.get("description", ""),
-                "framework": args.get("framework", "react"),
-                "features": args.get("features", "state"),
-            }
-            result = await tools_service.run_tool("react_component_generator", params)
-            return {"success": True, "result": _safe_serialize(result)}
-
-        elif name == "generate_fastapi_endpoint":
-            from services.tools_service import tools_service
-            params = {
-                "description": args.get("description", ""),
-                "method": args.get("method", "POST"),
-                "path": args.get("path", "/api/resource"),
-                "framework": args.get("framework", "fastapi"),
-            }
-            result = await tools_service.run_tool("fastapi_endpoint_generator", params)
-            return {"success": True, "result": _safe_serialize(result)}
-
-        elif name == "scan_code_security":
-            from services.tools_service import tools_service
-            params = {
-                "code": args.get("code", ""),
-                "language": args.get("language", "python"),
-            }
-            result = await tools_service.run_tool("security_scanner", params)
-            return {"success": True, "result": _safe_serialize(result)}
-
-        elif name == "analyze_code_complexity":
-            from services.tools_service import tools_service
-            params = {
-                "code": args.get("code", ""),
-                "language": args.get("language", "python"),
-            }
-            result = await tools_service.run_tool("complexity_scorer", params)
-            return {"success": True, "result": _safe_serialize(result)}
-
-        elif name == "generate_tests":
-            from services.tools_service import tools_service
-            params = {
-                "code": args.get("code", ""),
-                "framework": args.get("framework", "pytest"),
-                "style": args.get("style", "unit"),
-            }
-            result = await tools_service.run_tool("pytest_generator", params)
-            return {"success": True, "result": _safe_serialize(result)}
-
-        # ── Guided Tours ───────────────────────────────────────────
-        elif name == "start_guided_tour":
-            page = args.get("page", "")
-            tours = _load_tours()
-            if not page:
-                return {"success": False, "error": "No page specified. Ask the user which page to tour."}
-            tour = tours.get(page)
-            if not tour:
-                available = list(tours.keys())
-                return {"success": False, "error": f"No tour for '{page}'. Available: {', '.join(available)}"}
-            return {"success": True, "action": "start_tour", "page": page, "tour": tour}
-
-        elif name == "get_available_tours":
-            tours = _load_tours()
-            summary = [
-                {"page": p, "name": t.get("name", ""), "steps": len(t.get("steps", []))}
-                for p, t in tours.items()
-            ]
-            return {"success": True, "tours": summary, "count": len(summary)}
-
-        # ── Workspace Control (Jarvis Mode) ────────────────────────
-        elif name == "create_project":
-            from services.studio_service import studio_service
-            project_name = args.get("name", "Untitled")
-            description = args.get("description", "")
-            project = studio_service.create_project(project_name, description)
-            return {"success": True, "project_id": project.get("id"), "name": project_name}
-
-        elif name == "list_projects":
-            from services.studio_service import studio_service
-            projects = studio_service.list_projects()
-            summary = [{"id": p.get("id"), "name": p.get("name", ""), "file_count": p.get("file_count", 0)} for p in projects]
-            return {"success": True, "projects": summary, "count": len(summary)}
-
-        elif name == "run_workflow":
-            workflow_name = args.get("workflow_name", "")
-            workflow_input = args.get("input", "")
-            # Map names to template files
-            templates = {
-                "error-recovery": "error-recovery-workflow.json",
-                "knowledge-synthesis": "knowledge-synthesis-workflow.json",
-                "session-handoff": "session-handoff-workflow.json",
-                "multi-agent": "multi-agent-orchestration-workflow.json",
-            }
-            tpl_file = templates.get(workflow_name)
-            if not tpl_file:
-                return {"success": False, "error": f"Unknown workflow: {workflow_name}. Available: {', '.join(templates.keys())}"}
-            return {"success": True, "workflow": workflow_name, "status": "initiated", "input": workflow_input[:200]}
-
-        elif name == "search_playbooks":
-            from services.playbook_index import playbook_index
-            query = args.get("query", "")
-            results = playbook_index.search(query)
-            return {"success": True, "results": results[:5], "count": len(results)}
-
-        elif name == "search_kg":
-            from services.embedding_service import EmbeddingService
-            db_id = args.get("database_id", "")
-            query = args.get("query", "")
-            limit = args.get("limit", 5)
-            svc = EmbeddingService(db_id)
-            results = svc.hybrid_search(query, limit=limit)
-            # Optional type filter
-            node_type = args.get("node_type", "")
-            if node_type:
-                results = [r for r in results if r.get("node_type", "") == node_type]
-            return {"success": True, "results": results[:limit], "database": db_id, "query": query}
-
-        # ── KG Studio Control ──────────────────────────────────────
-        elif name == "get_kg_analytics":
-            from services.analytics_service import get_analytics
-            db_id = args.get("database_id", "")
-            analytics = get_analytics(db_id)
-            return {"success": True, "database": db_id, "analytics": _safe_serialize(analytics)}
-
-        elif name == "cross_kg_search":
-            from services.kg_service import kg_service
-            from services.embedding_service import EmbeddingService
-            query = args.get("query", "")
-            db_ids_str = args.get("database_ids", "all")
-            limit = args.get("limit", 3)
-            if db_ids_str == "all":
-                dbs = kg_service.list_databases()
-                db_ids = [d["id"] for d in dbs[:10]]  # Max 10 DBs
-            else:
-                db_ids = [d.strip() for d in db_ids_str.split(",")]
-            all_results = {}
-            for db_id in db_ids:
-                try:
-                    svc = EmbeddingService(db_id)
-                    results = svc.hybrid_search(query, limit=limit)
-                    all_results[db_id] = results[:limit]
-                except Exception:
-                    all_results[db_id] = []
-            return {"success": True, "results": _safe_serialize(all_results), "databases_searched": len(db_ids)}
-
-        elif name == "ingest_to_kg":
-            from services.ingestion_service import ingestion_service
-            db_id = args.get("database_id", "")
-            text = args.get("text", "")
-            result = await asyncio.to_thread(ingestion_service.ingest_text, db_id, text)
-            return {"success": True, "result": _safe_serialize(result)}
-
-        # ── Expert Control ─────────────────────────────────────────
-        elif name == "chat_with_expert":
-            from services.expert_service import expert_service
-            expert_id = args.get("expert_id", "")
-            message = args.get("message", "")
-            # Create or get conversation, get response
-            result = expert_service.chat(expert_id, message)
-            return {"success": True, "result": _safe_serialize(result)}
-
-        elif name == "list_experts":
-            from services.expert_service import expert_service
-            experts = expert_service.list_experts()
-            summary = [{"id": e.get("id"), "name": e.get("name", ""), "kg": e.get("database_id", "")} for e in experts]
-            return {"success": True, "experts": summary, "count": len(summary)}
-
-        # ── Voice Macros ───────────────────────────────────────────
-        elif name == "create_macro":
-            from services.vox_macros import vox_macro_service
-            steps_raw = args.get("steps", "[]")
-            if isinstance(steps_raw, str):
-                steps = json.loads(steps_raw)
-            else:
-                steps = steps_raw
-            macro = vox_macro_service.create_macro(
-                name=args.get("name", ""),
-                trigger_phrase=args.get("trigger_phrase", ""),
-                steps=steps,
-                error_policy=args.get("error_policy", "abort"),
-            )
-            return {"success": True, "macro": macro}
-
-        elif name == "list_macros":
-            from services.vox_macros import vox_macro_service
-            return {"success": True, "macros": vox_macro_service.list_macros()}
-
-        elif name == "run_macro":
-            from services.vox_macros import vox_macro_service
-            macro_id = args.get("macro_id", "")
-            results = await vox_macro_service.execute_macro(macro_id, _execute_server_function)
-            return {"success": True, "results": _safe_serialize(results)}
-
-        elif name == "delete_macro":
-            from services.vox_macros import vox_macro_service
-            deleted = vox_macro_service.delete_macro(args.get("macro_id", ""))
-            return {"success": deleted, "message": "Macro deleted" if deleted else "Macro not found"}
-
-        # ── Thermal Monitoring ─────────────────────────────────────
-        elif name == "check_thermal":
-            from services.vox_thermal import thermal_monitor
-            result = await thermal_monitor.check()
-            return {"success": True, **result}
-
-        # ── Feature Interview ─────────────────────────────────────
-        elif name == "start_feature_interview":
-            interview = _load_interview()
-            if not interview:
-                return {"success": False, "error": "Interview definition not found"}
-            domain = args.get("domain", "")
-            questions = interview.get("questions", [])
-            # If domain pre-selected, mark Q1 as answered
-            first_question = questions[0] if questions else {}
-            if domain and first_question.get("options"):
-                matched = next(
-                    (o for o in first_question["options"] if o["id"] == domain),
-                    None,
-                )
-                if matched:
-                    return {
-                        "success": True,
-                        "action": "start_interview",
-                        "total_questions": len(questions),
-                        "pre_selected_domain": matched["label"],
-                        "next_question": questions[1] if len(questions) > 1 else None,
-                        "message": f"Great choice! You selected {matched['label']}. Let me walk you through 9 more questions to shape your MVP.",
-                    }
-            return {
-                "success": True,
-                "action": "start_interview",
-                "total_questions": len(questions),
-                "first_question": first_question,
-                "message": "Let's build something! I'll ask you 10 quick questions to understand what you need, then generate a working React MVP. First up: what kind of app do you want to build?",
-            }
-
-        else:
-            return {"success": False, "error": f"Unknown server function: {name}"}
-
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-def _safe_serialize(obj):
-    """Ensure object is JSON-serializable."""
-    if isinstance(obj, dict):
-        return {k: _safe_serialize(v) for k, v in obj.items()}
-    elif isinstance(obj, (list, tuple)):
-        return [_safe_serialize(v) for v in obj]
-    elif isinstance(obj, (str, int, float, bool, type(None))):
-        return obj
-    else:
-        return str(obj)
-
-
-# ── Browser-side function list (executed in frontend, not here) ────────
-BROWSER_FUNCTIONS = {
-    "navigate_page", "get_current_page", "get_workspace_state",
-    "switch_model", "switch_theme", "read_page_content",
-}
 
 
 # ── WebSocket endpoint ─────────────────────────────────────────────────
@@ -846,7 +542,7 @@ async def _gemini_receive_loop(ws: WebSocket, session: VoxSession):
                         })
 
                         async def _run_async(ws_ref, sess, fname, fargs, tid, fcid):
-                            result = await _run_with_timeout(_execute_server_function(fname, fargs))
+                            result = await _run_with_timeout(vox_registry.execute(fname, fargs))
                             try:
                                 await ws_ref.send_json({
                                     "type": "async_task_complete",
@@ -871,7 +567,7 @@ async def _gemini_receive_loop(ws: WebSocket, session: VoxSession):
 
                     # Server-side functions: execute and send result back
                     if fn_name not in BROWSER_FUNCTIONS:
-                        result = await _execute_server_function(fn_name, fn_args)
+                        result = await vox_registry.execute(fn_name, fn_args)
                         await ws.send_json({
                             "type": "function_call",
                             "name": fn_name,
@@ -947,7 +643,7 @@ async def _gemini_receive_loop(ws: WebSocket, session: VoxSession):
 def _build_claude_tools() -> list[dict]:
     """Convert VOX function declarations to Anthropic tool_use format."""
     tools = []
-    for fn in build_function_declarations():
+    for fn in vox_registry.get_declarations():
         tools.append({
             "name": fn["name"],
             "description": fn.get("description", ""),
@@ -1021,7 +717,7 @@ async def _claude_text_pipeline(ws: WebSocket, session: VoxSession, text: str):
                 session.function_count += 1
 
                 if fn_name not in BROWSER_FUNCTIONS:
-                    result = await _execute_server_function(fn_name, fn_args)
+                    result = await vox_registry.execute(fn_name, fn_args)
                     await ws.send_json({
                         "type": "function_call",
                         "name": fn_name,
